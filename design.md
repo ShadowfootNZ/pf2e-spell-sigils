@@ -67,6 +67,10 @@ After that refresh, upstream has 2018 spells. 26 of them are not in `spells-data
 
 ## Rendering
 
+### Formality by category
+
+Tradition spells are drawn with the most precision: ruled bands, tightly set writing and closed circles. Cantrips and focus spells need less perfection and are drawn more simply; focus spells are personal magic rather than drilled tradition magic. Rituals take more time, effort and planning than ordinary spells, and their treatment is still to be designed (plan item 42). Rank 10 breaks the rules (plan item 65).
+
 ### Determinism
 
 `rngFor(spell)` seeds mulberry32 with an FNV-1a hash of `name + '::' + slug`. Geometry, rune choice, placement and color all draw from that one stream in a fixed order. As a result:
@@ -83,18 +87,19 @@ Once images are shared publicly, treat any of these as a visible change to exist
 
 A sigil is drawn in a 600 by 600 viewBox centred on (300, 300) with an outer radius of about 258.
 
-- **Rune bands.** A cantrip gets one plain circle. Ranks 1 to 3 get one runic band, ranks 4 to 6 get two and ranks 7 to 10 get three, at 6/6, 4/6 and 2/6 of the outer radius. Each band is an outer and an inner circle 12 units apart with rune marks between them. The marks are grouped into "words" of 2 to 5 at a fixed letter pitch so the band reads as script.
+- **Rune bands.** A cantrip gets one plain circle, except a focus cantrip, which gets one band. Ranks 1 to 3 get one runic band, ranks 4 to 6 get two and ranks 7 to 10 get three, at 6/6, 4/6 and 2/6 of the outer radius. Each band is an outer and an inner circle 12 units apart with rune marks between them. The marks are grouped into "words" of 2 to 5 at a fixed letter pitch so the band reads as script.
 - **Central polygon.** It has `rank + 3` sides, nudged by up to one per spell and clamped to 3 to 12, at 5/6 of the outer radius. From rank 3, star chords join non-adjacent vertices when there are at least 5 sides. From rank 5, a counter-rotated second polygon sits at 3/6.
 - **Center.** A medallion holds one trait glyph when the spell is "centered". A containment ring surrounds it, aligned to the innermost band when there are three bands.
 - **Ring medallions.** Trait glyphs sit in medallions that straddle the outer band, each with its own miniature rune band. Placement depends on the number of curated traits. One goes to the center. Two go on the ring, 180° apart. With 3 to 6, the spell is centered with 75% probability, and otherwise all of them go on the ring. With 7 or more, the spell is always centered. The ring holds at most 8. Rank also sets a floor of 1 to 3 ring slots, and slots without a glyph get smaller rune-only fillers. One slot is anchored to a polygon vertex and the rest are spaced evenly from it. The outer band leaves a gap under each medallion.
-- **Traditionless spells** draw their band circles as open arcs, because the circle cannot close. The flag is `traditions.length === 0`, so this currently applies to rituals as well as focus spells (open item 42).
+- **Focus spells** draw each band as writing only, with no ruled lines, and double the letter pitch so the writing is spaced like double-spaced lettering. A focus cantrip gets one such band in place of the plain circle, so its medallions still sit on a ring. Medallions keep their lines. With no band lines, the idle comets ride only the polygon.
+- **Traditionless rituals** draw their band circles as open arcs (`isTraditionless`). The arcs used to mean that a focus spell's circle can't close; focus spells no longer draw band lines, so only the 163 traditionless rituals still use them, pending plan item 42.
 - **Mythic spells**, 33 of them, get one fractured polygon edge. `fractureEdge` returns a new point list, so medallion anchoring still uses the clean polygon.
 
 ### Symbol vocabularies
 
-- `GLYPHS` has 58 entries mapping a trait to a drawing in a 24 by 24 box. A trait with an entry is "curated": it can take a medallion and is highlighted in the trait list. 1447 of the 1993 spells have at least one curated trait.
+- `GLYPHS` has 57 entries mapping a trait to a drawing in a 24 by 24 box. A trait with an entry is "curated": it can take a medallion and is highlighted in the trait list. Class traits get no entry, because the class badge already names the class; `psychic` had one until 2026-10-22. 1439 of the 1993 spells have at least one curated trait.
 - `RUNES` has 54 small marks in a box of roughly 8 units centred on the origin. `RUNE_TRADITION` is a parallel array that tags each one: 8 arcane, 8 divine, 9 primal and 29 occult. The two arrays must stay in the same order. The occult set includes 26 marks simplified from Paizo's Cosmic Caravan art: 13 constellations, the Diaspora, the Sun and 11 planets. The divine runes are deliberately abstract so that none reads as a real-world religious symbol.
-- Each spell draws from its own rune vocabulary. A rank-scaled budget is split evenly across its traditions, so occult's larger pool doesn't dominate. Traditionless spells sample all four traditions at half the budget.
+- Each spell draws from its own rune vocabulary. A rank-scaled budget is split evenly across its traditions, so occult's larger pool doesn't dominate. Traditionless spells sample all four traditions at half the budget, with a floor of 2 shapes, or 4 for focus spells so their spaced writing doesn't reduce to a two-symbol pattern.
 
 ### Color
 
@@ -120,7 +125,7 @@ A sigil is drawn in a 600 by 600 viewBox centred on (300, 300) with an outer rad
   - CSS drop-shadows updated every frame;
   - `glowDuplicate` clones, which are wider blurred copies of each stroke in a shared layer behind everything else.
 - The generation counter `blurGen` abandons the glow loop of the previously selected spell.
-- After the sigil settles, about a third of its lines pulse in opacity. Faint comets from `energyLoop` circle the outer band, the inner border and the polygon.
+- After the sigil settles, about a third of its lines pulse in opacity. Faint comets from `energyLoop` circle the outer band, the inner border and the polygon; focus spells have no band lines, so only the polygon comet.
 - Two experiments are still switched on. TEST #1 removes the tight near glow from the filter. TEST #3 turns the glow into a one-off flash instead of a continuous breathe, and the breathing code sits commented out beside it. Plan item 52 settles the final behavior.
 
 ## Interface
