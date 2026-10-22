@@ -77,15 +77,20 @@ body{
 
 /* ---------- stage ---------- */
 .stage{position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:0; padding:20px;}
-.circle-wrap{width:min(72vh, 62vw); aspect-ratio:1; position:relative;}
+.circle-wrap{width:min(80vh, 62vw); aspect-ratio:1; position:relative;}
 #sigil{width:100%; height:100%; overflow:visible;}
 /* the neon halo lives in this same filter list permanently (as two drop-shadows at --dropA/--dropB),
    never toggled on via a class — JS drives their px values every frame, from 0px up through the
    intro pulse and into the ongoing slow breathe, so there's no discrete hand-off to look abrupt */
 #sigil .glow{filter:url(#sigilGlow) drop-shadow(0 0 var(--dropA,0px) var(--glowcolor,#8fd0ff)) drop-shadow(0 0 var(--dropB,0px) var(--glowcolor,#8fd0ff));}
 
+/* the readout sits in the stage's top-right corner, right-aligned, mirroring the toolbar at top-left: it
+   uses the space beside the circle rather than a band below it, where tall sigils such as a ritual's
+   caster stations ran into the name, and leaves that height to the circle. The faint backdrop keeps it
+   legible should a medallion ever reach that corner, as the toolbar buttons already do */
 .readout{
-  margin-top:6px; text-align:center; max-width:640px;
+  position:absolute; top:14px; right:20px; text-align:right; max-width:260px;
+  padding:8px 12px; border-radius:10px; background:rgba(5,6,10,.55);
 }
 .readout .name{
   font-family:'Cinzel',serif; font-weight:700; font-size:1.4rem; letter-spacing:.04em;
@@ -94,19 +99,25 @@ body{
 .readout .rank{
   font-style:italic; color:var(--ink-dim); font-size:.9rem; margin-top:2px;
 }
-.badges{display:flex; justify-content:center; gap:6px; margin:10px 0 8px; flex-wrap:wrap;}
+.badges{display:flex; justify-content:flex-end; gap:6px; margin:10px 0 8px; flex-wrap:wrap;}
 .badge{
   font-family:'Cinzel',serif; font-size:.62rem; letter-spacing:.06em; text-transform:uppercase;
   padding:4px 10px; border-radius:20px; color:#0a0b10; font-weight:700;
 }
-.traits{display:flex; justify-content:center; gap:5px; flex-wrap:wrap; max-width:560px; margin:0 auto;}
+.traits{display:flex; justify-content:flex-end; gap:5px; flex-wrap:wrap;}
 .trait-tag{
   font-size:.68rem; color:var(--ink-dim); border:1px solid var(--panel-border);
   padding:2px 8px; border-radius:12px; background:rgba(255,255,255,.02);
 }
 .trait-tag.curated{color:#e9ebf7; border-color:#454a72; background:rgba(120,130,200,.12);}
 
-.hint{margin-top:8px; font-size:.68rem; color:var(--ink-faint); font-style:italic;}
+/* without room beside the circle, the readout goes back under it, centered, and the circle shrinks to
+   leave it the height (phones still need their own layout, plan item 48) */
+@media (max-width:1399px){
+  .circle-wrap{width:min(72vh, 62vw);}
+  .readout{position:static; text-align:center; max-width:640px; margin-top:6px; padding:0; background:none;}
+  .badges, .traits{justify-content:center;}
+}
 
 /* ---------- stage toolbar (parchment/glow/copy) ----------
    normal document flow, not an absolute overlay — the sigil's own overflow:visible lets ring
@@ -167,7 +178,7 @@ body{
 /* darkens and desaturates the existing bright, void-tuned palette into something ink-like, entirely in
    CSS — deliberately not a second color system in JS, so nothing about colorAt()/TRAD_HSL changes */
 .stage.parchment #sigil{filter:saturate(.6) brightness(.6) contrast(1.15) sepia(.15);}
-/* the readout/badges/trait-tags/hint deliberately do NOT get dark-ink colors any more — the parchment
+/* the readout/badges/trait-tags deliberately do NOT get dark-ink colors any more — the parchment
    background itself is now scoped to just .circle-wrap (see below), so this text sits on the ordinary
    void background regardless of mode, and dark ink text was unreadable against that once it wasn't
    guaranteed to be on parchment underneath it (a spell with a long trait list pushes it well past the

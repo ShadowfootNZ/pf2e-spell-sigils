@@ -108,6 +108,8 @@ function skillSigil(skill){
   if (/ lore$/.test(skill)) return SKILL_SIGILS.lore;
   return null;
 }
+// the tradition each magical skill belongs to, for coloring a ritual by the skills it calls for
+const SKILL_TRADITION = {arcana:'arcane', nature:'primal', occultism:'occult', religion:'divine'};
 
 // small curvy "rune stroke" marks for the runic border bands — local coords, origin at the mark's base point,
 // local +x is drawn along the ring's tangent direction so the marks read like flowing script following the curve.

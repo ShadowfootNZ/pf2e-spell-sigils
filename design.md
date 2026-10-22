@@ -91,7 +91,7 @@ Each run prints every addition, removal and field change. Spells gone upstream a
 
 ### Formality by category
 
-Tradition spells are drawn with the most precision: ruled bands, tightly set writing and closed circles. Cantrips and focus spells need less perfection and are drawn more simply; focus spells are personal magic rather than drilled tradition magic. Rituals take more time, effort and planning than ordinary spells, and their treatment is still to be designed (plan item 42). Rank 10 breaks the rules (plan item 65).
+Tradition spells are drawn with the most precision: ruled bands, tightly set writing and closed circles. Cantrips and focus spells need less perfection and are drawn more simply; focus spells are personal magic rather than drilled tradition magic. Rituals take more time, effort and planning than ordinary spells, so they are the most formal of all: closed circles plus a ring of caster stations. Rank 10 breaks the rules (plan item 65).
 
 ### Determinism
 
@@ -115,7 +115,12 @@ A sigil is drawn in a 600 by 600 viewBox centred on (300, 300) with an outer rad
 - **Center.** A medallion holds one trait glyph when the spell is "centered". A containment ring surrounds it, aligned to the innermost band when there are three bands.
 - **Ring medallions.** Trait glyphs sit in medallions that straddle the outer band, each with its own miniature rune band. Placement depends on the number of curated traits. One goes to the center. Two go on the ring, 180° apart. With 3 to 6, the spell is centered with 75% probability, and otherwise all of them go on the ring. With 7 or more, the spell is always centered. The ring holds at most 8. Rank also sets a floor of 1 to 3 ring slots, and slots without a glyph get smaller rune-only fillers. One slot is anchored to a polygon vertex and the rest are spaced evenly from it. The outer band leaves a gap under each medallion.
 - **Focus spells** draw each band as writing only, with no ruled lines, and double the letter pitch so the writing is spaced like double-spaced lettering. A focus cantrip gets one such band in place of the plain circle, so its medallions still sit on a ring. Medallions keep their lines. With no band lines, the idle comets ride only the polygon.
-- **Traditionless rituals** draw their band circles as open arcs (`isTraditionless`). The arcs used to mean that a focus spell's circle can't close; focus spells no longer draw band lines, so only the 165 traditionless rituals still use them, pending plan item 42.
+- **Rituals** are drawn at 78% (`RITUAL_SCALE`) inside a scaled group, so a ring of caster stations fits outside the ring medallions, 92 units beyond the outer band, while the whole sigil stays about the size of any other. The stations are squares:
+  - The primary caster stands at the bottom, where they'd read the circle like instructions. Each primary option gets its own square with its skill sigil, side by side, so several read as "choose one". Each square's line shows that option's proficiency: single for trained or none stated, double for expert, double with a thick outer line for master, double with both thick for legendary, triple for mythic. With no stated skill there is one empty square.
+  - Secondary stations are spaced evenly round the rest of the ring, one per caster or per secondary skill, whichever is more, at most 8. Skills repeat across extra casters; a skill offered as one of a choice gets a dotted square; with no caster count upstream, the skills stand in for it; a check that accepts any skill leaves its station empty.
+  - Each sigil faces the center, as a caster standing there would read it. Magical skills take their tradition's color and other skills the ritual's main color.
+  - The station ring is broken around each square so it never runs through a sigil. Stations draw last, the primary first.
+  - Each square carries its own placement and stroke rather than inheriting them from a group, because `glowDuplicate` clones a single element into the shared glow layer.
 - **Mythic spells**, 33 of them, get one fractured polygon edge. `fractureEdge` returns a new point list, so medallion anchoring still uses the clean polygon.
 
 ### Symbol vocabularies
@@ -131,17 +136,16 @@ A sigil is drawn in a 600 by 600 viewBox centred on (300, 300) with an outer rad
 - `colorSlotTrads` lists a spell's color slots:
   - Multi-tradition spells use their own traditions.
   - Single-tradition spells repeat their tradition, so there are always at least two shades.
-  - Traditionless rituals get two `ritual` slots with full-spectrum hues.
+  - Rituals use their own traditions or, failing that, the traditions of the magical skills their checks offer (Arcana arcane, Nature primal, Occultism occult, Religion divine; primary check first). A ritual with neither gets two `ritual` slots with full-spectrum hues. Runes follow the same traditions.
   - Class focus spells get two `focus` slots on the class hue.
   - Classless focus spells get two `none` slots from the 312° to 370° gap that clears all four tradition ranges.
-  - Rituals add one `ritual` slot per secondary caster, up to four.
 - Four elements always draw, and each takes a different slot so every one of a spell's traditions appears somewhere. Band 0 uses `colorAt(0)`, the polygon `colorAt(1)`, the center ring `colorAt(2)` and the first ring medallion `colorAt(3)`.
 - Class hues come from `data/classes.json`, spaced by the golden angle (137.50776°) in the order classes were first seen. A plain name hash had put necromancer and sorcerer on the same hue.
 - Runes and glyphs use `brightenHsl` of their element's color, and glow halos use `darkenHsl`.
 
 ### Animation and glow
 
-- `buildSigil` builds the DOM along with a timeline of `{el, delay, dur, kind}` entries, then plays it with the Web Animations API. Sections run in sequence: bands, polygon, chords, second polygon, center, ring medallions. Items within a section overlap in a fast stagger, because a fully serial draw would push high-rank sigils, with up to 64 border marks, past 20 seconds.
+- `buildSigil` builds the DOM along with a timeline of `{el, delay, dur, kind}` entries, then plays it with the Web Animations API. Sections run in sequence: bands, polygon, chords, second polygon, center, ring medallions, and for rituals the caster stations. Items within a section overlap in a fast stagger, because a fully serial draw would push high-rank sigils, with up to 64 border marks, past 20 seconds.
 - Ring medallions are appended last so they paint on top, but `reserveSatelliteSlot` reserves their timing slot right after the outer band.
 - Strokes draw on with a dash-offset animation while a `spark` comet rides the tip.
 - Glow stays at its floor while the sigil draws and starts at `totalEnd`. It has three parts:
@@ -162,7 +166,7 @@ A sigil is drawn in a 600 by 600 viewBox centred on (300, 300) with an outer rad
   - Rank chips.
   - An empty selection means no filter.
 - **Readout.**
-  - Shows the name, rank, badges and traits.
+  - Shows the name, rank, badges and traits. On windows 1400 px wide or more it sits right-aligned in the stage's top-right corner, mirroring the toolbar at top-left, with a faint backdrop in case a medallion reaches that corner; narrower windows put it back under the circle.
   - Traditionless spells show their class name, or "other", in place of a tradition badge.
   - Rituals get an extra ritual badge.
   - The trait list hides concentrate, manipulate and the four alignment traits. The `cantrip` and `focus` traits, and a class focus spell's class trait, aren't stored at all.
