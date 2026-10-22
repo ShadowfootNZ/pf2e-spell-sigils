@@ -11,11 +11,12 @@ Spell Sigils draws an animated magic circle for each Pathfinder Second Edition s
 | `index.html` | Page markup. Loads the stylesheet and the four scripts. |
 | `styles.css` | All styling. |
 | `js/core.js` | Seeded random numbers, colors and SVG helpers. |
-| `js/symbols.js` | `GLYPHS` and `RUNES`. |
+| `js/symbols.js` | `GLYPHS`, `SKILL_SIGILS` and `RUNES`. |
 | `js/sigil.js` | `buildSigil`, glow and comets. |
 | `js/ui.js` | Filters, list, readout, image export, loading the data and startup. |
 | `data/spells.json` | The spell data, one record per line, fetched at startup. |
 | `data/classes.json` | The hue for each class's focus spells, in the order classes were first seen. Fetched at startup; the refresh appends new classes. |
+| `atlas.html` | Symbol atlas: every rune, trait glyph and skill sigil drawn live from `js/symbols.js`, labelled with the comment beside each. |
 | `refresh-data.mjs` | Updates the sparse clone of `foundryvtt/pf2e` in `.cache/pf2e-pack` and rebuilds `data/spells.json` from it. |
 | `plan.md` | Open and proposed work, as numbered items. |
 | `README.md` | Public overview, usage, the Paizo notice and credits. |
@@ -30,11 +31,11 @@ The scripts are classic scripts that share globals, loaded in the order above; e
 
 ```json
 {"name":"Fireball","slug":"fireball","rank":3,"traditions":["arcane","primal"],"traits":["concentrate","fire","manipulate"],"rarity":"common","category":"spell"}
-{"name":"Bacchanalia","slug":"bacchanalia","rank":6,"traditions":["divine","occult"],"traits":["emotion","mental"],"rarity":"uncommon","category":"ritual","casters":8}
+{"name":"Bacchanalia","slug":"bacchanalia","rank":6,"traditions":["divine","occult"],"traits":["emotion","mental"],"rarity":"uncommon","category":"ritual","casters":8,"primaryCheck":[{"skill":"occultism","proficiency":null},{"skill":"religion","proficiency":null}],"secondaryChecks":[["performance"]]}
 {"name":"Lay on Hands","slug":"lay-on-hands","rank":1,"traditions":[],"traits":["healing","manipulate","vitality"],"rarity":"uncommon","category":"focus","focusClass":"champion"}
 ```
 
-`casters` appears only on rituals. `focusClass` appears only on focus spells with a single owning class.
+`casters`, `primaryCheck` and `secondaryChecks` appear only on rituals. `focusClass` appears only on focus spells with a single owning class.
 
 ### Field sources
 
@@ -54,6 +55,17 @@ The data from the 2026-10-22 refresh has 2018 records: 1294 spells, 551 focus sp
 - All five impossible spells have traditions, so the tradition filters reach them.
 - `focusClass` is set when exactly one of a focus spell's traits matches a class in `packs/pf2e/classes`, or failing that when the spell sits in a class subfolder of `focus/` (magus, necromancer, summoner and wizard have one). That class trait is then removed from `traits`, since the class badge names it. 15 of the 29 classes own at least one focus spell. The 74 focus spells without a single owning class display as "other". Upstream misses some: Archives of Nethys lists Wildfire as a druid spell, and the eight *Rage of Elements* order spells it belongs to look like druid spells too, but the pf2e data gives them no class trait. Class-less focus spells stay under "other"; if upstream adds a class trait, the next refresh picks it up.
 - `casters` is the ritual's secondary-caster count. Four rituals have no count upstream and are stored as 0.
+
+### Ritual checks
+
+Upstream writes a ritual's checks as free text, such as "Arcana or Occultism (expert)" for the primary check and "Arcana or Occultism, Crafting" for the secondary checks. `refresh-data.mjs` turns them into:
+
+- `primaryCheck`: the options open to the primary caster, each `{skill, proficiency}`. Proficiency is `trained`, `expert`, `master`, `legendary` or `mythic`, or `null` when the text names none. A proficiency in brackets covers every option before it that has none of its own.
+- `secondaryChecks`: one entry per check, each the list of skills that can satisfy it. A list of one is a required skill, and a longer list is a choice. "Arcana or Occultism, Crafting" is two checks, the first a choice; "A, B, or C" is one choice of three; semicolons separate checks whose options contain commas. The proficiencies three rituals name for secondary checks aren't kept.
+
+A skill is a lowercase skill name, `perception`, a Lore's full name such as `cooking lore` (or `lore` when unnamed), `any`, or a save (`fortitude`, `will`). General rules handle the regular wording. A readings table in the script holds an explicit interpretation of every string they can't, 29 of them, each keyed by its exact upstream text; a few are defined relative to the primary check, such as "whichever is used for the primary check". The refresh warns about any string neither handles and stores `null` for it, and lists readings no ritual uses any more. Synchronize Ley Line gets empty checks, because its skills depend on which ley line is synchronized.
+
+From the 2026-10-22 data: every one of the 16 skills appears, along with Perception, `any`, Fortitude, Will and 26 named Lores. Rituals have 0 to 4 primary options and 0 to 7 secondary skills. 15 rituals list secondary checks but have no casters, and Owb Pact and Synchronize Ley Line have casters but no checks.
 
 ### Slugs and the render seed
 
@@ -109,6 +121,7 @@ A sigil is drawn in a 600 by 600 viewBox centred on (300, 300) with an outer rad
 ### Symbol vocabularies
 
 - `GLYPHS` has 57 entries mapping a trait to a drawing in a 24 by 24 box. A trait with an entry is "curated": it can take a medallion and is highlighted in the trait list. Class traits get no entry, because the class badge already names the class; `psychic` had one until 2026-10-22. 1463 of the 2018 spells have at least one curated trait.
+- `SKILL_SIGILS` has 20 sigils for ritual caster stations, in the same 24 by 24 box: the 16 skills, Lore, Perception and the Fortitude and Will saves. `skillSigil()` looks one up by the skill name the ritual data uses: every named Lore takes the Lore sigil, and `any` gets none, which leaves its station empty. Kept alphabetical, and only looked up by name.
 - `RUNES` groups 54 small marks by tradition, each in a box of roughly 8 units centred on the origin: 8 arcane, 8 divine, 29 occult and 9 primal. The occult set includes 26 marks simplified from Paizo's Cosmic Caravan art: 13 constellations, the Diaspora, the Sun and 11 planets. The divine runes are deliberately abstract so that none reads as a real-world religious symbol.
 - Each spell draws from its own rune vocabulary. A rank-scaled budget is split evenly across its traditions, so occult's larger pool doesn't dominate. Traditionless spells sample all four traditions at half the budget, with a floor of 2 shapes, or 4 for focus spells so their spaced writing doesn't reduce to a two-symbol pattern.
 
@@ -190,5 +203,5 @@ The original code is MIT-licensed. `LICENSE` keeps the standard MIT text so GitH
 
 ## Related resources
 
-- **Sigil Symbol Atlas.** A private claude.ai artifact at <https://claude.ai/code/artifact/4187d54b-be83-4a57-817a-f083145beee2>, used for viewing and planning the symbols. It renders every `RUNES` and `GLYPHS` entry at large scale, with the runes grouped by tradition in `TRAD_HSL` colors. It is a static snapshot that matched `index.html` on 2026-10-22 and is not currently maintained. No local source exists, so read the published page back with the Artifact tool to update it. Plan item 61 proposes an atlas inside the repo instead.
+- **Symbol atlas.** `atlas.html` draws every rune, trait glyph and skill sigil from `js/symbols.js` at a fixed scale, runes grouped by tradition in their colors, skill sigils also shown in solid and dotted station squares. Its labels are the trailing comments beside each symbol, read from the file itself, so keep those comments as plain descriptions. It replaced a private claude.ai artifact, the Sigil Symbol Atlas, which is no longer maintained.
 - **Cosmic Caravan reference art.** One `.webp` per constellation and planet plus the full chart, used for tracing the occult runes. It was never committed.

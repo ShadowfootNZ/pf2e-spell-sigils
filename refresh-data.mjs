@@ -88,6 +88,133 @@ async function updateClassHues(classNames) {
   return added.map((name) => classes.find((c) => c.name === name));
 }
 
+// ---------------- ritual checks ----------------
+// Upstream writes a ritual's checks as free text, such as "Arcana or Occultism (expert)" for the primary
+// check and "Arcana or Occultism, Crafting" for the secondary checks. They are stored as:
+//   primaryCheck: the options open to the primary caster, each { skill, proficiency }, where proficiency
+//     is trained, expert, master, legendary or mythic, or null when the text doesn't name one;
+//   secondaryChecks: one entry per check, each the list of skills that can satisfy it. A list of one is a
+//     required skill and a longer list is a choice. The proficiencies three rituals name for secondary
+//     checks aren't kept.
+// A skill is a lowercase skill name, "perception", a Lore's full name ("cooking lore", or "lore" when
+// unnamed), "any", or a save ("fortitude", "will"). General rules cover the regular wording; the readings
+// below cover every string they can't, and the refresh lists any string that neither handles.
+const SKILLS = ["acrobatics", "arcana", "athletics", "crafting", "deception", "diplomacy", "intimidation", "medicine",
+  "nature", "occultism", "performance", "religion", "society", "stealth", "survival", "thievery"];
+const MAGIC_SKILLS = ["arcana", "nature", "occultism", "religion"];
+const PROFICIENCY = "trained|expert|master|legendary|mythic";
+
+const PRIMARY_READINGS = {
+  // Unfettered Mark
+  "Crafting (master) or any (legendary)": [{ skill: "crafting", proficiency: "master" }, { skill: "any", proficiency: "legendary" }],
+  // Commune with Corazal: DC 24 for a master or DC 29 for an expert, so expert is enough to attempt it
+  "DC 24 Nature (master) or DC 29 Nature (expert)": [{ skill: "nature", proficiency: "expert" }],
+  // Shroud of the Provinces: upstream names no actual rank
+  "Nature (proficiency)": [{ skill: "nature", proficiency: null }],
+  // Synchronize Ley Line: the skills depend on which ley line is being synchronized
+  "see below": [],
+  // Embodied Font
+  "skill corresponding to the target's casting tradition (trained)": MAGIC_SKILLS.map((skill) => ({ skill, proficiency: "trained" })),
+};
+
+// a reading can also be a function of the ritual's parsed primary check, for checks defined relative to it
+const sameAsPrimary = (primary) => primary.map((o) => o.skill);
+const SECONDARY_READINGS = {
+  "Alcohol Lore (or related lore), Crafting, Society": [["alcohol lore"], ["crafting"], ["society"]],
+  "Arcana or Occultism (whichever isn't used for the primary check), Diplomacy": [["arcana", "occultism"], ["diplomacy"]],
+  "Arcana or Occultism (whichever isn't used for the primary check), Society": [["arcana", "occultism"], ["society"]],
+  "Arcana or Occultism (whichever isn't used for the primary check), Survival": [["arcana", "occultism"], ["survival"]],
+  // Blunt the Final Blade: the other of the primary check's two skills
+  "Arcana, Crafting, Society, and the other skill not used for the primary check": (p) => [["arcana"], ["crafting"], ["society"], sameAsPrimary(p)],
+  "Arcana, Nature, Occultism, Religion (cannot be the same skill as for the primary check)": [MAGIC_SKILLS],
+  "Arcana, Nature, Occultism, Religion (whichever three aren't used for the primary check)": [MAGIC_SKILLS],
+  "Arcana, Nature, Occultism, Religion, or Society (whichever is required to Recall Knowledge about the creature being duplicated); Crafting; Deception":
+    [[...MAGIC_SKILLS, "society"], ["crafting"], ["deception"]],
+  "Arcana, Nature, Occultism, or Religion (whichever is used for the primary check) and Warfare Lore": [MAGIC_SKILLS, ["warfare lore"]],
+  "Crafting, Arcana or Occultism (whichever isn't used for the primary check)": [["crafting"], ["arcana", "occultism"]],
+  "Crafting, Occultism or Religion (whichever isn't used for the primary check)": [["crafting"], ["occultism", "religion"]],
+  "Diplomacy or Intimidation; Arcana or Occultism (whichever isn't used for the primary check)": [["diplomacy", "intimidation"], ["arcana", "occultism"]],
+  "Fortitude, Society, Will": [["fortitude"], ["society"], ["will"]],
+  "Lore (any), Society, Survival": [["lore"], ["society"], ["survival"]],
+  "Lore (any), Survival, Thievery": [["lore"], ["survival"], ["thievery"]],
+  "Lore (related to the destination plane), Survival": [["lore"], ["survival"]],
+  "Nature or Religion (whichever is used for the primary check)": [["nature", "religion"]],
+  "Nature, Occultism or Religion (whichever is used for the primary check)": [["nature", "occultism", "religion"]],
+  "Occultism or Religion (whichever is used for the primary check); Diplomacy, Performance, Society, or a Lore corresponding to the rightful owners":
+    [["occultism", "religion"], ["diplomacy", "performance", "society", "lore"]],
+  "Occultism or Religion (whichever isn't used for the primary check)": [["occultism", "religion"]],
+  "Performance, Religion, Society, Mammoth Lord Lore or a similar Lore skill, Survival": [["performance"], ["religion"], ["society"], ["mammoth lord lore"], ["survival"]],
+  // Awaken Portal
+  "Whichever is used for the primary check": (p) => [sameAsPrimary(p)],
+  // Unfettered Mark
+  "any": [["any"]],
+  // Synchronize Ley Line: the skills depend on which ley line is being synchronized
+  "see below": [],
+};
+
+const checkProblems = [];
+const readingsUsed = new Set();
+
+function skillName(raw) {
+  const s = raw.trim().toLowerCase();
+  if (SKILLS.includes(s) || s === "perception") return s;
+  if (/^[a-z' -]+ lore$/.test(s)) return s;
+  return null;
+}
+
+// "Arcana or Occultism (expert)": options separated by commas and "or"; a proficiency in brackets covers
+// every option before it that names none of its own
+function parsePrimaryCheck(text, spellName) {
+  if (text in PRIMARY_READINGS) { readingsUsed.add("primary: " + text); return PRIMARY_READINGS[text]; }
+  const s = text.trim()
+    .replace(/\bDC \d+\s+/g, "")
+    .replace(/\s+as determined by .*$/i, "")
+    .replace(/,?\s+matching the [^()]*?(?=\s*\(|$)/i, "")
+    .replace(new RegExp(`\\((${PROFICIENCY})\\b[^)]*\\)`, "gi"), (_, p) => `(${p.toLowerCase()})`);
+  const options = [];
+  for (const token of s.split(/,\s*(?:or\s+)?|\s+or\s+/).map((t) => t.trim()).filter(Boolean)) {
+    const m = token.match(new RegExp(`^(.*?)\\s*(?:\\((${PROFICIENCY})\\))?$`));
+    const skill = m && skillName(m[1]);
+    if (!skill) { checkProblems.push(`${spellName}: primary check ${JSON.stringify(text)}`); return null; }
+    options.push({ skill, proficiency: m[2] || null });
+  }
+  let carry = null;
+  for (let i = options.length - 1; i >= 0; i--) {
+    if (options[i].proficiency) carry = options[i].proficiency;
+    else options[i].proficiency = carry;
+  }
+  if (new Set(options.map((o) => o.skill)).size !== options.length) {
+    checkProblems.push(`${spellName}: primary check ${JSON.stringify(text)} names a skill twice`);
+    return null;
+  }
+  return options;
+}
+
+// "Arcana or Occultism, Crafting" is two checks, the first a choice; "A, B, or C" is one choice of three;
+// semicolons separate checks whose options themselves contain commas
+function parseSecondaryChecks(text, primary, spellName) {
+  if (text in SECONDARY_READINGS) {
+    readingsUsed.add("secondary: " + text);
+    const reading = SECONDARY_READINGS[text];
+    return typeof reading === "function" ? reading(primary || []) : reading;
+  }
+  const s = text.trim()
+    .replace(/\s*\(DC \d+[^)]*\)/g, "")
+    .replace(/\bDC \d+\s+/g, "")
+    .replace(new RegExp(`\\s*\\((${PROFICIENCY})\\)`, "gi"), "");
+  if (!s) return [];
+  const problem = () => { checkProblems.push(`${spellName}: secondary checks ${JSON.stringify(text)}`); return null; };
+  if (/[()]|whichever|\bany\b|\band\b/i.test(s)) return problem();
+  const options = (part) => part.split(/,\s*(?:or\s+)?|\s+or\s+/).map((t) => t.trim()).filter(Boolean);
+  let groups;
+  if (s.includes(";")) groups = s.split(";").map(options);
+  else if (/,\s*or\s+/.test(s)) groups = [options(s)];
+  else groups = s.split(",").map((part) => part.split(/\s+or\s+/).map((t) => t.trim()).filter(Boolean));
+  const checks = groups.map((g) => g.map(skillName));
+  if (checks.some((g) => !g.length || g.some((x) => !x))) return problem();
+  return checks;
+}
+
 // category is purely a function of which compendium folder a spell's file lives under — confirmed for
 // both rituals and focus spells (the `focus` trait itself is not reliably present even in the raw
 // source data)
@@ -114,7 +241,12 @@ function buildRecord(raw, rel, classNames) {
     rarity: sys.traits.rarity,
     category: categoryFor(rel),
   };
-  if (record.category === "ritual") record.casters = (sys.ritual && sys.ritual.secondary && sys.ritual.secondary.casters) || 0;
+  if (record.category === "ritual") {
+    const ritual = sys.ritual || {};
+    record.casters = (ritual.secondary && ritual.secondary.casters) || 0;
+    record.primaryCheck = parsePrimaryCheck((ritual.primary && ritual.primary.check) || "", raw.name);
+    record.secondaryChecks = parseSecondaryChecks((ritual.secondary && ritual.secondary.checks) || "", record.primaryCheck, raw.name);
+  }
   if (record.category === "focus") {
     // the class comes from the spell's single class trait, or failing that from a class subfolder of
     // focus/ (magus, necromancer, summoner and wizard have one). The class trait is then dropped, since
@@ -176,6 +308,19 @@ async function main() {
   changed.forEach((c) => console.log(`  ~ ${c}`));
   console.log(`New classes ${newClasses.length}:`);
   newClasses.forEach((c) => console.log(`  + ${c.name}, hue ${c.hue.toFixed(1)}`));
+
+  const rituals = records.filter((r) => r.category === "ritual");
+  console.log(`\nRitual checks: ${rituals.length} rituals, ${readingsUsed.size} check strings read from the readings table.`);
+  if (checkProblems.length) {
+    console.warn(`WARNING: ${checkProblems.length} check string(s) neither the general rules nor the readings handle (stored as null):`);
+    checkProblems.forEach((p) => console.warn(`  ! ${p}`));
+  }
+  const unused = [...Object.keys(PRIMARY_READINGS).map((k) => "primary: " + k), ...Object.keys(SECONDARY_READINGS).map((k) => "secondary: " + k)]
+    .filter((k) => !readingsUsed.has(k));
+  if (unused.length) {
+    console.log("Readings no longer used by any ritual (safe to delete):");
+    unused.forEach((k) => console.log(`  - ${k}`));
+  }
 
   // facts the interface depends on (see design.md, "Category from the compendium folder")
   const strayTraditionless = records.filter((r) => r.traditions.length === 0 && r.category !== "focus" && r.category !== "ritual");

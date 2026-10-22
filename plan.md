@@ -23,11 +23,15 @@ Remove completed items as the details will be in git history.
 42. **Ritual treatment.** Rituals take more time, effort and planning than ordinary spells, and should read that way. Decided so far:
     - **Closed circles.** The 165 traditionless rituals still draw open arcs (`isTraditionless`, `js/sigil.js` line 303), a leftover from when the arcs meant a focus spell's circle can't close.
     - **Colors and runes** come from the ritual's own traditions, or when it has none, from the traditions of the magical skills it offers: Arcana for arcane, Nature for primal, Occultism for occult, Religion for divine. Primary check skills come first, then secondary. A ritual with no magical skill keeps the current random hue. Drop the extra hue that each secondary caster adds today.
-    - **Caster stations** are squares on a ring outside the outer band. The primary caster's station sits at the bottom, where they would stand reading the circle, and the secondary stations are spaced evenly from it, at most 8. The primary station holds a sigil for each of its skill options.
-    - **The primary station's line shows its proficiency:** single for trained or none stated, double for expert, double with one thick line for master, double with both thick for legendary, and triple for mythic.
-    - **Secondary stations** get one per skill in the secondary checks, each with that skill's sigil. A skill offered as a choice gets a dotted station and a required check a solid one, so "Arcana or Occultism, Crafting" gives three stations: two dotted, one solid. When the checks match the casters in number, each caster contributes a distinct skill.
+    - **Caster stations** are squares on a ring outside the outer band. The primary caster's station sits at the bottom, where they would stand reading the circle, and the secondary stations are spaced evenly from it.
+    - **Primary station.** Each primary option gets its own square with its skill sigil, set side by side at the bottom, so several squares read as "choose one". Each square's line shows that option's proficiency: single for trained or none stated, double for expert, double with one thick line for master, double with both thick for legendary, and triple for mythic. "Arcana (master) or Religion (expert)" gives two adjacent squares with different lines.
+    - **Secondary stations** show one square per secondary caster, at most 8, each with a skill sigil. A skill offered as a choice gets a dotted square and a required check a solid one, so "Arcana or Occultism, Crafting" gives two dotted squares and one solid. When the checks match the casters in number, each caster contributes a distinct skill. When there are more skills than casters, every skill still gets a square. When there are more casters than skills, the skill sigils repeat across the casters' squares, so Bacchanalia's 8 casters all show Performance. When upstream gives no caster count, the number of skills stands in for it, since some legacy content may not be updated for a while.
 
-    Still to decide: whether to draw the station ring itself, and what to show when a ritual has more casters than skills (20 rituals). Steps: extract the check data in `refresh-data.mjs` (primary skill options and proficiency, secondary checks as a list of skill choices) and list every string that doesn't parse; design sigils for the 16 skills, Lore and Perception; then samples on real rituals.
+    Done: the check data is in `data/spells.json` as `primaryCheck` and `secondaryChecks` (see design.md, "Ritual checks").
+
+    Still to decide: whether to draw the station ring itself (samples will show both).
+
+    Also done: `SKILL_SIGILS` in `js/symbols.js` (see `atlas.html`). Next: samples on real rituals.
 
 ## Stability
 
@@ -42,8 +46,6 @@ Remove completed items as the details will be in git history.
 ## Polish
 
 60. **Self-host the fonts.** Cinzel and EB Garamond load from Google Fonts (`index.html` line 9), so every visitor makes a third-party request. Both fonts are under the SIL Open Font License, so subsetted WOFF2 files can be served from a `fonts/` folder with their licence texts.
-
-61. **Atlas in the repo.** Replace the private Sigil Symbol Atlas artifact with an `atlas.html` that loads `js/core.js` and `js/symbols.js` and renders directly from `RUNES` and `GLYPHS`. It can't drift out of date, and anyone with the repo can see it.
 
 62. **Confirm copy image across browsers.** The clipboard write has never been confirmed end to end. Test Chrome, Safari and Firefox on desktop and mobile. When `ClipboardItem` is missing or the write is rejected, say so on the button and point to Save image.
 

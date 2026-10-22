@@ -1,4 +1,4 @@
-// Spell Sigils: the trait glyphs and runes a sigil is drawn from.
+// Spell Sigils: the trait glyphs, skill sigils and runes a sigil is drawn from.
 
 /* ---------------- glyph library (24x24 local box, drawn into a <g>) ---------------- */
 function gline(g,x1,y1,x2,y2){ g.appendChild(el('line',{x1,y1,x2,y2})); }
@@ -26,7 +26,7 @@ const GLYPHS = {
   cold:      g=>grays(g,6,2,9,0),
   composition:g=>{gcircle(g,9,17,2,'currentColor'); gline(g,11,17,11,6); gline(g,11,6,16,8);},
   consecration:g=>{gline(g,5,18,19,18); g.appendChild(el('rect',{x:9,y:11,width:6,height:7,fill:'none'})); gline(g,12,11,12,6); gline(g,9.5,8.5,12,6); gline(g,14.5,8.5,12,6);}, // an altar with a blessing rising from it
-  contingency:g=>{gpoly(g,3,7,-90); gcircle(g,12,12.5,1,'currentColor');}, // triangle with a dot — was incapacitation's shape
+  contingency:g=>{gpoly(g,3,7,-90); gcircle(g,12,12.5,1,'currentColor');}, // triangle with a dot
   curse:     g=>{gpath(g,arcPath(12,12,8,25,335)); gline(g,9,9,15,15); gline(g,15,9,9,15);},
   darkness:  g=>gpath(g,'M9,4 A8,8 0 1 1 9,20 A6.5,6.5 0 1 0 9,4 Z'), // void's crescent, mirrored
   death:     g=>{gpath(g,'M12,4 C7,4 5,8 5,12 C5,15.5 6.5,17 8,18 L8,19.5 C8,20.3 8.7,21 9.5,21 L14.5,21 C15.3,21 16,20.3 16,19.5 L16,18 C17.5,17 19,15.5 19,12 C19,8 17,4 12,4 Z'); gcircle(g,9,12,1.6,'currentColor'); gcircle(g,15,12,1.6,'currentColor'); gpath(g,'M12,14.5 L11,17 L13,17 Z');}, // skull
@@ -77,6 +77,38 @@ const GLYPHS = {
   wood:      g=>{gline(g,12,21,12,14); gpath(g,'M12,15 C7,15 6,11 8,8 C6,7 7,4 10,4 C10,2.5 14,2.5 14,4 C17,4 18,7 16,8 C18,11 17,15 12,15 Z');}, // tree: trunk + canopy
 };
 
+// sigils for the skills a ritual's casters use, drawn in their caster stations (plan item 42). Same 24x24
+// box and helpers as GLYPHS, kept alphabetical, and only ever looked up by skill name through skillSigil().
+const SKILL_SIGILS = {
+  acrobatics:   g=>{gline(g,3,20,21,20); gpath(g,'M5,18 C5,7 19,7 19,16'); gline(g,19,16,16.6,13.8); gline(g,19,16,21.3,13.6); gcircle(g,12,4.8,1.5,'currentColor');}, // a tumbler's leap: an arcing arrow over the ground, the figure at its peak
+  arcana:       g=>{gline(g,4.5,19.5,13.5,10.5); gline(g,6,21,3,18); gpath(g,'M17,3 L18,6 L21,7 L18,8 L17,11 L16,8 L13,7 L16,6 Z');}, // a wand tipped with a four-point spark
+  athletics:    g=>{gline(g,3,12,21,12); gline(g,6,7,6,17); gline(g,8.5,9,8.5,15); gline(g,18,7,18,17); gline(g,15.5,9,15.5,15);}, // a barbell
+  crafting:     g=>{gline(g,5,19.5,13.5,11); gpath(g,'M11,8 L14,5 L20,11 L17,14 Z');}, // a hammer
+  deception:    g=>{gpath(g,'M4,9 Q12,5 20,9 Q20,15 15,16 Q12,14 9,16 Q4,15 4,9 Z'); g.appendChild(el('ellipse',{cx:8.6,cy:10.6,rx:1.9,ry:1.1})); g.appendChild(el('ellipse',{cx:15.4,cy:10.6,rx:1.9,ry:1.1})); gpath(g,'M4,9 Q2,11 3,14');}, // a half mask with a tie
+  diplomacy:    g=>{gline(g,12,5,12,19); gline(g,8,19,16,19); gline(g,5,8,19,8); gline(g,5,8,3,13); gline(g,5,8,7,13); gpath(g,'M2.5,13 Q5,16.5 7.5,13 Z'); gline(g,19,8,17,13); gline(g,19,8,21,13); gpath(g,'M16.5,13 Q19,16.5 21.5,13 Z'); gcircle(g,12,4.3,1,'currentColor');}, // balance scales
+  fortitude:    g=>{gpath(g,'M12,3 L19.5,6 Q19.5,15 12,21 Q4.5,15 4.5,6 Z'); gpath(g,'M12,15.5 C8.6,13 8.6,9.3 10.6,9.3 C11.4,9.3 12,10 12,10.9 C12,10 12.6,9.3 13.4,9.3 C15.4,9.3 15.4,13 12,15.5 Z');}, // a shield holding a heart: endurance
+  intimidation: g=>{gpath(g,'M13.5,2.5 Q8,8 3.5,15.5'); gpath(g,'M17.5,3.5 Q11.5,11 6.5,19.5'); gpath(g,'M21,6.5 Q15,14 10.5,21.5');}, // a claw rake: three thin, sweeping slashes
+  lore:         g=>{gline(g,7,7,7,17); gline(g,17,7,17,17); gpath(g,'M5.5,5.5 Q5.5,3.5 7.5,3.5 L16.5,3.5 Q18.5,3.5 18.5,5.5 Q18.5,7.5 16.5,7.5 L7.5,7.5 Q5.5,7.5 5.5,5.5 Z'); gpath(g,'M5.5,18.5 Q5.5,16.5 7.5,16.5 L16.5,16.5 Q18.5,16.5 18.5,18.5 Q18.5,20.5 16.5,20.5 L7.5,20.5 Q5.5,20.5 5.5,18.5 Z'); gline(g,9.5,11,14.5,11); gline(g,9.5,13.5,14.5,13.5);}, // a scroll rolled at both ends, shared by every named Lore
+  medicine:     g=>{gpath(g,'M4.5,12 L19.5,12 Q19.5,19.5 12,19.5 Q4.5,19.5 4.5,12 Z'); gline(g,9,19.5,15,19.5); gline(g,12.5,11.5,17.5,4.5); gcircle(g,18,3.8,1.2);}, // a mortar and pestle
+  nature:       g=>{gpath(g,'M2.5,19.5 L9,10 L12.5,15 L16,10.5 L21.5,19.5 Z'); gcircle(g,16.5,5.5,2.2);}, // two peaks and a rising sun
+  occultism:    g=>{gpath(g,'M12,3.5 C15,6.5 19.5,10 19.5,14.2 C19.5,18.2 16,20.5 12,18.6 C8,20.5 4.5,18.2 4.5,14.2 C4.5,10 9,6.5 12,3.5 Z'); gcircle(g,12,10.2,2.2);}, // a planchette with its viewing window
+  perception:   g=>{gcircle(g,10,10,5.5); gline(g,14,14,20.5,20.5); gpath(g,'M7,8.5 Q8,6.5 10,6');}, // a magnifying glass
+  performance:  g=>{gpath(g,'M7,4.5 Q3.5,12.5 9,18.5 L15,18.5 Q20.5,12.5 17,4.5'); gline(g,6.2,7.5,17.8,7.5); gline(g,10,7.5,10,18.5); gline(g,12,7.5,12,18.5); gline(g,14,7.5,14,18.5);}, // a lyre
+  religion:     g=>{gpath(g,'M3.5,18 Q8,16 12,18 Q16,16 20.5,18 L20.5,11 Q16,9 12,11 Q8,9 3.5,11 Z'); gline(g,12,11,12,18); gline(g,12,3,12,7.5); gline(g,7.5,4.5,9.3,7.8); gline(g,16.5,4.5,14.7,7.8);}, // an open book radiating light
+  society:      g=>{gpath(g,'M3.5,8.5 L12,3.5 L20.5,8.5 Z'); gline(g,4,10.5,20,10.5); gline(g,6.5,10.5,6.5,18); gline(g,10.2,10.5,10.2,18); gline(g,13.8,10.5,13.8,18); gline(g,17.5,10.5,17.5,18); gline(g,3.5,18.5,20.5,18.5); gline(g,2.5,20.5,21.5,20.5);}, // a colonnade under a pediment
+  stealth:      g=>{gpath(g,'M3.5,10.5 Q12,18 20.5,10.5'); gline(g,7,13.3,5.6,16); gline(g,12,14.3,12,17.3); gline(g,17,13.3,18.4,16);}, // a closed eye
+  survival:     g=>{gpath(g,'M3.5,19.5 L12,5 L20.5,19.5 Z'); gpath(g,'M9.5,19.5 L12,13 L14.5,19.5'); gline(g,12,5,12,3); gline(g,2,19.5,22,19.5);}, // a tent on the ground
+  thievery:     g=>{gcircle(g,12,9,3.4); gpath(g,'M10.4,11.8 L9.2,19 L14.8,19 L13.6,11.8');}, // a keyhole
+  will:         g=>{gpath(g,'M12,3 L19.5,6 Q19.5,15 12,21 Q4.5,15 4.5,6 Z'); g.appendChild(el('ellipse',{cx:12,cy:11.2,rx:4.6,ry:2.5})); gcircle(g,12,11.2,1.1,'currentColor');}, // a shield holding the mental glyph's eye: resolve
+};
+// the sigil for a skill as the ritual data names it: every named Lore ("cooking lore") uses `lore`, and
+// "any" skill gets none, which leaves its station empty
+function skillSigil(skill){
+  if (SKILL_SIGILS[skill]) return SKILL_SIGILS[skill];
+  if (/ lore$/.test(skill)) return SKILL_SIGILS.lore;
+  return null;
+}
+
 // small curvy "rune stroke" marks for the runic border bands — local coords, origin at the mark's base point,
 // local +x is drawn along the ring's tangent direction so the marks read like flowing script following the curve.
 // Grouped by the tradition whose style each best fits; a spell writes with runes from its own traditions
@@ -89,16 +121,16 @@ const RUNES = {
     g=>gpath(g,'M0,-4 L0,4 M-2,0 L2,0 M-0.9,-3.6 L0,-4 L0.9,-3.6 M-0.9,3.6 L0,4 L0.9,3.6'), // plus/tally mark with serif ticks
     g=>{gline(g,-3,-4,0,0); gline(g,0,0,-3,4); gcircle(g,3,0,0.9,'currentColor');}, // chevron + point, vector-like
     g=>gpath(g,'M0,-4 L3.5,4 L-3.5,4 Z'), // apex-up triangle, greek delta
-    g=>gpath(g,'M0,0 Q3,0 3,-2 Q3,-4 0,-4 Q-4,-4 -4,0 Q-4,4 0,4'), // tight inward spiral, reclassified from occult — reads as a golden/mathematical spiral
+    g=>gpath(g,'M0,0 Q3,0 3,-2 Q3,-4 0,-4 Q-4,-4 -4,0 Q-4,4 0,4'), // tight inward spiral, like a golden or mathematical spiral
     g=>gpath(g,'M-3,1 L0,-4 L3,1 M-3,1 L-3.6,2.5 M3,1 L3.6,2.5'), // upward chevron/caret with tail ticks
     g=>gpath(g,'M0,-4 L3,0 L0,4 L-3,0 Z'), // diamond outline
     g=>gpath(g,'M-3,-4 L-3,4 L3,4 M-3,-4 L-3.8,-3.6 M3,4 L3.8,4.4'), // right-angle bracket with serif caps
-    g=>{gline(g,0,-4,0,4); gline(g,-3.5,-2,3.5,2); gline(g,-3.5,2,3.5,-2);}, // six-point star, reclassified from occult — reads as an axis/snowflake mark
+    g=>{gline(g,0,-4,0,4); gline(g,-3.5,-2,3.5,2); gline(g,-3.5,2,3.5,-2);}, // six-point star, read as an axis or snowflake mark
   ],
   divine: [
     // divine is radiant, celestial geometry (halos, sunbursts, nested arcs), deliberately abstract rather
     // than pictorial so nothing reads as any one real-world faith's symbol
-    g=>{gpath(g,'M0,-4 Q4,-4 4,0 Q4,4 0,4'); gcircle(g,-2.2,0,0.5,'currentColor');}, // crescent moon with a companion star — reclassified from occult now that occult has real Golarion constellation/planet glyphs
+    g=>{gpath(g,'M0,-4 Q4,-4 4,0 Q4,4 0,4'); gcircle(g,-2.2,0,0.5,'currentColor');}, // crescent moon with a companion star
     g=>{gpath(g,'M0,-4 A4,4 0 1,1 -0.2,-4'); gline(g,-0.1,-4,-0.1,-5.4);}, // halo ring with an escaping ray
     g=>{gcircle(g,0,0,0.7,'currentColor'); gline(g,0,-1.3,0,-4); gline(g,0.9,-0.9,2.8,-2.8); gline(g,1.3,0,4,0); gline(g,0.9,0.9,2.8,2.8); gline(g,0,1.3,0,4); gline(g,-0.9,0.9,-2.8,2.8); gline(g,-1.3,0,-4,0); gline(g,-0.9,-0.9,-2.8,-2.8);}, // eight-ray sunburst with center point
     g=>{gcircle(g,0,0,2.4); gline(g,0,-4,0,-3.3); gline(g,2.83,-2.83,3.4,-3.4); gline(g,4,0,3.3,0); gline(g,2.83,2.83,3.4,3.4); gline(g,0,4,0,3.3); gline(g,-2.83,2.83,-3.4,3.4); gline(g,-4,0,-3.3,0); gline(g,-2.83,-2.83,-3.4,-3.4);}, // sundial ring with radiating ticks
@@ -144,7 +176,7 @@ const RUNES = {
   ],
   primal: [
     // primal leans Elder Futhark: branches, forks, zigzags, curling growth
-    g=>gpath(g,'M-3,-3 Q0,-6 3,-3 Q6,0 3,3 Q0,6 -3,3'), // loose curling flourish, reclassified from occult — reads as a vine/tendril curl
+    g=>gpath(g,'M-3,-3 Q0,-6 3,-3 Q6,0 3,3 Q0,6 -3,3'), // loose curling flourish, like a vine or tendril
     g=>{gline(g,-2,-4,-2,4); gline(g,-2,-4,3,-1); gline(g,-2,0,3,3);}, // ansuz-inspired, stem with two descending branches
     g=>gpath(g,'M-3,-4 Q3,-2 -3,0 Q3,2 -3,4'), // flowing S-curve
     g=>{gline(g,0,-4,0,4); gline(g,0,-1,-3,-4); gline(g,0,-1,3,-4);}, // upward-branching fork, algiz-like

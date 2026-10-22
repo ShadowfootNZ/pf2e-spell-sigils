@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Spell Sigils Symbol Atlas</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=EB+Garamond:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-0:#05060a; --bg-1:#0b0d16; --card:#0e101c; --line:#262a42; --line-soft:#1a1d2e;
+    --ink:#d8dae8; --ink-dim:#8388a8; --ink-faint:#565b7e; --accent:#8fd0ff; --accent-dim:#4e7ba8;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0; padding:0;}
+  html{background:var(--bg-0);}
+  body{
+    background:radial-gradient(ellipse at 50% 0%, var(--bg-1), var(--bg-0) 900px) no-repeat, var(--bg-0);
+    color:var(--ink); font-family:'EB Garamond', Georgia, serif; min-height:100vh;
+  }
+  a{color:var(--accent);}
+  .wrap{max-width:1180px; margin:0 auto; padding:56px 32px 96px;}
+  header{margin-bottom:56px; text-align:center;}
+  .eyebrow{font-family:'JetBrains Mono', ui-monospace, monospace; font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; color:var(--accent-dim);}
+  h1{font-family:'Cinzel', serif; font-weight:700; letter-spacing:.05em; font-size:clamp(1.8rem, 3vw, 2.6rem); margin:.5em 0 .3em; text-wrap:balance; text-shadow:0 0 24px rgba(143,208,255,.18);}
+  header p{font-style:italic; color:var(--ink-dim); font-size:1.02rem; max-width:56ch; margin:0 auto;}
+
+  section{margin-bottom:64px;}
+  .section-head{display:flex; align-items:baseline; gap:16px; border-bottom:1px solid var(--line); padding-bottom:14px;}
+  .section-head h2{font-family:'Cinzel', serif; font-weight:700; letter-spacing:.06em; text-transform:uppercase; font-size:1.05rem; margin:0;}
+  .count{font-family:'JetBrains Mono', ui-monospace, monospace; font-size:.78rem; color:var(--ink-faint); margin-left:auto;}
+  .section-note{font-style:italic; color:var(--ink-dim); font-size:.92rem; margin:12px 0 28px; max-width:72ch;}
+
+  .grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(132px, 1fr)); gap:14px;}
+  .card{
+    background:var(--card); border:1px solid var(--line-soft); border-radius:8px; padding:14px 10px 12px;
+    display:flex; flex-direction:column; align-items:center; gap:8px; transition:border-color .15s, background .15s;
+  }
+  .card:hover{border-color:var(--accent-dim); background:#101322;}
+  .card svg.big{width:56px; height:56px; overflow:visible; filter:drop-shadow(0 0 3px var(--glow, transparent));}
+  .stations{display:flex; gap:6px;}
+  .stations svg{width:30px; height:30px;}
+  .label{font-family:'JetBrains Mono', ui-monospace, monospace; font-size:.72rem; color:var(--ink); text-align:center; word-break:break-word; line-height:1.3;}
+  .note{font-size:.82rem; color:var(--ink-dim); text-align:center; line-height:1.25;}
+
+  .trad-block{margin-bottom:30px;}
+  .trad-head{font-family:'Cinzel', serif; font-weight:700; letter-spacing:.08em; text-transform:uppercase; font-size:.82rem; margin:0 0 12px; display:flex; align-items:baseline; gap:10px;}
+  .trad-count{font-family:'JetBrains Mono', ui-monospace, monospace; font-weight:400; letter-spacing:0; text-transform:none; font-size:.72rem; color:var(--ink-faint);}
+
+  footer{text-align:center; color:var(--ink-faint); font-style:italic; font-size:.85rem; margin-top:40px;}
+  footer code{font-family:'JetBrains Mono', ui-monospace, monospace; font-style:normal; color:var(--ink-dim);}
+  @media (max-width:640px){
+    .wrap{padding:40px 16px 72px;}
+    .grid{grid-template-columns:repeat(auto-fill, minmax(108px, 1fr));}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Spell Sigils</div>
+    <h1>Symbol Atlas</h1>
+    <p>Every rune, trait glyph and skill sigil a sigil can draw, rendered at a fixed scale so shapes can be compared directly. <a href="./">Back to the sigils</a></p>
+  </header>
+
+  <section>
+    <div class="section-head"><h2>Runes</h2><span class="count" id="runesCount"></span></div>
+    <p class="section-note">Script-like marks written around the rune bands and inside medallion rings, grouped by the tradition whose style each best fits. A spell writes only with runes from its own traditions; traditionless spells sample all four. Numbers are each rune's position in its tradition's list.</p>
+    <div id="runes"></div>
+  </section>
+
+  <section>
+    <div class="section-head"><h2>Trait glyphs</h2><span class="count" id="glyphsCount"></span></div>
+    <p class="section-note">Drawn in the medallion at the center and in the medallions around the outer band. Each label is the trait it stands for.</p>
+    <div class="grid" id="glyphs"></div>
+  </section>
+
+  <section>
+    <div class="section-head"><h2>Skill sigils</h2><span class="count" id="skillsCount"></span></div>
+    <p class="section-note">For the caster stations around a ritual. Each is shown large, then in a station square as a required check (solid) and as one of a choice (dotted). The four magical skills take their tradition's color. Every named Lore uses the Lore sigil, and a check that accepts any skill leaves its station empty.</p>
+    <div class="grid" id="skills"></div>
+  </section>
+
+  <footer>
+    <p>Drawn live from <code>js/symbols.js</code>; each description is the comment beside its symbol there.</p>
+    <p>Spell Sigils uses trademarks and/or copyrights owned by Paizo Inc., used under Paizo's Community Use Policy (<a href="https://paizo.com/licenses/communityuse" target="_blank" rel="noopener">paizo.com/licenses/communityuse</a>). We are expressly prohibited from charging you to use or access this content. Spell Sigils is not published, endorsed, or specifically approved by Paizo. For more information about Paizo Inc. and Paizo products, visit <a href="https://paizo.com" target="_blank" rel="noopener">paizo.com</a>.</p>
+  </footer>
+</div>
+
+<script src="js/core.js"></script>
+<script src="js/symbols.js"></script>
+<script>
+const NEUTRAL = '#c9cde0'; // soft silver, so the tradition colors stand apart
+const SKILL_TRADITION = {arcana:'arcane', nature:'primal', occultism:'occult', religion:'divine'};
+const accent = trad => brightenHsl(tradColorSolid(trad), 1.15);
+
+function symbolSvg(draw, viewBox, color, strokeWidth){
+  const svg = el('svg', {viewBox, class:'big'});
+  svg.style.setProperty('--glow', color);
+  const g = el('g', {stroke:color, color, fill:'none', 'stroke-width':strokeWidth, 'stroke-linecap':'round', 'stroke-linejoin':'round'});
+  draw(g);
+  svg.appendChild(g);
+  return svg;
+}
+// a caster station: double line for a required check, dotted for one of a choice; empty when draw is null
+function stationSvg(draw, style, color){
+  const svg = el('svg', {viewBox:'-16 -16 32 32'});
+  const frame = el('g', {stroke:color, fill:'none'});
+  if (style === 'dotted') frame.appendChild(el('rect', {x:-14, y:-14, width:28, height:28, 'stroke-width':1.2, 'stroke-dasharray':'1.4,2.2'}));
+  else {
+    frame.appendChild(el('rect', {x:-14, y:-14, width:28, height:28, 'stroke-width':1.2}));
+    frame.appendChild(el('rect', {x:-11.6, y:-11.6, width:23.2, height:23.2, 'stroke-width':1}));
+  }
+  svg.appendChild(frame);
+  if (draw){
+    const g = el('g', {transform:'translate(-8.4,-8.4) scale(0.7)', stroke:color, color, fill:'none', 'stroke-width':1.6, 'stroke-linecap':'round', 'stroke-linejoin':'round'});
+    draw(g);
+    svg.appendChild(g);
+  }
+  return svg;
+}
+function card(svg, label, note, extra){
+  const c = document.createElement('div'); c.className = 'card';
+  if (svg) c.appendChild(svg);
+  if (extra) c.appendChild(extra);
+  const l = document.createElement('div'); l.className = 'label'; l.textContent = label; c.appendChild(l);
+  if (note){ const n = document.createElement('div'); n.className = 'note'; n.textContent = note; c.appendChild(n); }
+  return c;
+}
+
+// descriptions are the trailing comments in js/symbols.js, read from the file itself so the atlas never
+// keeps its own copy. A tradition whose comment count doesn't match its runes gets no descriptions
+// rather than misaligned ones.
+function readNotes(src){
+  const notes = {runes:{}, glyphs:{}, skills:{}};
+  const block = start => { const i = src.indexOf(start); return i < 0 ? '' : src.slice(i, src.indexOf('\n};', i)); };
+  let trad = null;
+  for (const line of block('const RUNES = {').split('\n')){
+    const t = line.match(/^\s{2}(arcane|divine|occult|primal): \[/);
+    if (t){ trad = t[1]; notes.runes[trad] = []; continue; }
+    const r = line.match(/^\s+g=>.*\/\/\s*(.+)$/);
+    if (r && trad) notes.runes[trad].push(r[1]);
+  }
+  for (const trad of Object.keys(notes.runes)) if (notes.runes[trad].length !== RUNES[trad].length) delete notes.runes[trad];
+  for (const [start, into] of [['const GLYPHS = {', notes.glyphs], ['const SKILL_SIGILS = {', notes.skills]]){
+    for (const line of block(start).split('\n')){
+      const m = line.match(/^\s+([a-z]+):\s+g=>.*?(?:\/\/\s*(.+))?$/);
+      if (m) into[m[1]] = m[2] || '';
+    }
+  }
+  return notes;
+}
+
+function render(notes){
+  const runesEl = document.getElementById('runes');
+  for (const trad of ALL_TRADITIONS){
+    const color = accent(trad);
+    const block = document.createElement('div'); block.className = 'trad-block';
+    const head = document.createElement('div'); head.className = 'trad-head'; head.style.color = color;
+    head.innerHTML = `${trad} <span class="trad-count">${RUNES[trad].length} runes</span>`;
+    const grid = document.createElement('div'); grid.className = 'grid';
+    RUNES[trad].forEach((rune, i) => grid.appendChild(card(symbolSvg(rune, '-6 -6 12 12', color, 0.65), `#${i + 1}`, (notes.runes[trad] || [])[i])));
+    block.appendChild(head); block.appendChild(grid); runesEl.appendChild(block);
+  }
+  document.getElementById('runesCount').textContent = `${RUNE_COUNT} runes`;
+
+  const glyphsEl = document.getElementById('glyphs');
+  for (const key of Object.keys(GLYPHS).sort()) glyphsEl.appendChild(card(symbolSvg(GLYPHS[key], '0 0 24 24', NEUTRAL, 1.3), key, notes.glyphs[key]));
+  document.getElementById('glyphsCount').textContent = `${Object.keys(GLYPHS).length} traits`;
+
+  const skillsEl = document.getElementById('skills');
+  const skillCard = (name, draw, note) => {
+    const color = SKILL_TRADITION[name] ? accent(SKILL_TRADITION[name]) : NEUTRAL;
+    const stations = document.createElement('div'); stations.className = 'stations';
+    stations.appendChild(stationSvg(draw, 'double', color)); stations.appendChild(stationSvg(draw, 'dotted', color));
+    return card(draw ? symbolSvg(draw, '0 0 24 24', color, 1.3) : null, name, note, stations);
+  };
+  for (const name of Object.keys(SKILL_SIGILS).sort()) skillsEl.appendChild(skillCard(name, SKILL_SIGILS[name], notes.skills[name]));
+  skillsEl.appendChild(skillCard('any', skillSigil('any'), 'a check that accepts any skill: an empty station'));
+  document.getElementById('skillsCount').textContent = `${Object.keys(SKILL_SIGILS).length} skills`;
+}
+
+fetch('js/symbols.js').then(r => r.ok ? r.text() : '').catch(() => '').then(src => render(src ? readNotes(src) : {runes:{}, glyphs:{}, skills:{}}));
+</script>
+</body>
+</html>
