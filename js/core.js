@@ -63,20 +63,12 @@ function pickRitualHue(rng){
 // accepted overlap. Golden-angle spacing (137.50776...°, the angle that keeps rotational increments
 // maximally spread no matter how many steps you take) gives every class its own hue.
 //
-// FIXED, PERMANENT LIST — order matters and must never be re-sorted or have a name inserted into the
-// middle: index determines hue, so inserting alphabetically would shift every class after that point and
-// change colors that were already "seen" and remembered. This is every real PF2E class as of the
-// packs/pf2e/classes pull on 2026-08-31, in that alphabetical order — but frozen from here on.
-// A class that gains its first focus spell in some future data refresh and isn't in this list yet falls
-// back to the plain hash below (still stable, just not deconflicted) until someone deliberately appends
-// it to the END of this array — never re-sorts it — to give it a permanent golden-angle hue too.
-const FOCUS_CLASS_ORDER = [
-  'alchemist','animist','barbarian','bard','champion','cleric','commander','druid','exemplar','fighter',
-  'guardian','gunslinger','inventor','investigator','kineticist','magus','monk','necromancer','oracle',
-  'psychic','ranger','rogue','runesmith','sorcerer','summoner','swashbuckler','thaumaturge','witch','wizard',
-];
+// The hues live in data/classes.json, one entry per class in the order classes were first seen, and
+// init() in js/ui.js loads them into this table. refresh-data.mjs appends any new class from the
+// compendium with the next golden-angle hue (index × 137.50776°, mod 360), so an existing class's color
+// never changes. A class missing from the file still gets a stable hue from the plain hash below, just
+// not a deconflicted one.
 const FOCUS_CLASS_HUE = {};
-FOCUS_CLASS_ORDER.forEach((name, i) => { FOCUS_CLASS_HUE[name] = (i * 137.50776) % 360; });
 function hueForClass(name){
   return FOCUS_CLASS_HUE[name] != null ? FOCUS_CLASS_HUE[name] : hashString(name) % 360;
 }

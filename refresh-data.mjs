@@ -6,6 +6,9 @@
 // folder-derived category, plus casters for rituals and focusClass for focus spells. Spells gone upstream
 // are dropped, new ones are added, and every addition, removal and field change is printed.
 //
+// It also keeps data/classes.json, the hue for each class's focus spells: a class seen for the first
+// time is appended with the next golden-angle hue, so no existing class's color ever changes.
+//
 // Records are matched to the existing file by *name*, and the slug is carried over rather than rederived:
 // it identifies the spell in URLs and seeds the render, and 125 existing slugs keep punctuation that the
 // compendium's file names drop (achaekek's-clutch vs achaekeks-clutch, hop,-skip,-jump vs
@@ -27,6 +30,8 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CACHE_DIR = path.join(__dirname, ".cache", "pf2e-pack");
 const DATA_PATH = path.join(__dirname, "data", "spells.json");
+const CLASSES_PATH = path.join(__dirname, "data", "classes.json");
+const GOLDEN_ANGLE = 137.50776;
 const REPO_URL = "https://github.com/foundryvtt/pf2e.git";
 const SPARSE_PATHS = ["packs/pf2e/spells", "packs/pf2e/classes"];
 
@@ -72,6 +77,17 @@ async function loadClassNames() {
   return files.filter((f) => f.endsWith(".json")).map((f) => f.replace(/\.json$/, ""));
 }
 
+// appends any class not yet in data/classes.json with the next golden-angle hue; existing entries, and so
+// existing colors, never move. A class that disappears upstream keeps its entry.
+async function updateClassHues(classNames) {
+  const classes = existsSync(CLASSES_PATH) ? JSON.parse(await readFile(CLASSES_PATH, "utf8")) : [];
+  const known = new Set(classes.map((c) => c.name));
+  const added = classNames.filter((n) => !known.has(n)).sort();
+  for (const name of added) classes.push({ name, hue: (classes.length * GOLDEN_ANGLE) % 360 });
+  await writeFile(CLASSES_PATH, "[\n" + classes.map((c) => JSON.stringify(c)).join(",\n") + "\n]\n");
+  return added.map((name) => classes.find((c) => c.name === name));
+}
+
 // category is purely a function of which compendium folder a spell's file lives under — confirmed for
 // both rituals and focus spells (the `focus` trait itself is not reliably present even in the raw
 // source data)
@@ -84,12 +100,15 @@ function categoryFor(rel) {
 
 function buildRecord(raw, rel, classNames) {
   const sys = raw.system || {};
-  const traits = [...((sys.traits && sys.traits.value) || [])].sort();
+  const rawTraits = [...((sys.traits && sys.traits.value) || [])].sort();
+  // `cantrip` and `focus` aren't stored: rank 0 and the focus category already say the same thing, and
+  // upstream leaves the `focus` trait off some focus spells anyway
+  const traits = rawTraits.filter((t) => t !== "cantrip" && t !== "focus");
   const record = {
     name: raw.name,
     slug: path.basename(rel, ".json"),
     // upstream stores a cantrip as level 1 with a `cantrip` trait; this tool treats cantrips as rank 0
-    rank: traits.includes("cantrip") ? 0 : sys.level.value,
+    rank: rawTraits.includes("cantrip") ? 0 : sys.level.value,
     traditions: [...((sys.traits && sys.traits.traditions) || [])].sort(),
     traits,
     rarity: sys.traits.rarity,
@@ -97,8 +116,17 @@ function buildRecord(raw, rel, classNames) {
   };
   if (record.category === "ritual") record.casters = (sys.ritual && sys.ritual.secondary && sys.ritual.secondary.casters) || 0;
   if (record.category === "focus") {
+    // the class comes from the spell's single class trait, or failing that from a class subfolder of
+    // focus/ (magus, necromancer, summoner and wizard have one). The class trait is then dropped, since
+    // the readout's class badge already names the class.
     const cls = traits.filter((t) => classNames.includes(t));
-    if (cls.length === 1) record.focusClass = cls[0];
+    const parts = rel.split("/");
+    const folderClass = parts.length > 2 && classNames.includes(parts[1]) ? parts[1] : null;
+    const focusClass = cls.length === 1 ? cls[0] : folderClass;
+    if (focusClass) {
+      record.focusClass = focusClass;
+      record.traits = traits.filter((t) => t !== focusClass);
+    }
   }
   return record;
 }
@@ -106,6 +134,7 @@ function buildRecord(raw, rel, classNames) {
 async function main() {
   await refreshCache();
   const classNames = await loadClassNames();
+  const newClasses = await updateClassHues(classNames);
 
   const spellsDir = path.join(CACHE_DIR, "packs", "pf2e", "spells");
   const upstream = [];
@@ -145,6 +174,8 @@ async function main() {
   removed.forEach((s) => console.log(`  - ${s.name} [${s.category}]`));
   console.log(`Changed ${changed.length}:`);
   changed.forEach((c) => console.log(`  ~ ${c}`));
+  console.log(`New classes ${newClasses.length}:`);
+  newClasses.forEach((c) => console.log(`  + ${c.name}, hue ${c.hue.toFixed(1)}`));
 
   // facts the interface depends on (see design.md, "Category from the compendium folder")
   const strayTraditionless = records.filter((r) => r.traditions.length === 0 && r.category !== "focus" && r.category !== "ritual");

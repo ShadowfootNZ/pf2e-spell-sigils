@@ -277,13 +277,18 @@ function renderList(){
   });
 }
 
-// the spell data lives in its own file so it can be refreshed separately from the code. The page is
-// always served over HTTP, so it's fetched; opened straight from disk, the fetch fails and the count
-// line says why.
+// the spell data and class hues live in their own files so they can be refreshed separately from the
+// code. The page is always served over HTTP, so they're fetched; opened straight from disk, the fetch
+// fails and the count line says why.
+async function fetchJson(url){
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
+  return res.json();
+}
 async function init(){
-  const res = await fetch('data/spells.json');
-  if (!res.ok) throw new Error(`data/spells.json: HTTP ${res.status}`);
-  SPELLS = await res.json();
+  const [spells, classes] = await Promise.all([fetchJson('data/spells.json'), fetchJson('data/classes.json')]);
+  classes.forEach(c => { FOCUS_CLASS_HUE[c.name] = c.hue; });
+  SPELLS = spells;
   buildClassFilters();
   const defaultSpell = SPELLS[Math.floor(Math.random()*SPELLS.length)];
   if (defaultSpell) currentSlug = defaultSpell.slug;

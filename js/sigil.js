@@ -315,7 +315,7 @@ function buildSigil(spell){
   // runes rather than sampling all of RUNES independently at every slot. Higher-rank spells draw from a
   // larger vocabulary. The vocab is tradition-aware: the rank-scaled budget is split evenly across the
   // spell's own traditions (so occult's larger pool doesn't out-represent arcane's smaller one), each
-  // share drawn from that tradition's own RUNES_BY_TRAD pool via the same shuffle-and-slice pattern used
+  // share drawn from that tradition's own RUNES list via the same shuffle-and-slice pattern used
   // for curated trait glyphs below. Traditionless spells fall back to all four traditions evenly, at half
   // budget — sparse, not a full-width sample of the whole library. Focus spells get a floor of 4 shapes so
   // their double-spaced writing still reads as writing rather than a repeating two-symbol border; every
@@ -323,14 +323,14 @@ function buildSigil(spell){
   // rng() stream.
   const runeTraditions = spell.traditions.length ? [...new Set(spell.traditions)] : ALL_TRADITIONS;
   const runeVocabTarget = spell.traditions.length
-    ? Math.min(RUNES.length, 4 + Math.floor(rankForScale*1.2))
+    ? Math.min(RUNE_COUNT, 4 + Math.floor(rankForScale*1.2))
     : Math.max(isFocusSpell ? 4 : 2, Math.round((4 + Math.floor(rankForScale*1.2)) * 0.5));
   const runeShareBase = Math.floor(runeVocabTarget / runeTraditions.length);
   const runeShareRemainder = runeVocabTarget - runeShareBase*runeTraditions.length;
   const runeVocab = [];
   runeTraditions.forEach((trad, i) => {
     const share = runeShareBase + (i < runeShareRemainder ? 1 : 0);
-    const pool = RUNES_BY_TRAD[trad].slice();
+    const pool = RUNES[trad].slice();
     for(let j=pool.length-1;j>0;j--){ const k=Math.floor(rng()*(j+1)); [pool[j],pool[k]]=[pool[k],pool[j]]; }
     runeVocab.push(...pool.slice(0, Math.min(share, pool.length)));
   });
@@ -774,10 +774,9 @@ function buildSigil(spell){
   }
   const traitsEl = document.getElementById('roTraits');
   traitsEl.innerHTML='';
-  const hiddenTraits = ['concentrate', 'manipulate', 'good', 'evil', 'lawful', 'chaotic', 'cantrip'];
-  // once the class badge above covers it, repeating the class trait (and the generic 'focus' trait) in
-  // the tag list below is redundant
-  if (spell.focusClass) hiddenTraits.push('focus', spell.focusClass);
+  // `cantrip`, `focus` and a focus spell's class trait are already stripped from the data by
+  // refresh-data.mjs, since the rank and badges above say the same thing
+  const hiddenTraits = ['concentrate', 'manipulate', 'good', 'evil', 'lawful', 'chaotic'];
   spell.traits.filter(tr => !hiddenTraits.includes(tr)).forEach(tr=>{
     const chip = el2('span', 'trait-tag'+(GLYPHS[tr]?' curated':''), tr);
     traitsEl.appendChild(chip);

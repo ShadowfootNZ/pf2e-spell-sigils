@@ -11,10 +11,11 @@ Spell Sigils draws an animated magic circle for each Pathfinder Second Edition s
 | `index.html` | Page markup. Loads the stylesheet and the four scripts. |
 | `styles.css` | All styling. |
 | `js/core.js` | Seeded random numbers, colors and SVG helpers. |
-| `js/symbols.js` | `GLYPHS`, `RUNES` and `RUNE_TRADITION`. |
+| `js/symbols.js` | `GLYPHS` and `RUNES`. |
 | `js/sigil.js` | `buildSigil`, glow and comets. |
 | `js/ui.js` | Filters, list, readout, image export, loading the data and startup. |
 | `data/spells.json` | The spell data, one record per line, fetched at startup. |
+| `data/classes.json` | The hue for each class's focus spells, in the order classes were first seen. Fetched at startup; the refresh appends new classes. |
 | `refresh-data.mjs` | Updates the sparse clone of `foundryvtt/pf2e` in `.cache/pf2e-pack` and rebuilds `data/spells.json` from it. |
 | `plan.md` | Open and proposed work, as numbered items. |
 | `README.md` | Public overview, usage, the Paizo notice and credits. |
@@ -30,14 +31,14 @@ The scripts are classic scripts that share globals, loaded in the order above; e
 ```json
 {"name":"Fireball","slug":"fireball","rank":3,"traditions":["arcane","primal"],"traits":["concentrate","fire","manipulate"],"rarity":"common","category":"spell"}
 {"name":"Bacchanalia","slug":"bacchanalia","rank":6,"traditions":["divine","occult"],"traits":["emotion","mental"],"rarity":"uncommon","category":"ritual","casters":8}
-{"name":"Lay on Hands","slug":"lay-on-hands","rank":1,"traditions":[],"traits":["champion","focus","healing","manipulate","vitality"],"rarity":"uncommon","category":"focus","focusClass":"champion"}
+{"name":"Lay on Hands","slug":"lay-on-hands","rank":1,"traditions":[],"traits":["healing","manipulate","vitality"],"rarity":"uncommon","category":"focus","focusClass":"champion"}
 ```
 
 `casters` appears only on rituals. `focusClass` appears only on focus spells with a single owning class.
 
 ### Field sources
 
-Every field comes from the spell's compendium file, through `refresh-data.mjs`, matched to the existing record by name. Cantrips are stored as rank 0; upstream stores them as level 1 with a `cantrip` trait. Two things are carried over from the existing record instead of being rederived, because a sigil depends on them:
+Every field comes from the spell's compendium file, through `refresh-data.mjs`, matched to the existing record by name. Cantrips are stored as rank 0; upstream stores them as level 1 with a `cantrip` trait. The `cantrip` and `focus` traits aren't stored, because rank 0 and the focus category already say the same thing, and upstream leaves `focus` off some focus spells anyway. Two things are carried over from the existing record instead of being rederived, because a sigil depends on them:
 
 - the slug (see below);
 - the order of traits and traditions, whenever the set itself is unchanged. Glyph placement shuffles the curated traits in stored order, and colors cycle through traditions in stored order, so a reordering alone would redraw the sigil.
@@ -51,7 +52,7 @@ The data from the 2026-10-22 refresh has 2018 records: 1294 spells, 551 focus sp
 - Every traditionless spell is either a focus spell (551) or a ritual (165). There is no third "innate" or "other" group, which is why the filter has no "other" chip.
 - No focus spell has a tradition. Three rituals do: Aspirational State, Bacchanalia and Mother's Blessing.
 - All five impossible spells have traditions, so the tradition filters reach them.
-- `focusClass` is set when exactly one of a focus spell's traits matches a class in `packs/pf2e/classes`. 15 of the 29 classes own at least one focus spell. The 76 focus spells without a single owning class display as "other".
+- `focusClass` is set when exactly one of a focus spell's traits matches a class in `packs/pf2e/classes`, or failing that when the spell sits in a class subfolder of `focus/` (magus, necromancer, summoner and wizard have one). That class trait is then removed from `traits`, since the class badge names it. 15 of the 29 classes own at least one focus spell. The 74 focus spells without a single owning class display as "other". Upstream misses some: Archives of Nethys lists Wildfire as a druid spell, and the eight *Rage of Elements* order spells it belongs to look like druid spells too, but the pf2e data gives them no class trait. Class-less focus spells stay under "other"; if upstream adds a class trait, the next refresh picks it up.
 - `casters` is the ritual's secondary-caster count. Four rituals have no count upstream and are stored as 0.
 
 ### Slugs and the render seed
@@ -62,7 +63,7 @@ Any other upstream change may change a sigil; the data isn't kept backward compa
 
 ### Loading
 
-`js/ui.js` fetches `data/spells.json` at startup, then builds the class filter, the list and a random first sigil; until then the count line reads "Loading spells…". A preload hint in `index.html` starts the download with the page rather than after the scripts run. The page is always served over HTTP; opened from `file://`, the fetch fails and the count line says so. The file is 360 KB, or 43 KB gzipped.
+`js/ui.js` fetches `data/spells.json` and `data/classes.json` at startup, then builds the class filter, the list and a random first sigil; until then the count line reads "Loading spells…". A preload hint in `index.html` starts the download with the page rather than after the scripts run. The page is always served over HTTP; opened from `file://`, the fetch fails and the count line says so. The file is 360 KB, or 43 KB gzipped.
 
 ### Refreshing from upstream
 
@@ -89,7 +90,7 @@ Tradition spells are drawn with the most precision: ruled bands, tightly set wri
 - Adding or removing a rune changes the sigils of spells that draw from that rune's tradition, because that tradition's pool is shuffled at a different size. Reordering runes within a tradition does too. Order across traditions doesn't matter, since each tradition's pool keeps its own runes in array order.
 - Adding or removing a glyph changes only the sigils of spells with that trait. The order of `GLYPHS` doesn't matter, because it is only ever looked up by trait name; it is kept alphabetical.
 - `Math.random()` is used only for comet particle jitter and for choosing the spell shown on load.
-- `FOCUS_CLASS_ORDER` is frozen and append-only, because each class's hue comes from its index.
+- Class hues are stored in `data/classes.json`, and the refresh only ever appends to it, so an existing class's hue never changes.
 
 Once images are shared publicly, treat any of these as a visible change to existing sigils.
 
@@ -108,7 +109,7 @@ A sigil is drawn in a 600 by 600 viewBox centred on (300, 300) with an outer rad
 ### Symbol vocabularies
 
 - `GLYPHS` has 57 entries mapping a trait to a drawing in a 24 by 24 box. A trait with an entry is "curated": it can take a medallion and is highlighted in the trait list. Class traits get no entry, because the class badge already names the class; `psychic` had one until 2026-10-22. 1463 of the 2018 spells have at least one curated trait.
-- `RUNES` has 54 small marks in a box of roughly 8 units centred on the origin. `RUNE_TRADITION` is a parallel array that tags each one: 8 arcane, 8 divine, 9 primal and 29 occult. The two arrays must stay in the same order. The occult set includes 26 marks simplified from Paizo's Cosmic Caravan art: 13 constellations, the Diaspora, the Sun and 11 planets. The divine runes are deliberately abstract so that none reads as a real-world religious symbol.
+- `RUNES` groups 54 small marks by tradition, each in a box of roughly 8 units centred on the origin: 8 arcane, 8 divine, 29 occult and 9 primal. The occult set includes 26 marks simplified from Paizo's Cosmic Caravan art: 13 constellations, the Diaspora, the Sun and 11 planets. The divine runes are deliberately abstract so that none reads as a real-world religious symbol.
 - Each spell draws from its own rune vocabulary. A rank-scaled budget is split evenly across its traditions, so occult's larger pool doesn't dominate. Traditionless spells sample all four traditions at half the budget, with a floor of 2 shapes, or 4 for focus spells so their spaced writing doesn't reduce to a two-symbol pattern.
 
 ### Color
@@ -122,7 +123,7 @@ A sigil is drawn in a 600 by 600 viewBox centred on (300, 300) with an outer rad
   - Classless focus spells get two `none` slots from the 312° to 370° gap that clears all four tradition ranges.
   - Rituals add one `ritual` slot per secondary caster, up to four.
 - Four elements always draw, and each takes a different slot so every one of a spell's traditions appears somewhere. Band 0 uses `colorAt(0)`, the polygon `colorAt(1)`, the center ring `colorAt(2)` and the first ring medallion `colorAt(3)`.
-- Class hues use golden-angle spacing over `FOCUS_CLASS_ORDER`. A plain name hash had put necromancer and sorcerer on the same hue. Open item 47 replaces this with an explicit manifest.
+- Class hues come from `data/classes.json`, spaced by the golden angle (137.50776°) in the order classes were first seen. A plain name hash had put necromancer and sorcerer on the same hue.
 - Runes and glyphs use `brightenHsl` of their element's color, and glow halos use `darkenHsl`.
 
 ### Animation and glow
@@ -151,7 +152,7 @@ A sigil is drawn in a 600 by 600 viewBox centred on (300, 300) with an outer rad
   - Shows the name, rank, badges and traits.
   - Traditionless spells show their class name, or "other", in place of a tradition badge.
   - Rituals get an extra ritual badge.
-  - The trait list hides concentrate, manipulate, the four alignment traits and cantrip. For class focus spells it also hides `focus` and the class trait.
+  - The trait list hides concentrate, manipulate and the four alignment traits. The `cantrip` and `focus` traits, and a class focus spell's class trait, aren't stored at all.
 - **Parchment toggle.** A CSS-only display mode: a parchment texture behind the circle and a `saturate/brightness/contrast/sepia` filter over the SVG that makes the bright palette look inked. It leaves the JS color system untouched.
 - **Max glow.** Forces the glow filter to the ceiling that `startGlow` reaches, or back to the floor. Its constants are duplicated from `startGlow`.
 - **Copy image and Save image.** `captureSigilSvg`:
@@ -185,7 +186,7 @@ The original code is MIT-licensed. `LICENSE` keeps the standard MIT text so GitH
   - Delete scratch files afterwards.
 - **Plan numbering.** Remove an item from `plan.md` once it's done; the commit that completes it records what changed and how it was verified. Don't renumber on completion or reuse a removed item's number, since code comments cite item numbers. Renumber only for a deliberate reprioritization.
 - **Data comes from `refresh-data.mjs`.** A hand edit to `data/spells.json` is overwritten by the next refresh.
-- **Changes to sigil output are deliberate.** See the determinism section. Append to `FOCUS_CLASS_ORDER`, and to `RUNES` and `RUNE_TRADITION` together; never reorder a tradition's runes. Keep `GLYPHS` alphabetical.
+- **Changes to sigil output are deliberate.** See the determinism section. Append a new rune to its tradition's list; never reorder or insert within one. Keep `GLYPHS` alphabetical. Leave `data/classes.json` to the refresh, which only appends.
 
 ## Related resources
 
