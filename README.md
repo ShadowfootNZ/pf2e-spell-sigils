@@ -6,15 +6,20 @@ This is unofficial fan content. See [Licence and credits](#licence-and-credits).
 
 ## Using it
 
-Open `index.html` in a browser. It is a single self-contained page that works straight from disk or from any static host. Search or filter the spell list, pick a spell, and use Copy image or Save image to export the sigil as a PNG.
+Serve this folder from any static web server and open it in a browser. The page fetches its spell data, so it doesn't work opened straight from disk. For a quick local copy:
+
+```sh
+python3 -m http.server   # then open http://localhost:8000
+```
+
+Search or filter the spell list, pick a spell, and use Copy image or Save image to export the sigil as a PNG.
 
 ## Updating the spell data
 
-The spell data lives in `spells-data.json`, and `index.html` carries an embedded copy so it works without a server. Both scripts need Node.js and git.
+The spell data lives in `data/spells.json`, separate from the code. `refresh-data.mjs` rebuilds it from the pf2e compendium and prints every spell it adds, removes or changes. It needs Node.js and git.
 
 ```sh
-node refresh-data.mjs   # update the pf2e compendium cache and refresh spells-data.json
-node embed-data.mjs     # write spells-data.json into index.html
+node refresh-data.mjs
 ```
 
 `design.md` explains how the tool works and `plan.md` lists open work.

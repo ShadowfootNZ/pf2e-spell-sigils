@@ -1,0 +1,162 @@
+// Spell Sigils: the trait glyphs and runes a sigil is drawn from.
+
+/* ---------------- glyph library (24x24 local box, drawn into a <g>) ---------------- */
+function gline(g,x1,y1,x2,y2){ g.appendChild(el('line',{x1,y1,x2,y2})); }
+function gcircle(g,cx,cy,r,fill){ g.appendChild(el('circle',{cx,cy,r,fill:fill||'none'})); }
+function gpath(g,d){ g.appendChild(el('path',{d,fill:'none'})); }
+function grays(g,n,rIn,rOut,rot){
+  for(let i=0;i<n;i++){
+    const a=(rot+i*360/n)*Math.PI/180;
+    gline(g, 12+rIn*Math.cos(a),12+rIn*Math.sin(a), 12+rOut*Math.cos(a),12+rOut*Math.sin(a));
+  }
+}
+function gpoly(g,n,r,rot,fill){
+  const pts=[];
+  for(let i=0;i<n;i++){ const a=(rot+i*360/n)*Math.PI/180; pts.push((12+r*Math.cos(a)).toFixed(2)+','+(12+r*Math.sin(a)).toFixed(2)); }
+  g.appendChild(el('polygon',{points:pts.join(' '), fill:fill||'none'}));
+}
+
+const GLYPHS = {
+  // Excluded are any traits that are a class.
+  acid:      g=>{gpath(g,'M12,4 C8,10 7,13 9,16.5 C10.2,18.7 13.8,18.7 15,16.5 C17,13 16,10 12,4 Z'); gcircle(g,16,8,1,'currentColor'); gcircle(g,18,12,0.8,'currentColor');},
+  air:       g=>{gpath(g,'M4,9 Q9,6 13,9 T20,8'); gpath(g,'M4,13 Q9,10 13,13 T20,12'); gpath(g,'M4,17 Q8,15 11,17');},
+  auditory:  g=>{gpath(g,'M9,6 Q4,7 4,12 Q4,18 10,18 Q14,18 14,14 Q14,11 11,11 Q9,11 9,13'); gpath(g,arcPath(1,12,2.2,-45,45)); gpath(g,arcPath(1,12,4.4,-52,52));}, // ear, with sound arriving at it — sonic's waves need no listener, this does
+  aura:      g=>g.appendChild(el('circle',{cx:12,cy:12,r:8,fill:'none','stroke-dasharray':'2,2.4'})),
+  beast:      g=>{gcircle(g,12,16,4.2); gcircle(g,7,10,1.8); gcircle(g,10.5,6.5,1.8); gcircle(g,13.5,6.5,1.8); gcircle(g,17,10,1.8);}, // paw print
+  cold:      g=>grays(g,6,2,9,0),
+  composition:g=>{gcircle(g,9,17,2,'currentColor'); gline(g,11,17,11,6); gline(g,11,6,16,8);},
+  consecration:g=>{gline(g,5,18,19,18); g.appendChild(el('rect',{x:9,y:11,width:6,height:7,fill:'none'})); gline(g,12,11,12,6); gline(g,9.5,8.5,12,6); gline(g,14.5,8.5,12,6);}, // an altar with a blessing rising from it
+  contingency:g=>{gpoly(g,3,7,-90); gcircle(g,12,12.5,1,'currentColor');}, // triangle with a dot — was incapacitation's shape
+  curse:     g=>{gpath(g,arcPath(12,12,8,25,335)); gline(g,9,9,15,15); gline(g,15,9,9,15);},
+  darkness:  g=>gpath(g,'M9,4 A8,8 0 1 1 9,20 A6.5,6.5 0 1 0 9,4 Z'), // void's crescent, mirrored
+  death:     g=>{gpath(g,'M12,4 C7,4 5,8 5,12 C5,15.5 6.5,17 8,18 L8,19.5 C8,20.3 8.7,21 9.5,21 L14.5,21 C15.3,21 16,20.3 16,19.5 L16,18 C17.5,17 19,15.5 19,12 C19,8 17,4 12,4 Z'); gcircle(g,9,12,1.6,'currentColor'); gcircle(g,15,12,1.6,'currentColor'); gpath(g,'M12,14.5 L11,17 L13,17 Z');}, // skull
+  detection: g=>{g.appendChild(el('ellipse',{cx:12,cy:12,rx:7,ry:3.8})); gcircle(g,12,12,1.6,'currentColor'); grays(g,4,8,10,0);},
+  disease:   g=>{gcircle(g,12,12,4.5); grays(g,8,4.5,7,0);}, // pathogen — a cell with spikes radiating around it
+  dream:     g=>{gpath(g,'M7,15 Q4,15 4,12 Q4,9 7,9.5 Q7.5,6 11,6.5 Q14,5 15.5,8 Q19,8 18.5,11.5 Q19,15 15,15 Z'); gline(g,11,10,11,13); gline(g,9.5,11.5,12.5,11.5);}, // thought cloud with a small spark inside
+  earth:     g=>{gpoly(g,3,8,-90); gline(g,4.5,18,19.5,18);},
+  electricity:g=>g.appendChild(el('polyline',{points:'13,3 9,12 13,12 8,21 16,10 12,10',fill:'none'})),
+  emotion:   g=>gpath(g,'M12,19 C6,14.5 5,11 6.5,8.5 C7.7,6.5 10.5,6.5 12,9 C13.5,6.5 16.3,6.5 17.5,8.5 C19,11 18,14.5 12,19 Z'),
+  extradimensional: g=>{g.appendChild(el('rect',{x:6,y:4,width:12,height:16,rx:1,fill:'none'})); g.appendChild(el('rect',{x:9,y:8,width:6,height:8,rx:0.5,fill:'none'}));},
+  fear:      g=>{gpath(g,'M12,19 C6,14.5 5,11 6.5,8.5 C7.7,6.5 10.5,6.5 12,9 C13.5,6.5 16.3,6.5 17.5,8.5 C19,11 18,14.5 12,19 Z'); gpath(g,'M9,7 L12,11 L9,13 L14,17');}, // emotion's heart, cracked by a jagged line
+  fire:      g=>{gpath(g,'M13,2.5 C10.5,5.5 7.5,9 7.5,13 C7.5,17 10,20 13,20 C16,20 18,17.5 18,14.5 C18,12 16.5,10.5 16,8.5 C15.7,10.5 14.3,11.5 13.8,10 C13.3,8 14.5,6 15.5,4.5 C14,5 12.7,3.7 13,2.5 Z'); gpath(g,'M13,10.5 C11.8,12.3 11.2,14 11.2,15.5 C11.2,17.3 12.2,18.5 13.4,18.5 C14.6,18.5 15.3,17.3 15.3,16 C15.3,14.3 14.2,13.3 13.7,11.8 Z');},
+  force:     g=>{gpoly(g,4,8,45); gpoly(g,4,3.5,45);},
+  fortune:   g=>grays(g,4,3,8,45),
+  fungus:    g=>{gpath(g,'M5,11 Q5,4 12,4 Q19,4 19,11 Z'); gline(g,12,11,12,20); gline(g,9,20,15,20);}, // mushroom
+  healing:   g=>{gcircle(g,12,12,7.5); gline(g,12,8.5,12,15.5); gline(g,8.5,12,15.5,12);},
+  hex:        g=>{gpoly(g,6,8,-90); gcircle(g,12,12,1.4,'currentColor');}, // hexagon with a dot
+  holy:      g=>{gpath(g,'M12,4 Q6,8 7,14 Q7.5,18 11,20'); gpath(g,'M12,4 Q18,8 17,14 Q16.5,18 13,20'); gline(g,9,9,8,11); gline(g,10,13,9,15); gline(g,15,9,16,11); gline(g,14,13,15,15);}, // laurel wreath
+  illusion:  g=>{gcircle(g,7,12,3); gcircle(g,12,12,3); gcircle(g,17,12,3); gcircle(g,7,12,1,'currentColor');}, // shell game: three circles, one hiding a dot
+  incapacitation:g=>{gline(g,12,19,12,9); gline(g,8,12,12,9); gline(g,16,12,12,9); gline(g,5,6,19,6);}, // an arrow capped by a ceiling — effect capped against powerful foes
+  incorporeal:g=>{gpath(g,'M7,20 L7,11 Q7,4 12,4 Q17,4 17,11 L17,20 L14.5,17.5 L12,20 L9.5,17.5 Z'); gcircle(g,9.5,10,1,'currentColor'); gcircle(g,14.5,10,1,'currentColor');}, // ghost
+  light:     g=>{gline(g,12,3,12,21); gline(g,3,12,21,12); gline(g,7,7,17,17); gline(g,17,7,7,17);}, // eight-point glint/sparkle
+  linguistic:g=>{gpath(g,'M4,6 H18 Q20,6 20,8 V14 Q20,16 18,16 H10 L6,20 L7,16 H6 Q4,16 4,14 V8 Q4,6 6,6 Z'); gline(g,7,9.5,17,9.5); gline(g,7,12.5,14,12.5);}, // speech bubble with text lines — heard AND understood
+  mental:    g=>{g.appendChild(el('ellipse',{cx:12,cy:12,rx:8,ry:4.2})); gcircle(g,12,12,1.8,'currentColor');},
+  metal:     g=>gpoly(g,6,8,0),
+  misfortune:g=>{gpath(g,'M12,9 L13.2,7 L12,4'); gpath(g,'M15,12 L17,10.8 L20,12'); gpath(g,'M12,15 L10.8,17 L12,20'); gpath(g,'M9,12 L7,13.2 L4,12');}, // fortune's clean rays, broken and kinked
+  morph:      g=>{gcircle(g,9,12,6); gcircle(g,15,12,6);},
+  nonlethal:  g=>{gcircle(g,12,12,7); gline(g,7,16,17,16);},
+  olfactory: g=>{gcircle(g,12,19,1,'currentColor'); gpath(g,'M12,17 Q9,14 12,11 Q15,8 12,5'); gpath(g,'M8,18 Q6,15 8,12'); gpath(g,'M16,18 Q18,15 16,12');}, // scent wafting up from a source point
+  plant:     g=>{gpath(g,'M12,4 C6,7 6,15 12,20 C18,15 18,7 12,4 Z'); gline(g,12,7,12,18); gline(g,12,9,9,7); gline(g,12,9,15,7); gline(g,12,13,9,11); gline(g,12,13,15,11);}, // leaf with side veins
+  poison:    g=>{gpath(g,'M12,4 C8.5,9.5 7.5,12.5 9.5,16 C10.6,18 13.4,18 14.5,16 C16.5,12.5 15.5,9.5 12,4 Z'); gline(g,10,13,14,16); gline(g,14,13,10,16);},
+  polymorph: g=>gpath(g,'M6,8 C6,5 10,5 12,8 C14,11 18,11 18,8 M6,16 C6,13 10,13 12,16 C14,19 18,19 18,16'),
+  prediction: g=>{g.appendChild(el('ellipse',{cx:12,cy:12,rx:7,ry:3.8})); gcircle(g,12,12,1.6,'currentColor'); grays(g,3,8,10,90);},
+  revelation: g=>{gcircle(g,12,12,2); grays(g,6,4.2,9,20);},
+  sanctified: g=>{gcircle(g,12,12,7.5); gcircle(g,12,12,4.5);}, // two concentric circles, no cross
+  scrying:   g=>{gpoly(g,4,9,45); g.appendChild(el('ellipse',{cx:12,cy:12,rx:6,ry:3.4})); gcircle(g,12,12,1.5,'currentColor');},
+  shadow:    g=>{gline(g,4,19,20,19); gcircle(g,8,11.5,1.8); gline(g,8,13.3,8,19); gpath(g,'M8,19 L19,19 L14,17.3 Z');}, // an object on the ground casting a long flat shadow
+  sleep:     g=>{gpath(g,'M6,17 L11,17 L6,21 L11,21'); gpath(g,'M12,10 L16,10 L12,13.5 L16,13.5'); gpath(g,'M16,5 L19,5 L16,8 L19,8');}, // three ascending Z's
+  sonic:     g=>{gpath(g,arcPath(7,12,4,-50,50)); gpath(g,arcPath(7,12,7,-55,55)); gpath(g,arcPath(7,12,10,-60,60));},
+  spirit:    g=>gpath(g,'M12,20 C9,17 9,15 12,13 C15,11 15,9 12,7 C9,5 9,4 12,3'),
+  subtle:     g=>{const p=el('circle',{cx:12,cy:12,r:6,fill:'none','stroke-dasharray':'1.5,2.2'}); g.appendChild(p); gcircle(g,12,12,1.2,'currentColor');}, // barely perceptible — a broken outline around a small definite center
+  teleportation: g=>{gcircle(g,9,12,4); gcircle(g,17,12,2.4); gline(g,12.7,12,14.6,12);},
+  unholy:     g=>{gpath(g,arcPath(12,12,8,-45,225)); gpath(g,arcPath(12,12,4.5,135,405));}, // two 3/4 circles, one rotated 180°
+  visual:     g=>{gpath(g,'M4,12 Q12,5 20,12 Q12,19 4,12 Z'); gcircle(g,12,12,2.2,'currentColor');}, // eye
+  vitality:  g=>{gpath(g,'M8,20 C6,17 6,15 8,13 C10,11 10,9 8,7 C6,5 6,4 8,3'); gpath(g,'M12,20 C10,17 10,15 12,13 C14,11 14,9 12,7 C10,5 10,4 12,3'); gpath(g,'M16,20 C14,17 14,15 16,13 C18,11 18,9 16,7 C14,5 14,4 16,3');}, // three spirit-like wavy lines
+  void:      g=>gpath(g,'M15,4 A8,8 0 1 0 15,20 A6.5,6.5 0 1 1 15,4 Z'), // crescent — a circle with a bite taken out
+  water:     g=>gpath(g,'M12,4 C8,10 6.5,13.5 8.5,16.5 C10,18.7 14,18.7 15.5,16.5 C17.5,13.5 16,10 12,4 Z'),
+  wood:      g=>{gline(g,12,21,12,14); gpath(g,'M12,15 C7,15 6,11 8,8 C6,7 7,4 10,4 C10,2.5 14,2.5 14,4 C17,4 18,7 16,8 C18,11 17,15 12,15 Z');}, // tree: trunk + canopy
+};
+
+// small curvy "rune stroke" marks for the runic border band — local coords, origin at the mark's base point,
+// local +x is drawn along the ring's tangent direction so the marks read like flowing script following the curve
+// each rune is tagged with the tradition its style best fits, for whenever rune selection becomes
+// tradition-aware (not yet wired up — pickRune() below still draws from the whole per-spell subset)
+const RUNES = [
+  g=>{gpath(g,'M0,-4 Q4,-4 4,0 Q4,4 0,4'); gcircle(g,-2.2,0,0.5,'currentColor');}, // divine: crescent moon with a companion star — reclassified from occult now that occult has real Golarion constellation/planet glyphs
+  g=>gpath(g,'M0,-4 L0,4 M-2,0 L2,0 M-0.9,-3.6 L0,-4 L0.9,-3.6 M-0.9,3.6 L0,4 L0.9,3.6'), // arcane: plus/tally mark with serif ticks
+  g=>gpath(g,'M-3,-3 Q0,-6 3,-3 Q6,0 3,3 Q0,6 -3,3'), // primal: loose curling flourish, reclassified from occult — reads as a vine/tendril curl
+  g=>{gline(g,-3,-4,0,0); gline(g,0,0,-3,4); gcircle(g,3,0,0.9,'currentColor');}, // arcane: chevron + point, vector-like
+  g=>{gpath(g,'M0,-4 A4,4 0 1,1 -0.2,-4'); gline(g,-0.1,-4,-0.1,-5.4);}, // divine: halo ring with an escaping ray
+  g=>{gline(g,-2,-4,-2,4); gline(g,-2,-4,3,-1); gline(g,-2,0,3,3);}, // primal: ansuz-inspired, stem with two descending branches
+  g=>gpath(g,'M-3,-4 Q3,-2 -3,0 Q3,2 -3,4'), // primal: flowing S-curve
+  g=>{gline(g,0,-4,0,4); gline(g,0,-1,-3,-4); gline(g,0,-1,3,-4);}, // primal: upward-branching fork, algiz-like
+  g=>gpath(g,'M-3,-4 L1,-1 L-2,1 L3,4'), // primal: sowilo-like lightning zigzag
+  g=>gpath(g,'M-3.5,-3 L3.5,-3 L0,4 Z'), // occult: alchemical water, downward triangle
+  g=>gpath(g,'M0,-4 L3.5,4 L-3.5,4 Z'), // arcane: apex-up triangle, greek delta
+  g=>gpath(g,'M0,0 Q3,0 3,-2 Q3,-4 0,-4 Q-4,-4 -4,0 Q-4,4 0,4'), // arcane: tight inward spiral, reclassified from occult — reads as a golden/mathematical spiral
+  g=>gpath(g,'M-2.5,4 L2.5,-4 M-1,1.3 Q-3,0.8 -3,-1 M1,-1.3 Q3,-0.8 3,1'), // primal: diagonal branch with two leaf hooks
+  g=>gpath(g,'M-3,1 L0,-4 L3,1 M-3,1 L-3.6,2.5 M3,1 L3.6,2.5'), // arcane: upward chevron/caret with tail ticks
+  g=>{gcircle(g,0,0,3.2); gline(g,-3.2,0,3.2,0);}, // occult: alchemical salt, circle bisected by a line
+  g=>gpath(g,'M0,-4 L3,0 L0,4 L-3,0 Z'), // arcane: diamond outline
+  g=>gpath(g,'M0,4 L0,-4 M0,-4 L-2.5,-1 M0,-4 L2.5,-1 M0,2 L-1,3.2 M0,2 L1,3.2'), // primal: tiwaz, spear pointing up, with fletching
+  g=>gpath(g,'M-3,-4 L-3,4 L3,4 M-3,-4 L-3.8,-3.6 M3,4 L3.8,4.4'), // arcane: right-angle bracket with serif caps
+  g=>{gline(g,0,-4,0,4); gline(g,-3.5,-2,3.5,2); gline(g,-3.5,2,3.5,-2);}, // arcane: six-point star, reclassified from occult — reads as an axis/snowflake mark
+  g=>{gpath(g,'M-1.8,-4 A1.8,1.8 0 1 0 1.8,-4'); gcircle(g,0,-1,1.6); gline(g,0,0.6,0,3.2); gline(g,-1.4,1.9,1.4,1.9);}, // occult: alchemical mercury, horns, circle, cross
+  g=>gpath(g,'M-3.5,-3.5 Q-1,0 -3.5,3.5 M3.5,-3.5 Q1,0 3.5,3.5 M-1,0 L1,0'), // primal: ingwaz/dagaz-inspired concave hourglass with a waist bar
+  g=>{gpath(g,'M0,-4 Q1,0 0,4'); gline(g,0,-1,2.5,-3); gline(g,0,1,-2.5,3);}, // primal: curved stem with two offshoots, branch-like
+  // divine additions — radiant/celestial geometry (halos, sunbursts, nested arcs), deliberately abstract
+  // rather than pictorial so nothing reads as any one real-world faith's symbol
+  g=>{gcircle(g,0,0,0.7,'currentColor'); gline(g,0,-1.3,0,-4); gline(g,0.9,-0.9,2.8,-2.8); gline(g,1.3,0,4,0); gline(g,0.9,0.9,2.8,2.8); gline(g,0,1.3,0,4); gline(g,-0.9,0.9,-2.8,2.8); gline(g,-1.3,0,-4,0); gline(g,-0.9,-0.9,-2.8,-2.8);}, // divine: eight-ray sunburst with center point
+  g=>{gcircle(g,0,0,2.4); gline(g,0,-4,0,-3.3); gline(g,2.83,-2.83,3.4,-3.4); gline(g,4,0,3.3,0); gline(g,2.83,2.83,3.4,3.4); gline(g,0,4,0,3.3); gline(g,-2.83,2.83,-3.4,3.4); gline(g,-4,0,-3.3,0); gline(g,-2.83,-2.83,-3.4,-3.4);}, // divine: sundial ring with radiating ticks
+  g=>{gpath(g,'M0,-3 A3,3 0 1,1 -0.15,-3'); gpath(g,'M0,-1.4 A1.4,1.4 0 1,1 -0.07,-1.4');}, // divine: nested double halo
+  g=>gpath(g,'M0,-3.5 A4,4 0 0,1 0,3.5 A4,4 0 0,1 0,-3.5 Z'), // divine: vesica-like radiant lens
+  g=>{gline(g,0,-4,0,-2); gline(g,3.46,-2,1.73,-1); gline(g,3.46,2,1.73,1); gline(g,0,4,0,2); gline(g,-3.46,2,-1.73,1); gline(g,-3.46,-2,-1.73,-1);}, // divine: six-point compass burst, no ring
+  g=>{gpath(g,'M-3,4 L-3,0.5 L0,-3.5 L3,0.5 L3,4'); gcircle(g,0,2,0.7,'currentColor');}, // divine: pitched shrine roof with a lit interior
+  // occult additions — simplified from the actual Golarion "Cosmic Caravan" constellation and planet
+  // glyphs, traced with cleaner/simpler strokes rather than
+  // the source art's full linework. The 13 constellations + the Diaspora (asteroid belt) first, then
+  // the Sun and the 11 planets.
+  g=>gpath(g,'M-3,2 Q-1,-3 2,-2 Q4,-1 2,3'), // occult: the bridge
+  g=>{gpath(g,'M-2.5,-4 Q-2,-1 0,-1 Q2,-1 2.5,-4'); gline(g,0,-1,0,1); gpath(g,'M-1,1 L1,1 L0,3.5 Z');}, // occult: the daughter
+  g=>{gpath(g,'M2.5,-2.5 Q-3,-3 -3,0 Q-3,3 2,3'); gcircle(g,1.5,0,0.6,'currentColor');}, // occult: the follower
+  g=>{gline(g,-2,3,3,-3); gpath(g,'M3,-3 L4.5,-2.5 L3,-1 Z');}, // occult: the lantern bearer
+  g=>gpath(g,'M1,-4 Q-3,-4 -3,-1.3 Q-3,1 0.5,1 Q3,1 3,3 Q3,4.3 -0.5,4'), // occult: the mother
+  g=>{gcircle(g,-1.3,0,2.1); gcircle(g,1.3,0,2.1);}, // occult: the newlyweds
+  g=>gpath(g,'M-3,4 L-3,-4 L3,4 L3,-4'), // occult: the pack
+  g=>gpath(g,'M2,-4 Q-3,-4 -3,-1.3 Q-3,1 -0.3,1 L-0.3,4'), // occult: the patriarch
+  g=>gpath(g,'M-3,3 Q-3,-3 -1,-1 Q0,0 1,-1 Q3,-3 3,3'), // occult: the rider
+  g=>{gline(g,-1,-4,-1,4); gpath(g,'M-1,-4 Q2,-4 2,-2 Q2,0 -1,0');}, // occult: the stargazer
+  g=>{gpath(g,'M-2.3,-2 Q-1.2,-4 0,-2.3 Q1.2,-4 2.3,-2'); gpath(g,'M-1.3,0 Q0,-1 1.3,0 Q0,2.8 -1.3,0 Z');}, // occult: the stranger
+  g=>gpath(g,'M-3,-2 L0,-4 L3,-2 M0,-4 L0,1 L2,3'), // occult: the thrush
+  g=>{gcircle(g,0,-1.3,2); gline(g,-1.4,0.5,-2.3,4); gline(g,1.4,0.5,2.3,4); gline(g,0,0.7,0,4);}, // occult: the wagon
+  g=>{gpath(g,'M-3.2,-4 L-3.2,4 M-3.2,-4 Q-0.5,-4 -0.5,0 Q-0.5,4 -3.2,4'); gpath(g,'M0.2,-4 L0.2,4 M0.2,-4 Q2.9,-4 2.9,0 Q2.9,4 0.2,4');}, // occult: the diaspora (asteroid belt)
+  g=>{gcircle(g,0,0,2.6); gcircle(g,0,0,0.6,'currentColor'); gpath(g,'M3.4,-1.8 Q4.4,0 3.4,1.8');}, // occult: the sun
+  g=>{gline(g,-2,-4,-2,2.5); gline(g,0,-4,0,3); gline(g,2,-4,2,2.5); gline(g,-2.6,-1,2.6,-1);}, // occult: golarion
+  g=>{gcircle(g,0,-2.3,1.5); gpath(g,'M-1.5,-0.3 Q-1.5,2 0,2 Q1.5,2 1.5,4');}, // occult: aballon
+  g=>{gcircle(g,0,0,1.7); gpath(g,'M-1.7,-1.5 Q0,-4.2 1.7,-1.5'); gpath(g,'M-1.7,1.5 Q0,4.2 1.7,1.5');}, // occult: akiton
+  g=>{gcircle(g,0,0,1.8); gline(g,-2.8,-2.8,2.8,2.8); gline(g,-3.6,-2,-2.8,-2.8); gline(g,-2,-3.6,-2.8,-2.8);}, // occult: apostae
+  g=>{gline(g,-2.5,-1,2.5,-1); gline(g,-1,-3,-1,2.6); gline(g,1,-3,1,2.6); gcircle(g,-1,3.4,0.6); gcircle(g,1,3.4,0.6);}, // occult: aucturn
+  g=>{gcircle(g,0,-1.7,1.5); gcircle(g,0,1.9,2.1);}, // occult: bretheda
+  g=>{gcircle(g,-1.8,0,1.7); gcircle(g,0,0,1.7); gcircle(g,1.8,0,1.7);}, // occult: castrovel
+  g=>{gcircle(g,0,0.3,1.8); gline(g,-1.3,-0.9,1.3,1.5); gline(g,-1.3,1.5,1.3,-0.9); gline(g,0,-3.8,0,-1.6); gline(g,-1,-3.4,-0.4,-1.6); gline(g,1,-3.4,0.4,-1.6);}, // occult: eox
+  g=>{gcircle(g,0,0,1.6); gpath(g,'M-1.6,-1.4 Q-0.8,-3 0,-1.4 Q0.8,-3 1.6,-1.4'); gline(g,-1,1.4,-1,2.8); gline(g,0,1.6,0,3); gline(g,1,1.4,1,2.8);}, // occult: liavara
+  g=>{gline(g,-3,4,-3,-2.5); gline(g,3,4,3,-2.5); gpath(g,'M-3.6,-2.5 Q0,-4.6 3.6,-2.5');}, // occult: triaxus
+  g=>{gcircle(g,0,-0.4,1.9); gpath(g,'M1.7,1.1 Q2.6,2.6 1,3.2 Q0,3.6 1,4.2');}, // occult: verces
+];
+function runeMark(idx, g){ RUNES[idx % RUNES.length](g); }
+
+// tradition tag for each RUNES entry, in the same order — mirrors the tag already noted in each
+// entry's inline comment above, kept as a live array so rune selection can be tradition-aware
+const RUNE_TRADITION = [
+  'divine','arcane','primal','arcane','divine','primal','primal','primal','primal','occult',
+  'arcane','arcane','primal','arcane','occult','arcane','primal','arcane','arcane','occult',
+  'primal','primal','divine','divine','divine','divine','divine','divine',
+  'occult','occult','occult','occult','occult','occult','occult','occult','occult','occult',
+  'occult','occult','occult','occult','occult','occult','occult','occult','occult','occult',
+  'occult','occult','occult','occult','occult','occult',
+];
+const ALL_TRADITIONS = ['arcane','divine','occult','primal'];
+const RUNES_BY_TRAD = {arcane:[], divine:[], occult:[], primal:[]};
+RUNE_TRADITION.forEach((trad, i) => RUNES_BY_TRAD[trad].push(i));
+
+const ORDINAL = ['Cantrip','1st','2nd','3rd','4th','5th','6th','7th','8th','9th','10th'];

@@ -1,18 +1,22 @@
 #!/usr/bin/env node
-// Refreshes spells-data.json's `category`/`casters`/`focusClass` fields from the real foundryvtt/pf2e
-// compendium (packs/pf2e/spells + packs/pf2e/classes), read from a disposable sparse clone in
-// .cache/pf2e-pack.
+// Rebuilds data/spells.json from the real foundryvtt/pf2e compendium (packs/pf2e/spells +
+// packs/pf2e/classes), read from a disposable sparse clone in .cache/pf2e-pack.
 //
-// What this does NOT do: touch name/slug/rank/traditions/traits/rarity. Those already live in
-// spells-data.json from an earlier export outside this script's scope; this only refreshes the
-// folder-derived fields. Every spell is matched by *name* against the fresh
-// compendium pull rather than by re-deriving a slug — the compendium's raw spell files don't carry an
-// explicit slug field, and guessing the slugification rule risks a silent mismatch that a name-based
-// join avoids entirely.
+// Every record is rebuilt from its spell file: name, rank, traditions, traits and rarity, the
+// folder-derived category, plus casters for rituals and focusClass for focus spells. Spells gone upstream
+// are dropped, new ones are added, and every addition, removal and field change is printed.
 //
-// Usage:
-//   node refresh-data.mjs
-//   node embed-data.mjs   (re-embeds the result into index.html — see that script)
+// Records are matched to the existing file by *name*, and the slug is carried over rather than rederived:
+// it identifies the spell in URLs and seeds the render, and 125 existing slugs keep punctuation that the
+// compendium's file names drop (achaekek's-clutch vs achaekeks-clutch, hop,-skip,-jump vs
+// hop-skip-jump). A new spell takes its file name as its slug. Any other upstream change is free to
+// change a sigil.
+//
+// Traits and traditions are stored in alphabetical order. Glyph placement shuffles the curated traits in
+// stored order and colors cycle through traditions in stored order, so a fixed order means upstream
+// reordering a list never redraws a sigil on its own.
+//
+// Usage: node refresh-data.mjs
 
 import { existsSync } from "node:fs";
 import { readFile, writeFile, readdir, mkdir } from "node:fs/promises";
@@ -22,6 +26,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CACHE_DIR = path.join(__dirname, ".cache", "pf2e-pack");
+const DATA_PATH = path.join(__dirname, "data", "spells.json");
 const REPO_URL = "https://github.com/foundryvtt/pf2e.git";
 const SPARSE_PATHS = ["packs/pf2e/spells", "packs/pf2e/classes"];
 
@@ -70,65 +75,88 @@ async function loadClassNames() {
 // category is purely a function of which compendium folder a spell's file lives under — confirmed for
 // both rituals and focus spells (the `focus` trait itself is not reliably present even in the raw
 // source data)
-async function loadSpellCategories(classNames) {
-  const dir = path.join(CACHE_DIR, "packs", "pf2e", "spells");
-  const files = await walk(dir);
-  const byName = new Map();
-  for (const f of files) {
-    const rel = path.relative(dir, f).split(path.sep).join("/");
-    let category = "spell";
-    if (rel.startsWith("rituals/")) category = "ritual";
-    else if (rel.startsWith("focus/")) category = "focus";
-    else if (rel.startsWith("impossible-spells/")) category = "impossible";
+function categoryFor(rel) {
+  if (rel.startsWith("rituals/")) return "ritual";
+  if (rel.startsWith("focus/")) return "focus";
+  if (rel.startsWith("impossible-spells/")) return "impossible";
+  return "spell";
+}
 
-    const raw = JSON.parse(await readFile(f, "utf8"));
-    const sys = raw.system || {};
-    const entry = { category };
-    if (category === "ritual") entry.casters = (sys.ritual && sys.ritual.secondary && sys.ritual.secondary.casters) || 0;
-    if (category === "focus") {
-      const traits = (sys.traits && sys.traits.value) || [];
-      const cls = traits.filter((t) => classNames.includes(t));
-      if (cls.length === 1) entry.focusClass = cls[0];
-    }
-    byName.set(raw.name, entry);
+function buildRecord(raw, rel, classNames) {
+  const sys = raw.system || {};
+  const traits = [...((sys.traits && sys.traits.value) || [])].sort();
+  const record = {
+    name: raw.name,
+    slug: path.basename(rel, ".json"),
+    // upstream stores a cantrip as level 1 with a `cantrip` trait; this tool treats cantrips as rank 0
+    rank: traits.includes("cantrip") ? 0 : sys.level.value,
+    traditions: [...((sys.traits && sys.traits.traditions) || [])].sort(),
+    traits,
+    rarity: sys.traits.rarity,
+    category: categoryFor(rel),
+  };
+  if (record.category === "ritual") record.casters = (sys.ritual && sys.ritual.secondary && sys.ritual.secondary.casters) || 0;
+  if (record.category === "focus") {
+    const cls = traits.filter((t) => classNames.includes(t));
+    if (cls.length === 1) record.focusClass = cls[0];
   }
-  return byName;
+  return record;
 }
 
 async function main() {
   await refreshCache();
   const classNames = await loadClassNames();
-  const categories = await loadSpellCategories(classNames);
 
-  const dataPath = path.join(__dirname, "spells-data.json");
-  const existing = JSON.parse(await readFile(dataPath, "utf8"));
-
-  let matched = 0;
-  const unmatched = [];
-  const augmented = existing.map((s) => {
-    const c = categories.get(s.name);
-    if (!c) {
-      unmatched.push(s.name);
-      return s;
-    }
-    matched++;
-    const out = { ...s, category: c.category };
-    if (c.category === "ritual") out.casters = c.casters;
-    else delete out.casters;
-    if (c.category === "focus" && c.focusClass) out.focusClass = c.focusClass;
-    else delete out.focusClass;
-    return out;
-  });
-
-  if (unmatched.length) {
-    console.warn(`${unmatched.length} spell(s) in spells-data.json had no match in the fresh compendium pull (left untouched):`);
-    unmatched.forEach((n) => console.warn("  -", n));
+  const spellsDir = path.join(CACHE_DIR, "packs", "pf2e", "spells");
+  const upstream = [];
+  for (const f of await walk(spellsDir)) {
+    const rel = path.relative(spellsDir, f).split(path.sep).join("/");
+    upstream.push(buildRecord(JSON.parse(await readFile(f, "utf8")), rel, classNames));
   }
-  console.log(`Matched ${matched} of ${existing.length} spells.`);
+  const dupes = upstream.map((r) => r.name).filter((n, i, all) => all.indexOf(n) !== i);
+  if (dupes.length) throw new Error(`Duplicate spell names upstream, so the name join is ambiguous: ${dupes.join(", ")}`);
 
-  await writeFile(dataPath, JSON.stringify(augmented));
-  console.log(`Wrote ${dataPath}`);
-  console.log("Run `node embed-data.mjs` next to sync index.html's embedded copy.");
+  const existing = JSON.parse(await readFile(DATA_PATH, "utf8"));
+  const existingByName = new Map(existing.map((s) => [s.name, s]));
+  const upstreamNames = new Set(upstream.map((r) => r.name));
+
+  const added = [], changed = [];
+  const records = upstream.map((r) => {
+    const old = existingByName.get(r.name);
+    if (!old) { added.push(r); return r; }
+    r.slug = old.slug;
+    const diffs = [];
+    for (const key of new Set([...Object.keys(old), ...Object.keys(r)])) {
+      if (JSON.stringify(old[key]) !== JSON.stringify(r[key])) diffs.push(`${key}: ${JSON.stringify(old[key])} -> ${JSON.stringify(r[key])}`);
+    }
+    if (diffs.length) changed.push(`${r.name}: ${diffs.join("; ")}`);
+    return r;
+  });
+  const removed = existing.filter((s) => !upstreamNames.has(s.name));
+
+  // plain code-unit order, as the spell list displays records in file order
+  records.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+  const slugs = records.map((r) => r.slug).filter((s, i, all) => all.indexOf(s) !== i);
+  if (slugs.length) throw new Error(`Duplicate slugs after the merge: ${slugs.join(", ")}`);
+
+  console.log(`\nAdded ${added.length}:`);
+  added.forEach((r) => console.log(`  + ${r.name} [${r.category}, rank ${r.rank}]`));
+  console.log(`Removed ${removed.length}:`);
+  removed.forEach((s) => console.log(`  - ${s.name} [${s.category}]`));
+  console.log(`Changed ${changed.length}:`);
+  changed.forEach((c) => console.log(`  ~ ${c}`));
+
+  // facts the interface depends on (see design.md, "Category from the compendium folder")
+  const strayTraditionless = records.filter((r) => r.traditions.length === 0 && r.category !== "focus" && r.category !== "ritual");
+  if (strayTraditionless.length) console.warn(`\nWARNING: traditionless spells that are neither focus nor ritual (the filters have no chip for them): ${strayTraditionless.map((r) => r.name).join(", ")}`);
+  const traditionFocus = records.filter((r) => r.category === "focus" && r.traditions.length);
+  if (traditionFocus.length) console.warn(`\nWARNING: focus spells with a tradition: ${traditionFocus.map((r) => r.name).join(", ")}`);
+
+  const byCategory = {};
+  for (const r of records) byCategory[r.category] = (byCategory[r.category] || 0) + 1;
+  // one record per line, so a refresh reads as a clean diff
+  await writeFile(DATA_PATH, "[\n" + records.map((r) => JSON.stringify(r)).join(",\n") + "\n]\n");
+  console.log(`\nWrote ${records.length} spells to ${DATA_PATH}: ${JSON.stringify(byCategory)}`);
 }
 
 main().catch((err) => {

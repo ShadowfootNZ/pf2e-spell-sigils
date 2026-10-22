@@ -1,0 +1,296 @@
+// Spell Sigils: the sidebar, readout and image export, plus loading the spell data and startup.
+
+function el2(tag, cls, text){ const e=document.createElement(tag); e.className=cls; e.textContent=text; return e; }
+
+// every spell record, fetched from data/spells.json by init() at the bottom of this file
+let SPELLS = [];
+
+/* ---------------- sidebar / filters ---------------- */
+// empty trads/ranks sets mean "no filter applied" (show all) — see renderList — rather than
+// "match nothing," so chips start unselected and picking one narrows down from everything.
+// category ('none'/'ritual'/'focus', or null) is a separate axis from trads, and the two are mutually
+// exclusive rather than combined: picking one of Other/Ritual/Focus is "the only thing I'm interested
+// in" (clears any tradition selection), and picking a tradition backs back out of category mode. Both
+// stay visible at all times — neither hides the other, they just can't both be active together.
+// focusClass is a single nullable value, not a Set — picking one class deselects any other, the same
+// radio-button behavior Ritual/Focus/tradition already have relative to each other
+const state = { search:'', trads:new Set(), ranks:new Set(), category:null, focusClass:null };
+
+const classFilterEl = document.getElementById('classFilters');
+// leaves the class subselector row hidden and its own selection cleared — shared by every path that
+// backs out of (or switches away from) Focus specifically: a tradition chip, Ritual, or Focus itself
+// toggling off
+function resetClassFilter(){
+  state.focusClass = null;
+  classFilterEl.hidden = true;
+  [...classFilterEl.children].forEach(el => el.dataset.active = '0');
+}
+
+const tradFilterEl = document.getElementById('tradFilters');
+const categoryChipEls = [];
+['arcane','divine','occult','primal'].forEach(tr=>{
+  const c = el2('div','chip', tr);
+  c.dataset.trad = tr; c.dataset.active = '0';
+  c.addEventListener('click', ()=>{
+    if (state.trads.has(tr)) state.trads.delete(tr); else state.trads.add(tr);
+    c.dataset.active = state.trads.has(tr) ? '1':'0';
+    // stepping into tradition-space backs out of category mode, even on a deselecting click —
+    // the two axes don't combine
+    if (state.category !== null){
+      state.category = null;
+      categoryChipEls.forEach(el => el.dataset.active = '0');
+      resetClassFilter();
+    }
+    renderList();
+  });
+  tradFilterEl.appendChild(c);
+});
+
+// Ritual/Focus: a spell can only ever be in exactly one of these (or neither), so they act as one
+// mutually-exclusive group between themselves, and as a group they're mutually exclusive with the
+// tradition chips above too — activating one clears any active tradition selection. There's no third
+// "other" chip here — checked directly, every traditionless spell in the whole dataset is either a
+// ritual or a focus spell, so a generic catch-all for "traditionless and neither" would always be
+// empty. If that ever stops being true, a spell like that is still reachable by name via search with
+// nothing else selected.
+['ritual','focus'].forEach(cat=>{
+  const c = el2('div','chip', cat);
+  c.dataset.trad = cat; c.dataset.active = '0';
+  c.addEventListener('click', ()=>{
+    state.category = state.category === cat ? null : cat;
+    categoryChipEls.forEach(el => el.dataset.active = state.category === el.dataset.trad ? '1' : '0');
+    if (state.trads.size){
+      state.trads.clear();
+      [...tradFilterEl.querySelectorAll('.chip')].forEach(el=>{
+        if (!categoryChipEls.includes(el)) el.dataset.active = '0';
+      });
+    }
+    // the class subselector only makes sense while Focus is the active category — show it fresh on
+    // entry, and clear/hide it on every other transition (leaving Focus, or switching to Ritual)
+    if (state.category === 'focus') classFilterEl.hidden = false;
+    else resetClassFilter();
+    renderList();
+  });
+  tradFilterEl.appendChild(c);
+  categoryChipEls.push(c);
+});
+
+// class subselector — only appears while Focus is active (see above). Built from whichever classes
+// actually appear on a focus spell in the data (checked: 15 of the 29 real PF2E classes have at least
+// one), rather than the full canonical list, so there's never a chip that can only ever show zero
+// spells. 'other' covers the archetype-granted focus spells with no single owning class. Called by
+// init() once the data has loaded.
+function buildClassFilters(){
+  const classCounts = {};
+  SPELLS.forEach(s => { if (s.category === 'focus') classCounts[s.focusClass || 'other'] = (classCounts[s.focusClass || 'other']||0)+1; });
+  const classes = Object.keys(classCounts).filter(c=>c!=='other').sort();
+  classes.push('other');
+  const classChipEls = [];
+  classes.forEach(cls=>{
+    const c = el2('div','chip', cls);
+    c.dataset.class = cls; c.dataset.active = '0';
+    if (cls !== 'other') c.style.setProperty('--class-hue', hueForClass(cls).toFixed(1));
+    c.addEventListener('click', ()=>{
+      // single-select: picking a class deselects any other, same as Ritual/Focus/tradition are already
+      // mutually exclusive with each other one level up
+      state.focusClass = state.focusClass === cls ? null : cls;
+      classChipEls.forEach(el => el.dataset.active = state.focusClass === el.dataset.class ? '1' : '0');
+      renderList();
+    });
+    classChipEls.push(c);
+    classFilterEl.appendChild(c);
+  });
+}
+
+const rankFilterEl = document.getElementById('rankFilters');
+for(let r=0;r<=10;r++){
+  const c = el2('div','rank-chip', r===0?'C':String(r));
+  c.dataset.active='0';
+  c.addEventListener('click', ()=>{
+    if (state.ranks.has(r)) state.ranks.delete(r); else state.ranks.add(r);
+    c.dataset.active = state.ranks.has(r) ? '1':'0';
+    renderList();
+  });
+  rankFilterEl.appendChild(c);
+}
+
+document.getElementById('search').addEventListener('input', e=>{
+  state.search = e.target.value.trim().toLowerCase();
+  renderList();
+});
+
+// purely a display toggle — doesn't touch colorAt()/TRAD_HSL or any spell state, just swaps the stage's
+// own background and lets CSS (.stage.parchment ...) reshape how the existing SVG output looks on it
+document.getElementById('bgToggle').addEventListener('click', function(){
+  const on = this.dataset.active !== '1';
+  this.dataset.active = on ? '1' : '0';
+  document.querySelector('.stage').classList.toggle('parchment', on);
+});
+
+/* ---------------- copy sigil as image ---------------- */
+// "max glow" is a direct toggle on the live sigil rather than a copy-time-only state: click it to force
+// the glow to startGlow()'s asymptotic ceiling (frac=1 — its own farTarget/nearTarget/restA/restB
+// constants, duplicated here since they're only local to that function's closure), click again to drop
+// back to the floor resetGlow() itself uses. Copying then just snapshots whatever's currently on screen
+// — no forcing or restoring inside the copy path itself, so "which glow state did I get" is always
+// exactly whatever the toggle (and the page's own settle-after-draw sequence) left it at.
+const maxGlowToggle = document.getElementById('maxGlowToggle');
+maxGlowToggle.addEventListener('click', () => {
+  const on = maxGlowToggle.dataset.active !== '1';
+  maxGlowToggle.dataset.active = on ? '1' : '0';
+  const far = document.getElementById('sigilBlurFar'), farColor = document.getElementById('sigilBlurFarColor');
+  const near = document.getElementById('sigilBlurNear'), nearColor = document.getElementById('sigilBlurNearColor');
+  const root = document.getElementById('sigilRoot');
+  if (on){
+    far.setAttribute('stdDeviation', '6.0');
+    near.setAttribute('stdDeviation', '2.6');
+    farColor.setAttribute('values', '0.55 0 0 0 0  0 0.55 0 0 0  0 0 0.55 0 0  0 0 0 1 0');
+    nearColor.setAttribute('values', '1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 0');
+    root.style.setProperty('--dropA', '1.2px');
+    root.style.setProperty('--dropB', '2.8px');
+  } else {
+    far.setAttribute('stdDeviation', '0.05');
+    near.setAttribute('stdDeviation', '0.05');
+    farColor.setAttribute('values', '0.55 0 0 0 0  0 0.55 0 0 0  0 0 0.55 0 0  0 0 0 0.05 0');
+    nearColor.setAttribute('values', '1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.05 0');
+    root.style.setProperty('--dropA', '0px');
+    root.style.setProperty('--dropB', '0px');
+  }
+});
+// shared by copy-to-clipboard and save-to-file — everything up to the serialized SVG string runs
+// synchronously (no `await` yet), so the current visual state is frozen before either path does any
+// async work
+function captureSigilSvg(){
+  const svgEl = document.getElementById('sigil');
+  // draw-in/pop animations use fill:'forwards', which keeps every element visually at its finished state
+  // but never writes that back into the element's own style attribute — commitStyles() does, and without
+  // it a raw clone would serialize the pre-animation (undrawn) markup instead of what's on screen
+  svgEl.getAnimations({subtree:true}).forEach(a => { try { a.commitStyles(); } catch(e){} });
+  // the live viewBox is a fixed 0 0 600 600, but ring medallions routinely straddle/exceed that box —
+  // #sigil's own overflow:visible is what lets them spill out on screen. A standalone exported SVG has
+  // no such CSS to inherit, so it clips to its viewBox by default; getBBox() finds the *actual* rendered
+  // extent (geometry only, not filter/glow spread, hence the generous padding) and the export uses that
+  // instead of the nominal canvas size.
+  const bbox = document.getElementById('sigilRoot').getBBox();
+  const pad = 40;
+  const vx = bbox.x - pad, vy = bbox.y - pad, vw = bbox.width + pad*2, vh = bbox.height + pad*2;
+  const clone = svgEl.cloneNode(true);
+  clone.setAttribute('xmlns', NS);
+  clone.setAttribute('viewBox', `${vx.toFixed(1)} ${vy.toFixed(1)} ${vw.toFixed(1)} ${vh.toFixed(1)}`);
+  const isParchment = document.querySelector('.stage').classList.contains('parchment');
+  // parchment gets an opaque backdrop baked in (the tool's own background is CSS on an ancestor the
+  // standalone clone doesn't have) and its recolor filter inlined for the same reason; void mode gets no
+  // backdrop at all, so the exported PNG keeps a transparent background instead of a solid black square
+  if (isParchment){
+    const bg = el('rect', {x:vx, y:vy, width:vw, height:vh, fill:'#c2a877'});
+    clone.insertBefore(bg, clone.firstChild);
+    clone.setAttribute('style', 'filter:saturate(.6) brightness(.6) contrast(1.15) sepia(.15)');
+  }
+  return { svgString: new XMLSerializer().serializeToString(clone), vw, vh };
+}
+// returns a promise for the rasterized PNG blob — kept as a *pending* promise (not awaited here) so
+// copySigilImage can hand it straight to ClipboardItem, which is what lets the eventual clipboard write
+// still count against the click's transient user activation despite the decode/encode work taking a beat
+function renderSigilBlob(){
+  const { svgString, vw, vh } = captureSigilSvg();
+  return (async () => {
+    const img = new Image();
+    await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString); });
+    // the exported viewBox isn't guaranteed square (a satellite can stick out further on one side than
+    // another) — size the canvas to match its actual aspect ratio instead of a fixed square, or a
+    // non-square sigil would get stretched to fit
+    const targetMax = 1200;
+    const scale = targetMax / Math.max(vw, vh);
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(vw*scale); canvas.height = Math.round(vh*scale);
+    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+    return await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+  })();
+}
+async function copySigilImage(){
+  await navigator.clipboard.write([new ClipboardItem({'image/png': renderSigilBlob()})]);
+}
+async function saveSigilImage(){
+  const blob = await renderSigilBlob();
+  // reads straight off the readout rather than looking up `currentSlug` in SPELLS — guaranteed to match
+  // whatever's actually on screen regardless of how it got there, since buildSigil() itself is what sets
+  // this text, synchronously, every time it draws a spell
+  const shownName = document.getElementById('roName').textContent;
+  // strips characters invalid in a filename on Windows (\/:*?"<>|) — macOS/Linux only really care about
+  // /, but stripping the whole set keeps one filename safe everywhere rather than branching on OS
+  const name = (shownName || 'sigil').replace(/[\\/:*?"<>|]+/g, '').trim() || 'sigil';
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name + '.png';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+[['copyImage', copySigilImage, 'copied!', 'copy failed'], ['saveImage', saveSigilImage, 'saved!', 'save failed']].forEach(([id, action, okText, errText]) => {
+  const btn = document.getElementById(id);
+  const label = btn.textContent;
+  btn.addEventListener('click', async ()=>{
+    try {
+      await action();
+      btn.dataset.state = 'ok'; btn.textContent = okText;
+    } catch(err){
+      console.error(id + ' failed', err);
+      btn.dataset.state = 'err'; btn.textContent = errText;
+    }
+    setTimeout(()=>{ delete btn.dataset.state; btn.textContent = label; }, 1400);
+  });
+});
+
+let currentSlug = null;
+function renderList(){
+  const listEl = document.getElementById('list');
+  listEl.innerHTML = '';
+  const filtered = SPELLS.filter(s=>{
+    if (state.search && !s.name.toLowerCase().includes(state.search)) return false;
+    if (state.ranks.size && !state.ranks.has(s.rank)) return false;
+    if (state.category === 'ritual') return s.category === 'ritual';
+    if (state.category === 'focus'){
+      if (s.category !== 'focus') return false;
+      if (state.focusClass && (s.focusClass || 'other') !== state.focusClass) return false;
+      return true;
+    }
+    if (state.trads.size && !s.traditions.some(t=>state.trads.has(t))) return false;
+    return true;
+  });
+  document.getElementById('count').textContent = `${filtered.length} of ${SPELLS.length} spells`;
+  filtered.forEach(s=>{
+    const li = document.createElement('li');
+    const primary = s.traditions[0] || 'none';
+    li.style.setProperty('--dot', tradColorSolid(primary));
+    if (s.slug === currentSlug) li.classList.add('active');
+    const nm = document.createElement('span'); nm.textContent = s.name;
+    const rk = document.createElement('span'); rk.className='r'; rk.textContent = s.rank===0?'cantrip':'rank '+s.rank;
+    li.appendChild(nm); li.appendChild(rk);
+    li.addEventListener('click', ()=>{
+      currentSlug = s.slug;
+      [...listEl.children].forEach(c=>c.classList.remove('active'));
+      li.classList.add('active');
+      buildSigil(s);
+    });
+    listEl.appendChild(li);
+  });
+}
+
+// the spell data lives in its own file so it can be refreshed separately from the code. The page is
+// always served over HTTP, so it's fetched; opened straight from disk, the fetch fails and the count
+// line says why.
+async function init(){
+  const res = await fetch('data/spells.json');
+  if (!res.ok) throw new Error(`data/spells.json: HTTP ${res.status}`);
+  SPELLS = await res.json();
+  buildClassFilters();
+  const defaultSpell = SPELLS[Math.floor(Math.random()*SPELLS.length)];
+  if (defaultSpell) currentSlug = defaultSpell.slug;
+  renderList();
+  if (defaultSpell) buildSigil(defaultSpell);
+}
+init().catch(err => {
+  console.error(err);
+  document.getElementById('count').textContent = 'Could not load the spell data. Serve this folder over HTTP.';
+});

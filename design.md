@@ -1,6 +1,6 @@
 # Spell Sigils design
 
-Spell Sigils draws an animated magic circle for each Pathfinder Second Edition spell. The whole tool is one self-contained HTML page that works when opened straight from disk or served as a static file. Every visual choice is derived from the spell's rank, traditions, traits and category, using a random stream seeded on the spell's identity, so a given spell always produces the same sigil.
+Spell Sigils draws an animated magic circle for each Pathfinder Second Edition spell. It is a static web app, always served over HTTP: an HTML page, a stylesheet, four plain scripts and a JSON data file. Every visual choice is derived from the spell's rank, traditions, traits and category, using a random stream seeded on the spell's identity, so a given spell always produces the same sigil.
 
 `plan.md` tracks open and proposed work.
 
@@ -8,14 +8,20 @@ Spell Sigils draws an animated magic circle for each Pathfinder Second Edition s
 
 | File | Role |
 | --- | --- |
-| `index.html` | The whole app: CSS, markup, rendering code and an embedded copy of the spell data in `const SPELLS = [...]`, a single 362 KB line. |
-| `spells-data.json` | Canonical spell data. `index.html` carries a byte-identical copy. |
-| `refresh-data.mjs` | Updates the sparse clone of `foundryvtt/pf2e` in `.cache/pf2e-pack` and refreshes the folder-derived fields in `spells-data.json`. |
-| `embed-data.mjs` | Writes `spells-data.json` into the `SPELLS` constant in `index.html`. |
+| `index.html` | Page markup. Loads the stylesheet and the four scripts. |
+| `styles.css` | All styling. |
+| `js/core.js` | Seeded random numbers, colors and SVG helpers. |
+| `js/symbols.js` | `GLYPHS`, `RUNES` and `RUNE_TRADITION`. |
+| `js/sigil.js` | `buildSigil`, glow and comets. |
+| `js/ui.js` | Filters, list, readout, image export, loading the data and startup. |
+| `data/spells.json` | The spell data, one record per line, fetched at startup. |
+| `refresh-data.mjs` | Updates the sparse clone of `foundryvtt/pf2e` in `.cache/pf2e-pack` and rebuilds `data/spells.json` from it. |
 | `plan.md` | Open and proposed work, as numbered items. |
 | `README.md` | Public overview, usage, the Paizo notice and credits. |
 | `LICENSE` | MIT License for the original code. |
 | `.cache/` | Gitignored, disposable sparse clone of `packs/pf2e/spells` and `packs/pf2e/classes`. |
+
+The scripts are classic scripts that share globals, loaded in the order above; each one only calls functions from the ones before it, plus `SPELLS`, which `js/ui.js` declares and fills.
 
 ## Spell data
 
@@ -31,39 +37,42 @@ Spell Sigils draws an animated magic circle for each Pathfinder Second Edition s
 
 ### Field sources
 
-- `name`, `slug`, `rank`, `traditions`, `traits` and `rarity` come from a one-off export made on 2026-08-27, before any script existed. Nothing in the repo regenerates them, so spells added upstream since then are missing. Cantrips are stored as rank 0; upstream stores them as level 1 with a `cantrip` trait.
-- `category`, `casters` and `focusClass` come from `refresh-data.mjs`, joined to existing records by spell name.
+Every field comes from the spell's compendium file, through `refresh-data.mjs`, matched to the existing record by name. Cantrips are stored as rank 0; upstream stores them as level 1 with a `cantrip` trait. Two things are carried over from the existing record instead of being rederived, because a sigil depends on them:
+
+- the slug (see below);
+- the order of traits and traditions, whenever the set itself is unchanged. Glyph placement shuffles the curated traits in stored order, and colors cycle through traditions in stored order, so a reordering alone would redraw the sigil.
 
 ### Category from the compendium folder
 
 `category` is `spell`, `focus`, `ritual` or `impossible`, taken from the folder a spell's file sits in under `packs/pf2e/spells`: `spells/`, `focus/`, `rituals/` or `impossible-spells/`. Traits are not a reliable signal, because the `focus` trait is missing from some focus spells even in the raw pf2e source.
 
-The current data has 1277 spells, 545 focus spells, 166 rituals and 5 impossible spells. The interface depends on these facts about it:
+The data from the 2026-10-22 refresh has 2018 records: 1294 spells, 551 focus spells, 168 rituals and 5 impossible spells. The interface depends on these facts about it, and `refresh-data.mjs` warns if either of the first two stops holding:
 
-- Every traditionless spell is either a focus spell (545) or a ritual (163). There is no third "innate" or "other" group, which is why the filter has no "other" chip.
+- Every traditionless spell is either a focus spell (551) or a ritual (165). There is no third "innate" or "other" group, which is why the filter has no "other" chip.
 - No focus spell has a tradition. Three rituals do: Aspirational State, Bacchanalia and Mother's Blessing.
 - All five impossible spells have traditions, so the tradition filters reach them.
-- `focusClass` is set when exactly one of a focus spell's traits matches a class in `packs/pf2e/classes`. 15 of the 29 classes own at least one focus spell. The 74 focus spells without a single owning class display as "other".
-- `casters` is the ritual's secondary-caster count.
+- `focusClass` is set when exactly one of a focus spell's traits matches a class in `packs/pf2e/classes`. 15 of the 29 classes own at least one focus spell. The 76 focus spells without a single owning class display as "other".
+- `casters` is the ritual's secondary-caster count. Four rituals have no count upstream and are stored as 0.
 
 ### Slugs and the render seed
 
-127 stored slugs keep apostrophes, such as `achaekek's-clutch`, while the compendium file names drop them (`achaekeks-clutch`). The render seed includes the slug, so regenerating slugs would change those 127 sigils. Existing slugs must be preserved; only new spells need a derived slug.
+A slug identifies a spell in URLs and is part of the render seed, so existing slugs are preserved across refreshes. 125 of them keep punctuation that the compendium file names drop: 120 apostrophes, such as `achaekek's-clutch` against `achaekeks-clutch`, and commas or parentheses in five more, such as `hop,-skip,-jump`. A new spell takes its compendium file name as its slug. When a spell disappears upstream its slug goes with it, so anything that looks a slug up has to handle one that no longer exists.
 
-### Embedding
+Any other upstream change may change a sigil; the data isn't kept backward compatible. Traits and traditions are stored in alphabetical order, so upstream reordering a list never redraws a sigil on its own.
 
-Most browsers block a page opened from `file://` from fetching a sibling JSON file, so the data is baked into `index.html`. Edit `spells-data.json`, then run `embed-data.mjs`. Any hand edit to the embedded `SPELLS` is overwritten by the next embed.
+### Loading
+
+`js/ui.js` fetches `data/spells.json` at startup, then builds the class filter, the list and a random first sigil; until then the count line reads "Loading spells…". A preload hint in `index.html` starts the download with the page rather than after the scripts run. The page is always served over HTTP; opened from `file://`, the fetch fails and the count line says so. The file is 360 KB, or 43 KB gzipped.
 
 ### Refreshing from upstream
 
 ```sh
 node refresh-data.mjs
-node embed-data.mjs
 ```
 
 `refresh-data.mjs` sparse-clones `foundryvtt/pf2e` on its first run. Later runs fetch and hard-reset to the remote tip instead of pulling. Upstream force-pushes its default branch, `v14-dev`, and after that `git pull` on a shallow clone fails with "refusing to merge unrelated histories". This was reproduced against the old cache on 2026-10-22.
 
-After that refresh, upstream has 2018 spells. 26 of them are not in `spells-data.json`, and one local spell, Divine Vessel, no longer exists upstream.
+Each run prints every addition, removal and field change. Spells gone upstream are dropped. The 2026-10-22 refresh added 26 spells, including two rituals, dropped Divine Vessel, and changed three: Corpse Bloom's rank, and one trait each on Ash Form and Consecrate Flesh.
 
 ## Rendering
 
@@ -77,7 +86,8 @@ Tradition spells are drawn with the most precision: ruled bands, tightly set wri
 
 - The same code with the same name and slug always gives the same sigil.
 - Changing the number or order of `rng()` calls changes the sigil of every spell whose stream passes that point.
-- Adding a rune or glyph changes the sigils of spells that draw from the affected pool, because the shuffles see a different pool size. Reordering `RUNES` or `GLYPHS` changes far more.
+- Adding or removing a rune changes the sigils of spells that draw from that rune's tradition, because that tradition's pool is shuffled at a different size. Reordering runes within a tradition does too. Order across traditions doesn't matter, since each tradition's pool keeps its own runes in array order.
+- Adding or removing a glyph changes only the sigils of spells with that trait. The order of `GLYPHS` doesn't matter, because it is only ever looked up by trait name; it is kept alphabetical.
 - `Math.random()` is used only for comet particle jitter and for choosing the spell shown on load.
 - `FOCUS_CLASS_ORDER` is frozen and append-only, because each class's hue comes from its index.
 
@@ -92,12 +102,12 @@ A sigil is drawn in a 600 by 600 viewBox centred on (300, 300) with an outer rad
 - **Center.** A medallion holds one trait glyph when the spell is "centered". A containment ring surrounds it, aligned to the innermost band when there are three bands.
 - **Ring medallions.** Trait glyphs sit in medallions that straddle the outer band, each with its own miniature rune band. Placement depends on the number of curated traits. One goes to the center. Two go on the ring, 180° apart. With 3 to 6, the spell is centered with 75% probability, and otherwise all of them go on the ring. With 7 or more, the spell is always centered. The ring holds at most 8. Rank also sets a floor of 1 to 3 ring slots, and slots without a glyph get smaller rune-only fillers. One slot is anchored to a polygon vertex and the rest are spaced evenly from it. The outer band leaves a gap under each medallion.
 - **Focus spells** draw each band as writing only, with no ruled lines, and double the letter pitch so the writing is spaced like double-spaced lettering. A focus cantrip gets one such band in place of the plain circle, so its medallions still sit on a ring. Medallions keep their lines. With no band lines, the idle comets ride only the polygon.
-- **Traditionless rituals** draw their band circles as open arcs (`isTraditionless`). The arcs used to mean that a focus spell's circle can't close; focus spells no longer draw band lines, so only the 163 traditionless rituals still use them, pending plan item 42.
+- **Traditionless rituals** draw their band circles as open arcs (`isTraditionless`). The arcs used to mean that a focus spell's circle can't close; focus spells no longer draw band lines, so only the 165 traditionless rituals still use them, pending plan item 42.
 - **Mythic spells**, 33 of them, get one fractured polygon edge. `fractureEdge` returns a new point list, so medallion anchoring still uses the clean polygon.
 
 ### Symbol vocabularies
 
-- `GLYPHS` has 57 entries mapping a trait to a drawing in a 24 by 24 box. A trait with an entry is "curated": it can take a medallion and is highlighted in the trait list. Class traits get no entry, because the class badge already names the class; `psychic` had one until 2026-10-22. 1439 of the 1993 spells have at least one curated trait.
+- `GLYPHS` has 57 entries mapping a trait to a drawing in a 24 by 24 box. A trait with an entry is "curated": it can take a medallion and is highlighted in the trait list. Class traits get no entry, because the class badge already names the class; `psychic` had one until 2026-10-22. 1463 of the 2018 spells have at least one curated trait.
 - `RUNES` has 54 small marks in a box of roughly 8 units centred on the origin. `RUNE_TRADITION` is a parallel array that tags each one: 8 arcane, 8 divine, 9 primal and 29 occult. The two arrays must stay in the same order. The occult set includes 26 marks simplified from Paizo's Cosmic Caravan art: 13 constellations, the Diaspora, the Sun and 11 planets. The divine runes are deliberately abstract so that none reads as a real-world religious symbol.
 - Each spell draws from its own rune vocabulary. A rank-scaled budget is split evenly across its traditions, so occult's larger pool doesn't dominate. Traditionless spells sample all four traditions at half the budget, with a floor of 2 shapes, or 4 for focus spells so their spaced writing doesn't reduce to a two-symbol pattern.
 
@@ -168,14 +178,14 @@ The original code is MIT-licensed. `LICENSE` keeps the standard MIT text so GitH
 ## Working conventions
 
 - **Render before and after visual changes.**
-  - For a new shape, render the candidates at large scale in a scratch HTML page and screenshot them with Puppeteer before touching `index.html`. Hand-derived curves have rendered as something else entirely; one "vesica lens" came out as a plain diamond.
+  - For a new shape, render the candidates at large scale in a scratch HTML page and screenshot them with Puppeteer before touching the scripts. Hand-derived curves have rendered as something else entirely; one "vesica lens" came out as a plain diamond.
   - After editing, check with Puppeteer: no console or page errors, expected counts such as `RUNES.length`, and a screenshot of the change in context inside a real band or medallion.
   - For timing changes, monkey-patch `Element.prototype.animate` to log the real delays and durations.
   - When a fix answers a specific critique, confirm the stated problem is gone, not only that the shape changed.
   - Delete scratch files afterwards.
 - **Plan numbering.** Remove an item from `plan.md` once it's done; the commit that completes it records what changed and how it was verified. Don't renumber on completion or reuse a removed item's number, since code comments cite item numbers. Renumber only for a deliberate reprioritization.
-- **Data edits go through `spells-data.json`,** followed by `embed-data.mjs`.
-- **Changes to sigil output are deliberate.** See the determinism section. Append to `FOCUS_CLASS_ORDER`, `RUNES` and `RUNE_TRADITION`; never reorder them.
+- **Data comes from `refresh-data.mjs`.** A hand edit to `data/spells.json` is overwritten by the next refresh.
+- **Changes to sigil output are deliberate.** See the determinism section. Append to `FOCUS_CLASS_ORDER`, and to `RUNES` and `RUNE_TRADITION` together; never reorder a tradition's runes. Keep `GLYPHS` alphabetical.
 
 ## Related resources
 
