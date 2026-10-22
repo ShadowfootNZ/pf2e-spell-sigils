@@ -74,6 +74,12 @@
     border-left:3px solid transparent; display:flex; justify-content:space-between; gap:8px;
   }
   .list li:hover{background:rgba(255,255,255,.03); color:var(--ink);}
+  /* Paizo's Community Use Policy requires its notice to be legible on the page itself, so it stays
+     visible at the foot of the sidebar rather than behind a link */
+  .legal{padding:10px 16px 14px; border-top:1px solid var(--panel-border); font-size:.62rem; line-height:1.4; color:var(--ink-faint);}
+  .legal p{margin:0 0 6px;}
+  .legal p:last-child{margin-bottom:0;}
+  .legal a{color:var(--ink-dim);}
   .list li.active{background:rgba(255,255,255,.06); color:#fff; border-left-color:var(--dot,#888);}
   .list li .r{font-size:.7rem; color:var(--ink-faint); font-variant:small-caps;}
   .list::-webkit-scrollbar{width:8px;}
@@ -188,6 +194,10 @@
     <div class="rank-row" id="rankFilters"></div>
     <div class="count" id="count"></div>
     <ul class="list" id="list"></ul>
+    <footer class="legal">
+      <p>Spell Sigils uses trademarks and/or copyrights owned by Paizo Inc., used under Paizo's Community Use Policy (<a href="https://paizo.com/licenses/communityuse" target="_blank" rel="noopener">paizo.com/licenses/communityuse</a>). We are expressly prohibited from charging you to use or access this content. Spell Sigils is not published, endorsed, or specifically approved by Paizo. For more information about Paizo Inc. and Paizo products, visit <a href="https://paizo.com" target="_blank" rel="noopener">paizo.com</a>.</p>
+      <p>Spell data from the <a href="https://github.com/foundryvtt/pf2e" target="_blank" rel="noopener">PF2E system for Foundry VTT</a>. Code under the MIT License. <a href="https://github.com/ShadowfootNZ/pf2e-spell-sigils" target="_blank" rel="noopener">Source and contact</a>.</p>
+    </footer>
   </aside>
   <main class="stage">
     <div class="circle-wrap">

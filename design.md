@@ -13,6 +13,8 @@ Spell Sigils draws an animated magic circle for each Pathfinder Second Edition s
 | `refresh-data.mjs` | Updates the sparse clone of `foundryvtt/pf2e` in `.cache/pf2e-pack` and refreshes the folder-derived fields in `spells-data.json`. |
 | `embed-data.mjs` | Writes `spells-data.json` into the `SPELLS` constant in `index.html`. |
 | `plan.md` | Open and proposed work, as numbered items. |
+| `README.md` | Public overview, usage, the Paizo notice and credits. |
+| `LICENSE` | MIT License for the original code. |
 | `.cache/` | Gitignored, disposable sparse clone of `packs/pf2e/spells` and `packs/pf2e/classes`. |
 
 ## Spell data
@@ -144,6 +146,19 @@ A sigil is drawn in a 600 by 600 viewBox centred on (300, 300) with an outer rad
 
   The PNG is rasterized at up to 1200 px on its long side. Copy hands `ClipboardItem` a pending promise so the write still counts as part of the click. The PNG output has been checked pixel for pixel. The clipboard write itself could not be confirmed in headless Chrome and still needs a manual check in desktop browsers.
 - **Startup.** A random spell is drawn on load.
+- **Legal footer.** The sidebar ends with Paizo's Community Use Policy notice, a credit for the pf2e data and a link to the repo for contact. It stays visible rather than sitting behind a link.
+
+## Licensing
+
+Paizo material is used under Paizo's Community Use Policy, which covers free, non-commercial use of Paizo's trademarks and copyrights. That material includes spell names, traits and other game terms, deity and Golarion names, and the runes based on the Cosmic Caravan art. The ORC License and OGL are not used: they cover rules content only, exclude proper nouns such as deity names, and would need attribution for each of the roughly 100 source books. The policy requires:
+
+- the notice, in legible form, on the page and in the README;
+- the tool staying free, with no paywall, sign-up or email gate (donations and ads are allowed);
+- no Paizo logos or trade dress, and nothing implying Paizo's endorsement, though descriptive references such as "for Pathfinder Second Edition" are fine;
+- up-to-date contact information in a visible place;
+- new artwork that is an interpretation of Paizo's art and doesn't look substantially similar to it.
+
+The original code is MIT-licensed. `LICENSE` keeps the standard MIT text so GitHub detects it, and the README states that the licence doesn't extend to Paizo material. The pf2e system's own Apache license covers only its code; crediting it as the data source is a courtesy.
 
 ## Working conventions
 

@@ -6,11 +6,9 @@ Remove completed items as the details will be in git history.
 
 ## Before the page goes public
 
-48. **Make the layout work on phones.** The sidebar is a fixed 320 px column and `body` has `overflow:hidden` (lines 21 to 23). At 390 px wide the page lays out 602 px wide, can't scroll, and the sigil sits mostly off-screen. Below a breakpoint, stack the stage above the spell list or move the list into a drawer, size `.circle-wrap` from the viewport width, and keep the toolbar clear of the sigil. Verify with Puppeteer screenshots at 390×844, 768×1024 and a desktop size.
+48. **Make the layout work on phones.** The sidebar is a fixed 320 px column and `body` has `overflow:hidden` (lines 21 to 23). At 390 px wide the page lays out 602 px wide, can't scroll, and the sigil sits mostly off-screen. Below a breakpoint, stack the stage above the spell list or move the list into a drawer, size `.circle-wrap` from the viewport width, and keep the toolbar clear of the sigil. The Paizo notice at the foot of the sidebar must stay visible without opening the drawer. Verify with Puppeteer screenshots at 390×844, 768×1024 and a desktop size.
 
 49. **Permalinks.** The page draws a random spell on load (line 1597) and never updates the URL. Write `#<slug>` on selection, read it on load and on `hashchange`, and only fall back to a random spell when the hash is empty or unknown. Encode the hash with `encodeURIComponent`, since 127 slugs contain apostrophes. Rendering is deterministic, so a link reproduces the exact sigil. Scroll the selected spell into view in the list.
-
-50. **Paizo notice and data attribution.** Spell names and traits come from `foundryvtt/pf2e`, and the occult runes were traced from Paizo's Cosmic Caravan art. Add the Paizo Community Use Policy notice to the page and the README, credit the pf2e system project as the data source, and check the policy's terms on trademark use before putting "Pathfinder" in any title.
 
 51. **Keyboard access.** The filter chips (lines 1349, 1374, 1406), the max-glow toggle and the list items are `div` or `li` elements with click handlers only. Make chips and toggles `<button>` elements with `aria-pressed`, let the list take focus with arrow-key navigation and Enter to draw, and give the SVG `role="img"` with an `aria-label` naming the spell.
 
