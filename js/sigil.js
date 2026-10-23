@@ -4,43 +4,25 @@
 let idleTimer = null;
 let blurGen = 0;
 
-// Drives the whole sigil's glow for its entire life — the wide dim outer haze, the tight bright
-// near-line band, and the neon drop-shadow halo — as ONE continuous loop, so there's never a hand-off
-// between "fading in" and "breathing" for the eye to catch. Intro: a couple of decaying pulses settling
-// into the steady blur. After that the same loop keeps running, breathing the drop-shadow halo slowly
-// forever, until a new spell bumps blurGen and this one abandons itself.
-//
-// Two SVG blur layers do different jobs (see the filter defs): a Gaussian blur's visible portion is
-// always the dim falling edge of the curve — the bright peak sits under the opaque crisp line on top —
-// so a single wide blur alone reads as "blurry", not "glowing". The far layer keeps that soft wide haze
-// for ambient depth; the near layer is a much tighter radius with its alpha amplified well past what
-// the raw dilution would give it, so it reads as an actual bright band hugging the line — like a real
-// neon tube's edge — while staying in the tradition's own color instead of a fixed tint.
-// ramps 1->0 over the first 35% of a cycle, holds at true 0 through the middle 30%, ramps 0->1 over
-// the last 35% — a real dwell at fully-transparent, not just a sine wave's momentary zero-crossing
-function holdWave(t01){
-  if (t01 < 0.35) return 1 - t01/0.35;
-  if (t01 < 0.65) return 0;
-  return (t01-0.65)/0.35;
-}
+// The sigil's glow flashes once when it finishes drawing and then goes out, leaving crisp lines; the
+// comets and the slow line pulses keep a settled sigil alive. The flash has two parts, both driven by the
+// same eased curve so they rise together: the #sigilGlow filter's wide haze, in a darkened version of
+// each line's own color, and the neon drop-shadow halo on the whole sigil. glowDuplicate's per-line
+// halos flash and fade on their own timing.
 
-// Bumps blurGen (abandoning any previous spell's still-running loop) and pins every glow
-// layer to its floor — called immediately when a new sigil starts building, so the old
-// spell's glow doesn't linger or bleed into the new draw-on. The actual ramp-up is a separate
-// step (see startGlow below), fired only once the new sigil has finished drawing.
+// Bumps blurGen (abandoning any previous spell's still-running flash) and pins the glow at its floor —
+// called immediately when a new sigil starts building, so the old spell's glow doesn't linger or bleed
+// into the new draw-on. The flash itself is a separate step (see startGlow below), fired only once the
+// new sigil has finished drawing.
 function resetGlow(){
   const myGen = ++blurGen;
   const farStdEl = document.getElementById('sigilBlurFar');
   const farColorEl = document.getElementById('sigilBlurFarColor');
-  const nearStdEl = document.getElementById('sigilBlurNear');
-  const nearColorEl = document.getElementById('sigilBlurNearColor');
   const root = document.getElementById('sigilRoot');
   const floor = 0.05;
 
   farStdEl.setAttribute('stdDeviation', floor);
-  nearStdEl.setAttribute('stdDeviation', floor);
   farColorEl.setAttribute('values', `0.55 0 0 0 0  0 0.55 0 0 0  0 0 0.55 0 0  0 0 0 ${floor} 0`);
-  nearColorEl.setAttribute('values', `1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 ${floor} 0`);
   root.style.setProperty('--dropA', '0px');
   root.style.setProperty('--dropB', '0px');
   return myGen;
@@ -50,24 +32,20 @@ function startGlow(myGen){
   if (myGen !== blurGen) return; // abandoned before its ramp even got to start
   const farStdEl = document.getElementById('sigilBlurFar');
   const farColorEl = document.getElementById('sigilBlurFarColor');
-  const nearStdEl = document.getElementById('sigilBlurNear');
-  const nearColorEl = document.getElementById('sigilBlurNearColor');
   const root = document.getElementById('sigilRoot');
 
   const introDur = 1600;
-  const farTarget = 6.0, farAlphaAmp = 1;
-  const nearTarget = 2.6, nearAlphaAmp = 4; // must clear the ~1.4-2.2px stroke width or its spread never pokes out from under the crisp line on top — but stay well under farTarget, or "near" isn't actually the tight one
+  const farTarget = 6.0;
   const floor = 0.05, alphaFloor = 0.05;
 
   const setFarAlpha = a => farColorEl.setAttribute('values', `0.55 0 0 0 0  0 0.55 0 0 0  0 0 0.55 0 0  0 0 0 ${a.toFixed(2)} 0`); // darkened version of the line's own hue
-  const setNearAlpha = a => nearColorEl.setAttribute('values', `1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 ${a.toFixed(2)} 0`); // the line's true hue, undarkened
 
-  const restA = 1.2, restB = 2.8; // resting drop-shadow radii once settled, in px
+  const restA = 1.2, restB = 2.8; // drop-shadow radii at the top of the flash, in px
   let start = null; // anchored on the first frame actually painted, not the moment this was called —
                      // on first page load, list rendering/font loading can eat the first chunk of the
                      // ramp before anything is even on screen, making it look like it starts mid-swing
   function frame(now){
-    if (myGen !== blurGen) return; // a newer spell was picked — abandon this loop
+    if (myGen !== blurGen) return; // a newer spell was picked — abandon this flash
     if (start === null) start = now;
     const elapsed = now - start;
     const frac = Math.min(1, elapsed/introDur);
@@ -75,39 +53,21 @@ function startGlow(myGen){
     const pulse = Math.sin(frac*Math.PI*3) * Math.exp(-3*frac) * 0.4;
     const eased = Math.max(0, rise + pulse);
 
-    farStdEl.setAttribute('stdDeviation', (floor + (farTarget-floor)*eased).toFixed(2));
-    setFarAlpha(Math.min(1, (alphaFloor + (1-alphaFloor)*eased) * farAlphaAmp));
-    nearStdEl.setAttribute('stdDeviation', (floor + (nearTarget-floor)*eased).toFixed(2));
-    setNearAlpha(Math.min(1, (alphaFloor + (1-alphaFloor)*eased) * nearAlphaAmp));
-
     if (frac < 1){
+      farStdEl.setAttribute('stdDeviation', (floor + (farTarget-floor)*eased).toFixed(2));
+      setFarAlpha(Math.min(1, alphaFloor + (1-alphaFloor)*eased));
       // drop-shadow halo rides in on the exact same eased curve — no separate ramp to fall out of sync
       root.style.setProperty('--dropA', (restA*eased).toFixed(2)+'px');
       root.style.setProperty('--dropB', (restB*eased).toFixed(2)+'px');
+      requestAnimationFrame(frame);
     } else {
-      // TEST #3: glow activates once (the intro pulse above), then holds at zero — no repeating
-      // breathing loop. Uncomment the block below (and the commented recursion at the bottom) to
-      // restore breathing.
+      // settled: the glow goes out, and the blur drops back to its floor so it costs nothing while the
+      // comets keep repainting the sigil
+      farStdEl.setAttribute('stdDeviation', floor);
       setFarAlpha(0);
-      setNearAlpha(0);
       root.style.setProperty('--dropA', '0px');
       root.style.setProperty('--dropB', '0px');
-      /*
-      // settled: near and far are one glow (bright core + its own soft halo, once far goes back to
-      // being a darker version of the same hue) — they must breathe in exact lockstep, same period
-      // and phase, or you'd see the halo lit with no core lit, or vice versa, which reads as broken
-      // rather than as one pulsing light. The drop-shadow layer is a separate effect and still breathes
-      // on its own independent cycle.
-      const settled = elapsed - introDur;
-      const w = holdWave((settled % 8400) / 8400);
-      setFarAlpha(w);
-      setNearAlpha(w);
-      const breathe = Math.sin(settled/3200);
-      root.style.setProperty('--dropA', (restA + breathe*0.7).toFixed(2)+'px');
-      root.style.setProperty('--dropB', (restB + breathe*1.6).toFixed(2)+'px');
-      */
     }
-    if (frac < 1) requestAnimationFrame(frame); // TEST #3: stop looping once settled instead of recursing forever
   }
   requestAnimationFrame(frame);
 }
@@ -222,21 +182,11 @@ function glowDuplicate(sourceEl, delay, dur, color, widthMult, layer){
   // element, not behind geometry added later in build order that happens to overlap it
   (layer || sourceEl.parentNode).appendChild(clone);
   const fadeIn = clone.animate([{opacity:0},{opacity:1}], {duration:dur, delay, easing:'ease-out', fill:'forwards'});
-  // TEST #3: one-time activation flash, then hold at opacity 0 — no repeating breathe loop.
-  // Uncomment the block below (and remove this one) to restore continuous breathing.
+  // a one-time flash: once lit, the halo fades straight back out
   fadeIn.finished.then(()=>{
     if (!clone.isConnected) return; // sigil was rebuilt for a new spell before this fade-in finished
     clone.animate([{opacity:1},{opacity:0}], {duration:900, easing:'ease-in', fill:'forwards'});
-  }).catch(()=>{});
-  /*
-  fadeIn.finished.then(()=>{
-    if (!clone.isConnected) return; // sigil was rebuilt for a new spell before this fade-in finished
-    clone.animate(
-      [{opacity:1, offset:0}, {opacity:0, offset:0.35}, {opacity:0, offset:0.65}, {opacity:1, offset:1}],
-      {duration: 6800 + Math.random()*3600, iterations:Infinity, easing:'ease-in-out'}
-    );
   }).catch(()=>{}); // the fade-in animation gets cancelled (element removed) if a new spell is picked mid-draw
-  */
   return clone;
 }
 
@@ -371,11 +321,11 @@ function buildSigil(spell){
     satelliteSectionStart = t;
     if (ringPlan.length) t += (ringPlan.length-1)*350 + 700;
   }
-  // named sections (border / polygon / chords / medallions+spokes / satellites / center ring) are fully
+  // named sections (border / polygon / chords / medallions / satellites / center ring) are fully
   // sequential — a section's delay is the exact sum of every prior section's real duration, computed from
   // its actual scheduled end rather than a hand-tuned guess, so nothing starts until the previous section
   // has completely finished. Inside a section with several small sub-items (border rune marks, chords,
-  // per-vertex spoke+medallion, per-satellite circle+rune) those sub-items keep their original fast,
+  // per-satellite circle+rune) those sub-items keep their original fast,
   // overlapping "wave" stagger — serializing all of those individually would push high-rank spells (up to
   // 64 border marks) out past 20+ seconds of draw time for no visual benefit.
   function push(elx, dur, kind, delay){
@@ -401,8 +351,7 @@ function buildSigil(spell){
   const pts = polyPoints(sides, polyR, rot, cx, cy, jitterFn);
 
   // curated trait glyphs ("sigils") now live on the center medallion and on ring-hugging medallions that
-  // straddle the outer border, not on the polygon's vertices — vertices go back to plain spoke-tipped star
-  // points. Placement count: 1 curated trait -> center only. 2 -> both on the ring, 180° apart, center
+  // straddle the outer border, not on the polygon's vertices. Placement count: 1 curated trait -> center only. 2 -> both on the ring, 180° apart, center
   // falls back to the generic filler icon. 3-6 -> a single seeded coin-flip (~75% true) decides "centered"
   // (1 center + rest on the ring) vs "ring-only" (all on the ring). 7+ -> always centered, no coin-flip.
   const curated = spell.traits.filter(tr => GLYPHS[tr]);
@@ -589,7 +538,7 @@ function buildSigil(spell){
   // sigil medallions — solid-disc circles (so they visibly sit on top of the lines behind them) ringed in
   // their tradition color, shared by the center medallion and every ring medallion (see the placement plan
   // computed earlier, before the border band, as `ringPlan`/`centerGlyph`/`isCentered`)
-  const centerR = Math.max(30, polyR*0.28); // the containment ring is drawn right after; this is just the radius it and the spokes anchor to
+  const centerR = Math.max(30, polyR*0.28); // the containment ring is drawn right after; this is just the radius it anchors to
 
   // `withRuneBand` gives the medallion its own miniature version of the main border — a second, smaller
   // ring with a short band of rune marks between it and the outer disc — matching how both the sigil and
@@ -660,10 +609,9 @@ function buildSigil(spell){
     const sectionStart = t;
     let sectionEnd = Math.max(sectionStart, medallion(cx, cy, centerR, colorAt(0), centerGlyph, sectionStart, false, false, false));
 
-    // the containment ring appears next, establishing the boundary the spokes visually radiate from — it
-    // must finish drawing before any spoke starts, not just start before one. Normally it sits a fixed 16px
-    // outside the (now-invisible) center medallion radius, but at 3 bands that nearly touches the innermost
-    // band — so there it expands to align with that band's own outer edge instead.
+    // the containment ring appears next. Normally it sits a fixed 16px outside the (now-invisible) center
+    // medallion radius, but at 3 bands that nearly touches the innermost band — so there it expands to
+    // align with that band's own outer edge instead.
     const centerRingR = bandCount === 3 ? bandRadii[2] : centerR+16;
     // colorAt(2), not (0) — see the central-polygon comment above: this ring always draws regardless of
     // rank, so it claims its own guaranteed-coverage slot rather than repeating band 0's color
@@ -672,19 +620,6 @@ function buildSigil(spell){
     const ringEnd = push(centerRing, 500, 'stroke', sectionEnd);
     pulseables.push({el:centerRing, base:0.7});
     sectionEnd = Math.max(sectionEnd, ringEnd);
-
-    // every polygon vertex is now just a plain spoke-tipped star point — sigils live on the center and
-    // ring medallions instead (see below), not at the vertices
-    let vt = ringEnd;
-    pts.forEach((p,i)=>{
-      const dx = p[0]-cx, dy = p[1]-cy, dist = Math.hypot(dx,dy), ux = dx/dist, uy = dy/dist;
-      const sx = cx+ux*centerRingR, sy = cy+uy*centerRingR;
-      // const spoke = el('line',{x1:sx.toFixed(2),y1:sy.toFixed(2),x2:p[0].toFixed(2),y2:p[1].toFixed(2), stroke:colorAt(i), 'stroke-width':0.8, opacity:0});
-      // root.appendChild(spoke);
-      // sectionEnd = Math.max(sectionEnd, push(spoke, 260, 'fade', vt));
-      // pulseables.push({el:spoke, base:1});
-      // vt += 90;
-    });
     t = sectionEnd;
   }
 
@@ -815,8 +750,6 @@ function buildSigil(spell){
       glowDuplicate(e, totalEnd, 900, darkenHsl(e.getAttribute('stroke'), 0.6), 2, glowLayer);
     } else if (kind === 'fade'){
       e.animate([{opacity:0},{opacity:1}], {duration:dur, delay, easing:'ease-out', fill:'forwards'});
-    } else if (kind === 'fadeHalf'){
-      e.animate([{opacity:0},{opacity:0.45}], {duration:dur, delay, easing:'ease-out', fill:'forwards'});
     } else if (kind === 'pop'){
       e.animate(
         [{opacity:0, transform:e.getAttribute('transform').replace('scale(','scale(0.001,'.replace(', ',',')) },

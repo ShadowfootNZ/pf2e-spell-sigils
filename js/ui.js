@@ -129,8 +129,8 @@ document.getElementById('bgToggle').addEventListener('click', function(){
 
 /* ---------------- copy sigil as image ---------------- */
 // "max glow" is a direct toggle on the live sigil rather than a copy-time-only state: click it to force
-// the glow to startGlow()'s asymptotic ceiling (frac=1 — its own farTarget/nearTarget/restA/restB
-// constants, duplicated here since they're only local to that function's closure), click again to drop
+// the glow to the peak of startGlow()'s flash (its own farTarget/restA/restB constants, duplicated here
+// since they're only local to that function's closure), click again to drop
 // back to the floor resetGlow() itself uses. Copying then just snapshots whatever's currently on screen
 // — no forcing or restoring inside the copy path itself, so "which glow state did I get" is always
 // exactly whatever the toggle (and the page's own settle-after-draw sequence) left it at.
@@ -139,20 +139,15 @@ maxGlowToggle.addEventListener('click', () => {
   const on = maxGlowToggle.dataset.active !== '1';
   maxGlowToggle.dataset.active = on ? '1' : '0';
   const far = document.getElementById('sigilBlurFar'), farColor = document.getElementById('sigilBlurFarColor');
-  const near = document.getElementById('sigilBlurNear'), nearColor = document.getElementById('sigilBlurNearColor');
   const root = document.getElementById('sigilRoot');
   if (on){
     far.setAttribute('stdDeviation', '6.0');
-    near.setAttribute('stdDeviation', '2.6');
     farColor.setAttribute('values', '0.55 0 0 0 0  0 0.55 0 0 0  0 0 0.55 0 0  0 0 0 1 0');
-    nearColor.setAttribute('values', '1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 0');
     root.style.setProperty('--dropA', '1.2px');
     root.style.setProperty('--dropB', '2.8px');
   } else {
     far.setAttribute('stdDeviation', '0.05');
-    near.setAttribute('stdDeviation', '0.05');
     farColor.setAttribute('values', '0.55 0 0 0 0  0 0.55 0 0 0  0 0 0.55 0 0  0 0 0 0.05 0');
-    nearColor.setAttribute('values', '1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.05 0');
     root.style.setProperty('--dropA', '0px');
     root.style.setProperty('--dropB', '0px');
   }

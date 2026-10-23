@@ -148,13 +148,13 @@ A sigil is drawn in a 600 by 600 viewBox centred on (300, 300) with an outer rad
 - `buildSigil` builds the DOM along with a timeline of `{el, delay, dur, kind}` entries, then plays it with the Web Animations API. Sections run in sequence: bands, polygon, chords, second polygon, center, ring medallions, and for rituals the caster stations. Items within a section overlap in a fast stagger, because a fully serial draw would push high-rank sigils, with up to 64 border marks, past 20 seconds.
 - Ring medallions are appended last so they paint on top, but `reserveSatelliteSlot` reserves their timing slot right after the outer band.
 - Strokes draw on with a dash-offset animation while a `spark` comet rides the tip.
-- Glow stays at its floor while the sigil draws and starts at `totalEnd`. It has three parts:
-  - the `#sigilGlow` SVG filter, a wide darkened blur plus a tight bright blur;
-  - CSS drop-shadows updated every frame;
+- Glow stays at its floor while the sigil draws, flashes once at `totalEnd` and then goes out, leaving crisp lines. The flash has three parts:
+  - the `#sigilGlow` SVG filter, a wide blur in a darkened version of each line's color;
+  - CSS drop-shadows on the whole sigil;
   - `glowDuplicate` clones, which are wider blurred copies of each stroke in a shared layer behind everything else.
-- The generation counter `blurGen` abandons the glow loop of the previously selected spell.
+- `startGlow` raises the filter and the drop-shadows together over 1.6 seconds, then switches both off in one frame and returns the blur to its floor, so a settled sigil isn't blurred on every repaint. The clones fade in over 0.9 seconds and straight back out. Continuous breathing and a tight bright near-line blur were tried and dropped on 2026-10-23.
+- The generation counter `blurGen` abandons the flash of the previously selected spell.
 - After the sigil settles, about a third of its lines pulse in opacity. Faint comets from `energyLoop` circle the outer band, the inner border and the polygon; focus spells have no band lines, so only the polygon comet.
-- Two experiments are still switched on. TEST #1 removes the tight near glow from the filter. TEST #3 turns the glow into a one-off flash instead of a continuous breathe, and the breathing code sits commented out beside it. Plan item 52 settles the final behavior.
 
 ## Interface
 
@@ -171,7 +171,7 @@ A sigil is drawn in a 600 by 600 viewBox centred on (300, 300) with an outer rad
   - Rituals get an extra ritual badge.
   - The trait list hides concentrate, manipulate and the four alignment traits. The `cantrip` and `focus` traits, and a class focus spell's class trait, aren't stored at all.
 - **Parchment toggle.** A CSS-only display mode: a parchment texture behind the circle and a `saturate/brightness/contrast/sepia` filter over the SVG that makes the bright palette look inked. It leaves the JS color system untouched.
-- **Max glow.** Forces the glow filter to the ceiling that `startGlow` reaches, or back to the floor. Its constants are duplicated from `startGlow`.
+- **Max glow.** Holds the glow at the peak of `startGlow`'s flash, or puts it back to the floor. Its constants are duplicated from `startGlow`.
 - **Copy image and Save image.** `captureSigilSvg`:
   - commits every animation's end state with `commitStyles()`;
   - clones the SVG and widens the viewBox to the real bounding box plus padding, since medallions overflow the 600 box;

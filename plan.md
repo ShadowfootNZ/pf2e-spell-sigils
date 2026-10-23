@@ -12,8 +12,6 @@ Remove completed items as the details will be in git history.
 
 51. **Keyboard access.** The filter chips (`js/ui.js` lines 32, 57, 90), the max-glow toggle and the list items are `div` or `li` elements with click handlers only. Make chips and toggles `<button>` elements with `aria-pressed`, let the list take focus with arrow-key navigation and Enter to draw, and give the SVG `role="img"` with an `aria-label` naming the spell.
 
-52. **Settle the glow experiments and remove dead code.** TEST #1 (`index.html` line 46) disables the near-glow merge node. TEST #3 (`js/sigil.js` lines 88, 110, 221) replaced continuous breathing with a one-off flash and left the breathing code commented out. Choose the final behavior and delete the alternative, then remove whatever that leaves unused: `holdWave` (line 21), the `pts.forEach` whose body is entirely commented-out spoke code (line 668), and the `fadeHalf` timeline branch that nothing schedules.
-
 ## Bugs
 
 53. **`particles:false` turns particles on.** `rideComet` sets `withParticles = opts.particles !== true` (`js/sigil.js` line 122). `energyLoop` passes `{particles:false}` (line 243) and still spawns particles. If the settled loops are meant to be particle-free, change the test to `!== false`. This changes the ambient look of every settled sigil, so compare screenshots before and after.

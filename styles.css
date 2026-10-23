@@ -80,8 +80,8 @@ body{
 .circle-wrap{width:min(80vh, 62vw); aspect-ratio:1; position:relative;}
 #sigil{width:100%; height:100%; overflow:visible;}
 /* the neon halo lives in this same filter list permanently (as two drop-shadows at --dropA/--dropB),
-   never toggled on via a class — JS drives their px values every frame, from 0px up through the
-   intro pulse and into the ongoing slow breathe, so there's no discrete hand-off to look abrupt */
+   never toggled on via a class — JS drives their px values every frame of the flash once the sigil
+   finishes drawing, rising from 0px on the same curve as the filter's haze */
 #sigil .glow{filter:url(#sigilGlow) drop-shadow(0 0 var(--dropA,0px) var(--glowcolor,#8fd0ff)) drop-shadow(0 0 var(--dropB,0px) var(--glowcolor,#8fd0ff));}
 
 /* the readout sits in the stage's top-right corner, right-aligned, mirroring the toolbar at top-left: it
@@ -173,7 +173,7 @@ body{
     radial-gradient(ellipse at 78% 82%, rgba(94,64,30,.2), transparent 60%),
     radial-gradient(ellipse at 50% 50%, #d9c69d, #c2a877 72%, #a48a5c 100%);
 }
-/* an inked sigil doesn't glow — the whole near/far blur filter chain is dropped, leaving crisp lines */
+/* an inked sigil doesn't glow — the whole blur filter chain is dropped, leaving crisp lines */
 .stage.parchment #sigil .glow{filter:none;}
 /* darkens and desaturates the existing bright, void-tuned palette into something ink-like, entirely in
    CSS — deliberately not a second color system in JS, so nothing about colorAt()/TRAD_HSL changes */

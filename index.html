@@ -32,19 +32,11 @@
       <svg id="sigil" viewBox="0 0 600 600">
         <defs>
           <filter id="sigilGlow" x="-60%" y="-60%" width="220%" height="220%">
-            <!-- wide, dim, darkened outer haze — a Gaussian blur's visible edge is always the dim
-                 falling side of the curve (the bright peak sits under the opaque line on top), so this
-                 layer alone reads as soft ambient depth, not a real glow -->
+            <!-- a wide, dim haze in a darkened version of each line's own color, behind the crisp lines -->
             <feGaussianBlur id="sigilBlurFar" in="SourceGraphic" stdDeviation="0" result="blurFar"/>
             <feColorMatrix id="sigilBlurFarColor" in="blurFar" type="matrix" values="0.55 0 0 0 0  0 0.55 0 0 0  0 0 0.55 0 0  0 0 0 1 0" result="glowFar"/>
-            <!-- tight, bright near-line band in the tradition's own color (not darkened) — this is what
-                 actually reads as "glowing" rather than "blurry", like the bright edge of a neon tube -->
-            <feGaussianBlur id="sigilBlurNear" in="SourceGraphic" stdDeviation="0" result="blurNear"/>
-            <feColorMatrix id="sigilBlurNearColor" in="blurNear" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 0" result="glowNear"/>
             <feMerge>
               <feMergeNode in="glowFar"/>
-              <!-- TEST #1: near glow disabled, far glow only — uncomment to restore -->
-              <!-- <feMergeNode in="glowNear"/> -->
               <feMergeNode in="SourceGraphic"/>
             </feMerge>
           </filter>
