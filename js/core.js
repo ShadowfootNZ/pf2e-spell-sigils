@@ -122,23 +122,23 @@ function polyPoints(n, r, rotDeg, cx, cy, jitterFn){
   return pts;
 }
 function ptsAttr(pts){ return pts.map(p => p[0].toFixed(2)+','+p[1].toFixed(2)).join(' '); }
-// mythic spells get one deliberately fractured edge in the central polygon — a jagged crack detour
-// instead of a straight line, the same idea as how a traditionless spell's open-arc rings stand in for
-// "the circle can't close," but for mythic it's reality straining under the trait's power instead.
-// Returns a fresh points array; never mutates the one passed in, since `pts` also anchors ring-medallion
-// placement and other geometry that must stay a clean, unbroken polygon.
-function fractureEdge(pts, edgeIdx, rng){
+// a convex polygon grown outward by `d`: every edge shifts `d` away from (cx, cy) and neighbouring edges meet
+// at their intersection, so each side of the result runs parallel to its original at the same distance.
+// Corners move further than `d` (by d/cos of half the turn), as a ruled line's corners do. Returns a fresh
+// points array.
+function offsetPolygon(pts, d, cx, cy){
   const n = pts.length;
-  const p1 = pts[edgeIdx], p2 = pts[(edgeIdx+1)%n];
-  const dx = p2[0]-p1[0], dy = p2[1]-p1[1];
-  const len = Math.hypot(dx,dy);
-  const ux = dx/len, uy = dy/len, px = -uy, py = ux; // unit perpendicular
-  const jagPts = [0.22, 0.48, 0.74].map(tt => {
-    const bx = p1[0] + dx*tt, by = p1[1] + dy*tt;
-    const mag = (len*0.06 + 4) * (0.7 + rng()*0.6) * (rng() < 0.5 ? -1 : 1);
-    return [bx + px*mag, by + py*mag];
+  const edges = pts.map((p, i) => {
+    const q = pts[(i+1)%n], dx = q[0]-p[0], dy = q[1]-p[1], len = Math.hypot(dx,dy);
+    let nx = -dy/len, ny = dx/len; // unit perpendicular, turned to point away from the center
+    if (nx*((p[0]+q[0])/2 - cx) + ny*((p[1]+q[1])/2 - cy) < 0){ nx = -nx; ny = -ny; }
+    return {a:[p[0] + nx*d, p[1] + ny*d], u:[dx/len, dy/len]};
   });
-  return pts.slice(0, edgeIdx+1).concat(jagPts, pts.slice(edgeIdx+1));
+  return edges.map((e, i) => {
+    const f = edges[(i-1+n)%n]; // the previous edge meets this one at corner i
+    const s = ((e.a[0]-f.a[0])*e.u[1] - (e.a[1]-f.a[1])*e.u[0]) / (f.u[0]*e.u[1] - f.u[1]*e.u[0]);
+    return [f.a[0] + f.u[0]*s, f.a[1] + f.u[1]*s];
+  });
 }
 function arcPath(cx,cy,r,startDeg,endDeg){
   const s = startDeg*Math.PI/180, e = endDeg*Math.PI/180;

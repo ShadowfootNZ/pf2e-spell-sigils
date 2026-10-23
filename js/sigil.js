@@ -540,13 +540,20 @@ function buildSigil(spell){
   // so between them they're deliberately spread across colorAt(1)/(2)/(3) — on top of band 0's always-(0)
   // — to guarantee every one of a spell's own traditions gets used somewhere, not just whichever indices
   // rank-gated sections (chords, the second polygon, extra ring circles) happen to reach.
-  // mythic gets a fractured edge (see fractureEdge) — a separate points array just for this element,
-  // `pts` itself stays a clean polygon for every other section that anchors off it
-  const polyPts = spell.traits.includes('mythic') ? fractureEdge(pts, Math.floor(rng()*sides), rng) : pts;
-  const poly = el('polygon',{points:ptsAttr(polyPts), fill:'none', stroke:colorAt(1), 'stroke-width':1.8});
+  const poly = el('polygon',{points:ptsAttr(pts), fill:'none', stroke:colorAt(1), 'stroke-width':1.8});
   root.appendChild(poly);
-  t = push(poly, 800, 'stroke', t);
+  const polyStart = t;
+  t = push(poly, 800, 'stroke', polyStart);
   pulseables.push({el:poly, base:1});
+  // mythic rules the polygon twice, like a rune band but at half its 12-unit spacing: a thinner line 6 units
+  // outside it, drawn alongside it. Outside rather than inside, so the star chords still end cleanly at the
+  // polygon's own corners.
+  if (spell.traits.includes('mythic')){
+    const rule = el('polygon',{points:ptsAttr(offsetPolygon(pts, 6, cx, cy)), fill:'none', stroke:colorAt(1), 'stroke-width':1.2, opacity:0.85});
+    root.appendChild(rule);
+    t = Math.max(t, push(rule, 800, 'stroke', polyStart));
+    pulseables.push({el:rule, base:0.85});
+  }
 
   // star chords
   if (hasChords && sides >= 5){
