@@ -2,7 +2,7 @@
   --bg-0:#05060a; --bg-1:#0b0d16; --panel-border:#2a2d42;
   --ink:#d8dae8; --ink-dim:#8388a8; --ink-faint:#565b7e;
   --arcane:210 70% 60%; --divine:42 75% 58%; --occult:272 62% 63%; --primal:140 50% 50%;
-  --ritual:355 60% 48%; --focus:190 55% 50%; --parchment:38 45% 55%;
+  --ritual:355 60% 48%; --focus:190 55% 50%;
 }
 *{box-sizing:border-box;}
 html,body{height:100%;}
@@ -12,7 +12,10 @@ body{
 }
 /* the Paizo notice is its own grid item under the sidebar, not part of it, so that on a phone it can stay
    on the page while the sidebar becomes a drawer */
-.app{display:grid; grid-template-columns:320px 1fr; grid-template-rows:minmax(0,1fr) auto; height:100vh;}
+/* heights use svh, the viewport with the browser's own toolbars showing: Safari's vh is the height with
+   them hidden, which pushed the bottom of this non-scrolling page off an iPad's screen. Each vh line is
+   the fallback for browsers without svh */
+.app{display:grid; grid-template-columns:320px 1fr; grid-template-rows:minmax(0,1fr) auto; height:100vh; height:100svh;}
 
 /* ---------- sidebar ---------- */
 .sidebar{
@@ -82,24 +85,20 @@ body{
 .list::-webkit-scrollbar-thumb{background:#242739; border-radius:4px;}
 
 /* ---------- stage ---------- */
-.stage{grid-column:2; grid-row:1 / 3; position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:0; padding:20px;}
+/* a size container, so the readout's placement can follow the stage's own shape (see below) */
+.stage{
+  grid-column:2; grid-row:1 / 3; position:relative; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; min-height:0; padding:20px; container:stage / size;
+}
 /* the phone layout's top bar, drawer close button and backdrop */
 .topbar, .drawer-close, .drawer-backdrop{display:none;}
-.circle-wrap{width:min(80vh, 62vw); aspect-ratio:1; position:relative;}
+/* in a portrait stage: short enough to leave the readout its height below, and never wider than the
+   stage beside the 320px sidebar */
+.circle-wrap{width:min(72vh, 62vw, 100vw - 360px); width:min(72svh, 62vw, 100vw - 360px); aspect-ratio:1; position:relative;}
 #sigil{width:100%; height:100%; overflow:visible;}
-/* the neon halo lives in this same filter list permanently (as two drop-shadows at --dropA/--dropB),
-   never toggled on via a class — JS drives their px values every frame of the flash once the sigil
-   finishes drawing, rising from 0px on the same curve as the filter's haze */
-#sigil .glow{filter:url(#sigilGlow) drop-shadow(0 0 var(--dropA,0px) var(--glowcolor,#8fd0ff)) drop-shadow(0 0 var(--dropB,0px) var(--glowcolor,#8fd0ff));}
 
-/* the readout sits in the stage's top-right corner, right-aligned, mirroring the toolbar at top-left: it
-   uses the space beside the circle rather than a band below it, where tall sigils such as a ritual's
-   caster stations ran into the name, and leaves that height to the circle. The faint backdrop keeps it
-   legible should a medallion ever reach that corner, as the toolbar buttons already do */
-.readout{
-  position:absolute; top:14px; right:20px; text-align:right; max-width:260px;
-  padding:8px 12px; border-radius:10px; background:rgba(5,6,10,.55);
-}
+/* in a portrait stage the readout sits centred under the circle */
+.readout{text-align:center; max-width:640px; margin-top:6px;}
 /* says why a link's spell wasn't drawn (see showFromHash in js/ui.js) */
 .readout .note{font-style:italic; font-size:.85rem; color:var(--ink-dim); margin-bottom:8px;}
 .readout .name{
@@ -109,65 +108,57 @@ body{
 .readout .rank{
   font-style:italic; color:var(--ink-dim); font-size:.9rem; margin-top:2px;
 }
-.badges{display:flex; justify-content:flex-end; gap:6px; margin:10px 0 8px; flex-wrap:wrap;}
+.badges{display:flex; justify-content:center; gap:6px; margin:10px 0 8px; flex-wrap:wrap;}
 .badge{
   font-family:'Cinzel',serif; font-size:.62rem; letter-spacing:.06em; text-transform:uppercase;
   padding:4px 10px; border-radius:20px; color:#0a0b10; font-weight:700;
 }
-.traits{display:flex; justify-content:flex-end; gap:5px; flex-wrap:wrap;}
+.traits{display:flex; justify-content:center; gap:5px; flex-wrap:wrap;}
 .trait-tag{
   font-size:.68rem; color:var(--ink-dim); border:1px solid var(--panel-border);
   padding:2px 8px; border-radius:12px; background:rgba(255,255,255,.02);
 }
 .trait-tag.curated{color:#e9ebf7; border-color:#454a72; background:rgba(120,130,200,.12);}
 
-/* without room beside the circle, the readout goes back under it, centered, and the circle shrinks to
-   leave it the height, and never grows wider than the stage beside the 320px sidebar */
-@media (max-width:1399px){
-  .circle-wrap{width:min(72vh, 62vw, 100vw - 360px);}
-  .readout{position:static; text-align:center; max-width:640px; margin-top:6px; padding:0; background:none;}
-  .badges, .traits{justify-content:center;}
+/* in a landscape stage the circle fills the stage's height and the readout splits into the corners the
+   circle leaves empty: the toolbar keeps the top-left, the name and rank take the top-right, the
+   tradition badges the bottom-left and the traits the bottom-right. The name is a little smaller here,
+   and the 40-odd names over 24 characters smaller again, so that in a nearly square stage a long name
+   wrapping onto a second line stays clear of the drawing */
+@container stage (orientation: landscape){
+  .circle-wrap{width:min(100cqw, 100cqh);}
+  .readout{display:contents;}
+  .readout .title, .badges, .traits{position:absolute; max-width:230px;}
+  .readout .title{top:14px; right:20px; text-align:right;}
+  .readout .name{font-size:1.2rem;}
+  .readout .name.long{font-size:1rem;}
+  .badges{bottom:16px; left:20px; margin:0; justify-content:flex-start;}
+  .traits{bottom:16px; right:20px; justify-content:flex-end;}
 }
 
-/* ---------- stage toolbar (parchment/glow/copy) ----------
-   normal document flow, not an absolute overlay — the sigil's own overflow:visible lets ring
-   medallions spill past the circle's nominal box in any direction, and the readout below it varies in
-   height with the trait list, so any fixed corner position risked colliding with one or the other */
-/* pinned to .stage's own top-left, not .circle-wrap's — the circle is centered with real padding
-   around it in .stage's box, so this corner stays clear of the sigil's own overflow:visible content
-   (which can spill past .circle-wrap in any direction) at any reasonable window size */
-.toolbar{position:absolute; top:14px; left:18px; display:flex; flex-direction:column; gap:8px;}
-/* one shared font rule for all three controls, set directly (not inherited) so a native <button>'s own
-   UI-font default can never win a specificity tie the way it did before this pass — that was the bug
-   behind Copy Image rendering visibly bigger than the other two */
-.toolbar-label{font-family:'Cinzel',serif; font-size:.68rem; letter-spacing:.05em; text-transform:uppercase;}
-
-/* the parchment control reads as an on/off switch, not a button — it's a display mode, not an action */
-.toggle-row{display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none; color:var(--ink-dim);}
-.toggle-track{
-  position:relative; flex:none; width:34px; height:18px; border-radius:10px;
-  background:#0c0e17; border:1px solid var(--panel-border); transition:.15s;
-}
-.toggle-knob{
-  position:absolute; top:1px; left:1px; width:14px; height:14px; border-radius:50%;
-  background:var(--ink-dim); transition:.15s;
-}
-.toggle-row[data-active="1"]{color:var(--ink);}
-.toggle-row[data-active="1"] .toggle-track{background:hsl(var(--parchment)); border-color:hsl(var(--parchment));}
-.toggle-row[data-active="1"] .toggle-knob{left:17px; background:#2a2410;}
-
-/* max glow / copy image read as actual buttons — solid fill, a hint of depth, not a bordered pill */
-.toolbar-btn{
-  display:block; width:132px; text-align:center; white-space:nowrap;
-  padding:7px 10px; border-radius:6px; border:1px solid var(--panel-border); cursor:pointer;
+/* ---------- stage toolbar ----------
+   a row of icon buttons pinned to .stage's own top-left, where the centred circle leaves room: the two
+   display modes first, lit while on, then a gap and the two one-off actions. Each button's name is its
+   aria-label and tooltip */
+.toolbar{position:absolute; top:14px; left:18px; display:flex; align-items:center; gap:6px;}
+.tool-gap{width:8px;}
+/* solid fill and a hint of depth, so they read as buttons rather than bordered pills; the phone top
+   bar's Spells button shares the look */
+.tool, .topbar-btn{
+  border-radius:6px; border:1px solid var(--panel-border); cursor:pointer;
   color:var(--ink-dim); background:#1b1e30; user-select:none; transition:.15s;
   box-shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 1px 3px rgba(0,0,0,.4);
   appearance:none; -webkit-appearance:none;
 }
-.toolbar-btn:hover{background:#242840; color:var(--ink);}
-.toolbar-btn[data-state="ok"]{color:#8fe0a8; border-color:#3a6b4a;}
-.toolbar-btn[data-state="err"]{color:#e88a8a; border-color:#6b3a3a;}
-#maxGlowToggle[data-active="1"]{background:#e8c878; color:#2a2410; border-color:#c9a24a; box-shadow:0 0 10px rgba(232,200,120,.6);}
+.tool:hover, .topbar-btn:hover{background:#242840; color:var(--ink);}
+.tool{display:flex; align-items:center; justify-content:center; width:34px; height:34px; padding:0;}
+/* drawn in the trait glyphs' line style */
+.tool svg{width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round;}
+.tool[aria-pressed="true"]{background:#e8c878; color:#2a2410; border-color:#c9a24a; box-shadow:0 0 10px rgba(232,200,120,.6);}
+.tool[data-state="ok"]{color:#8fe0a8; border-color:#3a6b4a;}
+.tool[data-state="err"]{color:#e88a8a; border-color:#6b3a3a;}
+/* font set directly, not inherited, so a native <button>'s own UI font can't win */
+.topbar-btn{padding:7px 10px; font-family:'Cinzel',serif; font-size:.68rem; letter-spacing:.05em; text-transform:uppercase;}
 
 /* a tileable fractal-noise grain, tinted brown, at very low opacity — feColorMatrix's alpha row
    (the last '0.05') is what keeps it faint; everything else about the noise itself stays full-strength.
@@ -205,8 +196,9 @@ body{
   body.drawer-open{overflow:hidden;}
   .app{display:block; height:auto;}
   /* clip, not hidden: the parchment backdrop and spilling medallions mustn't widen the page, and clip
-     keeps the top bar's position:sticky working */
-  .stage{padding:0 16px 20px; overflow-x:clip;}
+     keeps the top bar's position:sticky working. Not a size container here: the page's height comes from
+     its content, so the readout always sits under the circle */
+  .stage{padding:0 16px 20px; overflow-x:clip; container-type:normal;}
   .topbar{
     display:flex; align-items:center; justify-content:space-between; align-self:stretch;
     position:sticky; top:0; z-index:10; margin:0 -16px 12px; padding:10px 16px;
@@ -216,14 +208,12 @@ body{
   /* the full width less a margin for medallions that spill past the circle, and short enough on a phone
      on its side to fit under the top bar */
   .circle-wrap{width:min(100vw - 40px, 100vh - 80px); width:min(100vw - 40px, 100svh - 80px);}
-  .readout{position:static; order:1; text-align:center; max-width:none; margin-top:8px; padding:0; background:none;}
+  .readout{order:1; max-width:none; margin-top:8px;}
   /* the parchment reaches only to the page's side gutters, and the readout clears it, so the dim rank
      text never sits on parchment */
   .stage.parchment .circle-wrap::before{inset:-16px;}
   .stage.parchment .readout{margin-top:26px;}
-  .badges, .traits{justify-content:center;}
-  .toolbar{position:static; order:2; flex-direction:row; flex-wrap:wrap; justify-content:center; align-items:center; gap:8px 10px; margin-top:16px;}
-  .toolbar-btn{width:auto;}
+  .toolbar{position:static; order:2; justify-content:center; margin-top:16px;}
   .legal{border-right:none;}
 
   .sidebar{

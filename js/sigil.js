@@ -5,10 +5,22 @@ let idleTimer = null;
 let blurGen = 0;
 
 // The sigil's glow flashes once when it finishes drawing and then goes out, leaving crisp lines; the
-// comets and the slow line pulses keep a settled sigil alive. The flash has two parts, both driven by the
-// same eased curve so they rise together: the #sigilGlow filter's wide haze, in a darkened version of
-// each line's own color, and the neon drop-shadow halo on the whole sigil. glowDuplicate's per-line
-// halos flash and fade on their own timing.
+// comets and the slow line pulses keep a settled sigil alive. The flash has two parts, both in the
+// #sigilGlow filter and driven by the same eased curve so they rise together: a wide haze, in a darkened
+// version of each line's own color, and two neon halos in the spell's main color. glowDuplicate's
+// per-line halos flash and fade on their own timing.
+
+// the glow's floor, and its peak, which the flash rises to and max glow holds (js/ui.js)
+const GLOW_FLOOR = {farStd:0.05, farAlpha:0.05, haloA:0, haloB:0};
+const GLOW_PEAK = {farStd:6.0, farAlpha:1, haloA:1.2, haloB:2.8};
+// sets every part of the glow at once. The halos are given as drop-shadow blur radii: a drop-shadow's
+// radius is twice the standard deviation of its Gaussian blur
+function setGlow({farStd, farAlpha, haloA, haloB}){
+  document.getElementById('sigilBlurFar').setAttribute('stdDeviation', farStd.toFixed(2));
+  document.getElementById('sigilBlurFarColor').setAttribute('values', `0.55 0 0 0 0  0 0.55 0 0 0  0 0 0.55 0 0  0 0 0 ${farAlpha.toFixed(2)} 0`);
+  document.getElementById('sigilHaloA').setAttribute('stdDeviation', (haloA/2).toFixed(2));
+  document.getElementById('sigilHaloB').setAttribute('stdDeviation', (haloB/2).toFixed(2));
+}
 
 // Bumps blurGen (abandoning any previous spell's still-running flash) and pins the glow at its floor —
 // called immediately when a new sigil starts building, so the old spell's glow doesn't linger or bleed
@@ -16,31 +28,14 @@ let blurGen = 0;
 // new sigil has finished drawing.
 function resetGlow(){
   const myGen = ++blurGen;
-  const farStdEl = document.getElementById('sigilBlurFar');
-  const farColorEl = document.getElementById('sigilBlurFarColor');
-  const root = document.getElementById('sigilRoot');
-  const floor = 0.05;
-
-  farStdEl.setAttribute('stdDeviation', floor);
-  farColorEl.setAttribute('values', `0.55 0 0 0 0  0 0.55 0 0 0  0 0 0.55 0 0  0 0 0 ${floor} 0`);
-  root.style.setProperty('--dropA', '0px');
-  root.style.setProperty('--dropB', '0px');
+  setGlow(GLOW_FLOOR);
   return myGen;
 }
 
 function startGlow(myGen){
   if (myGen !== blurGen) return; // abandoned before its ramp even got to start
-  const farStdEl = document.getElementById('sigilBlurFar');
-  const farColorEl = document.getElementById('sigilBlurFarColor');
-  const root = document.getElementById('sigilRoot');
-
   const introDur = 1600;
-  const farTarget = 6.0;
-  const floor = 0.05, alphaFloor = 0.05;
-
-  const setFarAlpha = a => farColorEl.setAttribute('values', `0.55 0 0 0 0  0 0.55 0 0 0  0 0 0.55 0 0  0 0 0 ${a.toFixed(2)} 0`); // darkened version of the line's own hue
-
-  const restA = 1.2, restB = 2.8; // drop-shadow radii at the top of the flash, in px
+  const lerp = (key, t) => GLOW_FLOOR[key] + (GLOW_PEAK[key] - GLOW_FLOOR[key])*t;
   let start = null; // anchored on the first frame actually painted, not the moment this was called —
                      // on first page load, list rendering/font loading can eat the first chunk of the
                      // ramp before anything is even on screen, making it look like it starts mid-swing
@@ -54,22 +49,43 @@ function startGlow(myGen){
     const eased = Math.max(0, rise + pulse);
 
     if (frac < 1){
-      farStdEl.setAttribute('stdDeviation', (floor + (farTarget-floor)*eased).toFixed(2));
-      setFarAlpha(Math.min(1, alphaFloor + (1-alphaFloor)*eased));
-      // drop-shadow halo rides in on the exact same eased curve — no separate ramp to fall out of sync
-      root.style.setProperty('--dropA', (restA*eased).toFixed(2)+'px');
-      root.style.setProperty('--dropB', (restB*eased).toFixed(2)+'px');
+      // the haze and the halos ride in on the exact same eased curve — no separate ramps to fall out of sync
+      setGlow({farStd:lerp('farStd', eased), farAlpha:Math.min(1, lerp('farAlpha', eased)),
+        haloA:lerp('haloA', eased), haloB:lerp('haloB', eased)});
       requestAnimationFrame(frame);
     } else {
       // settled: the glow goes out, and the blur drops back to its floor so it costs nothing while the
       // comets keep repainting the sigil
-      farStdEl.setAttribute('stdDeviation', floor);
-      setFarAlpha(0);
-      root.style.setProperty('--dropA', '0px');
-      root.style.setProperty('--dropB', '0px');
+      setGlow({...GLOW_FLOOR, farAlpha:0});
     }
   }
   requestAnimationFrame(frame);
+}
+
+// Safari ignores CSS filter functions such as blur() and drop-shadow() on SVG elements, so the comets and
+// the per-line halos use SVG filters instead, made on first use and kept in the sigil's <defs> until the
+// next spell is drawn. Chrome drew the CSS ones in the sigil's own units too, so the numbers carry over.
+// pad is the filter region's margin round the element, as a percentage of its size: enough for the blur
+// to fade out before the region's edge clips it
+let svgFilterCount = 0;
+const svgFilters = new Map();
+function svgFilter(key, pad, primitive){
+  if (!svgFilters.has(key)){
+    const f = el('filter', {id:`fx${++svgFilterCount}`, x:`-${pad}%`, y:`-${pad}%`, width:`${100 + 2*pad}%`, height:`${100 + 2*pad}%`,
+      'color-interpolation-filters':'sRGB', 'data-per-spell':''});
+    f.appendChild(primitive);
+    document.querySelector('#sigil defs').appendChild(f);
+    svgFilters.set(key, `url(#${f.id})`);
+  }
+  return svgFilters.get(key);
+}
+// as CSS blur(sd px)
+const svgBlur = (sd, pad) => svgFilter(`blur ${sd} ${pad}`, pad, el('feGaussianBlur', {stdDeviation:sd}));
+// as CSS drop-shadow(0 0 radius color): a drop-shadow's radius is twice its blur's standard deviation
+const svgShadow = (radius, color) => svgFilter(`shadow ${radius} ${color}`, 150, el('feDropShadow', {dx:0, dy:0, stdDeviation:radius/2, 'flood-color':color}));
+function clearSvgFilters(){
+  document.querySelectorAll('#sigil defs [data-per-spell]').forEach(f => f.remove());
+  svgFilters.clear();
 }
 
 // a comet riding a path: a soft trailing flare blob + a hot white core + a spawned trail of fading
@@ -90,11 +106,9 @@ function rideComet(pathEl, delayMs, color, getFrac, opts){
   const own = pathEl.transform && pathEl.transform.baseVal.consolidate();
   const pointAt = own ? l => pathEl.getPointAtLength(l).matrixTransform(own.matrix) : l => pathEl.getPointAtLength(l);
 
-  const flare = el('circle', {r:opts.flareR||8, fill:color, opacity:0});
-  flare.style.filter = 'blur(3.5px)';
+  const flare = el('circle', {r:opts.flareR||8, fill:color, opacity:0, filter:svgBlur(3.5, 100)});
   parent.appendChild(flare);
-  const core = el('circle', {r:opts.coreR||2.6, fill:'#fff', opacity:0});
-  core.style.filter = `drop-shadow(0 0 ${opts.coreR?1.5:3}px ${color})`;
+  const core = el('circle', {r:opts.coreR||2.6, fill:'#fff', opacity:0, filter:svgShadow(opts.coreR?1.5:3, color)});
   parent.appendChild(core);
 
   const particles = [];
@@ -175,7 +189,7 @@ function glowDuplicate(sourceEl, delay, dur, color, widthMult, layer){
   clone.setAttribute('stroke', color);
   clone.style.strokeDasharray = ''; // clear any inherited dash-draw-on — pure opacity fade only
   clone.style.strokeDashoffset = '';
-  clone.style.filter = 'blur(1.5px)';
+  clone.setAttribute('filter', svgBlur(1.5, 50));
   clone.style.opacity = 0;
   // appended to the shared glow layer (painted first, so behind every crisp element in the sigil)
   // rather than just before its own source — insertBefore only guaranteed it sat behind *that one*
@@ -211,9 +225,10 @@ function buildSigil(spell){
   clearTimeout(idleTimer);
   // a new spell always starts its own settle-from-scratch sequence, regardless of whatever the max-glow
   // toggle was left at for the previous one
-  document.getElementById('maxGlowToggle').dataset.active = '0';
+  document.getElementById('maxGlowToggle').setAttribute('aria-pressed', 'false');
   const sigilRoot = document.getElementById('sigilRoot');
   sigilRoot.innerHTML = '';
+  clearSvgFilters(); // the previous spell's comets and halos went with it
   // a ritual's caster stations sit on a ring outside everything else, so its whole drawing is scaled down
   // about the center to stay roughly the size of any other sigil
   const isRitual = spell.category === 'ritual';
@@ -259,7 +274,7 @@ function buildSigil(spell){
   });
   const colorAt = i => tradColor(colorSlotTrads[i % colorSlotTrads.length], tradJitters[i % colorSlotTrads.length]);
 
-  sigilRoot.style.setProperty('--glowcolor', colorAt(0));
+  ['sigilHaloA', 'sigilHaloB'].forEach(id => document.getElementById(id).setAttribute('flood-color', colorAt(0)));
   const glowGen = resetGlow(); // glow stays pinned at floor until the sigil finishes drawing (see totalEnd below)
 
   // focus spells are personal magic rather than drilled tradition magic, so they're drawn less formally:
@@ -781,6 +796,8 @@ function buildSigil(spell){
   // readout
   document.getElementById('roName').textContent = spell.name;
   document.getElementById('roName').style.setProperty('--nameglow', colorAt(0));
+  // a long name is set smaller when the readout sits in the stage's corners (see styles.css)
+  document.getElementById('roName').classList.toggle('long', spell.name.length > 24);
   document.getElementById('roRank').textContent =
     (rank===0?'Cantrip':ORDINAL[Math.min(rank,10)]+'-rank');
   const badges = document.getElementById('roBadges');

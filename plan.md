@@ -6,7 +6,7 @@ Remove completed items as the details will be in git history.
 
 ## Before the page goes public
 
-51. **Keyboard access.** The filter chips (`js/ui.js` lines 32, 57, 90), the max-glow toggle and the list items are `div` or `li` elements with click handlers only. Make chips and toggles `<button>` elements with `aria-pressed`, let the list take focus with arrow-key navigation and Enter to draw, and give the SVG `role="img"` with an `aria-label` naming the spell.
+51. **Keyboard access.** The filter chips (`js/ui.js` lines 32, 57, 90) and the list items are `div` or `li` elements with click handlers only. Make the chips `<button>` elements with `aria-pressed`, as the toolbar's parchment and max glow toggles already are, let the list take focus with arrow-key navigation and Enter to draw, and give the SVG `role="img"` with an `aria-label` naming the spell.
 
 ## Bugs
 

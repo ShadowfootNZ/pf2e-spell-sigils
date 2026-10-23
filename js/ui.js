@@ -122,35 +122,22 @@ document.getElementById('search').addEventListener('input', e=>{
 // purely a display toggle — doesn't touch colorAt()/TRAD_HSL or any spell state, just swaps the stage's
 // own background and lets CSS (.stage.parchment ...) reshape how the existing SVG output looks on it
 document.getElementById('bgToggle').addEventListener('click', function(){
-  const on = this.dataset.active !== '1';
-  this.dataset.active = on ? '1' : '0';
+  const on = this.getAttribute('aria-pressed') !== 'true';
+  this.setAttribute('aria-pressed', on);
   document.querySelector('.stage').classList.toggle('parchment', on);
 });
 
 /* ---------------- copy sigil as image ---------------- */
-// "max glow" is a direct toggle on the live sigil rather than a copy-time-only state: click it to force
-// the glow to the peak of startGlow()'s flash (its own farTarget/restA/restB constants, duplicated here
-// since they're only local to that function's closure), click again to drop
-// back to the floor resetGlow() itself uses. Copying then just snapshots whatever's currently on screen
-// — no forcing or restoring inside the copy path itself, so "which glow state did I get" is always
+// "max glow" is a direct toggle on the live sigil rather than a copy-time-only state: click it to hold
+// the glow at the peak of startGlow()'s flash, click again to drop back to the floor resetGlow() itself
+// uses. The glow is an SVG filter on the sigil itself, so copying snapshots whatever's currently on
+// screen — no forcing or restoring inside the copy path itself, so "which glow state did I get" is always
 // exactly whatever the toggle (and the page's own settle-after-draw sequence) left it at.
 const maxGlowToggle = document.getElementById('maxGlowToggle');
 maxGlowToggle.addEventListener('click', () => {
-  const on = maxGlowToggle.dataset.active !== '1';
-  maxGlowToggle.dataset.active = on ? '1' : '0';
-  const far = document.getElementById('sigilBlurFar'), farColor = document.getElementById('sigilBlurFarColor');
-  const root = document.getElementById('sigilRoot');
-  if (on){
-    far.setAttribute('stdDeviation', '6.0');
-    farColor.setAttribute('values', '0.55 0 0 0 0  0 0.55 0 0 0  0 0 0.55 0 0  0 0 0 1 0');
-    root.style.setProperty('--dropA', '1.2px');
-    root.style.setProperty('--dropB', '2.8px');
-  } else {
-    far.setAttribute('stdDeviation', '0.05');
-    farColor.setAttribute('values', '0.55 0 0 0 0  0 0.55 0 0 0  0 0 0.55 0 0  0 0 0 0.05 0');
-    root.style.setProperty('--dropA', '0px');
-    root.style.setProperty('--dropB', '0px');
-  }
+  const on = maxGlowToggle.getAttribute('aria-pressed') !== 'true';
+  maxGlowToggle.setAttribute('aria-pressed', on);
+  setGlow(on ? GLOW_PEAK : GLOW_FLOOR);
 });
 // shared by copy-to-clipboard and save-to-file — everything up to the serialized SVG string runs
 // synchronously (no `await` yet), so the current visual state is frozen before either path does any
@@ -180,6 +167,8 @@ function captureSigilSvg(){
     const bg = el('rect', {x:vx, y:vy, width:vw, height:vh, fill:'#c2a877'});
     clone.insertBefore(bg, clone.firstChild);
     clone.setAttribute('style', 'filter:saturate(.6) brightness(.6) contrast(1.15) sepia(.15)');
+    // on screen the stylesheet takes the glow off an inked sigil; the clone has no stylesheet
+    clone.querySelector('#sigilRoot').removeAttribute('filter');
   }
   return { svgString: new XMLSerializer().serializeToString(clone), vw, vh };
 }
@@ -222,18 +211,24 @@ async function saveSigilImage(){
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
-[['copyImage', copySigilImage, 'copied!', 'copy failed'], ['saveImage', saveSigilImage, 'saved!', 'save failed']].forEach(([id, action, okText, errText]) => {
+// the icon turns green or red for a moment, and its label and tooltip say what happened
+[['copyImage', copySigilImage, 'Copied', 'Copy failed'], ['saveImage', saveSigilImage, 'Saved', 'Save failed']].forEach(([id, action, okText, errText]) => {
   const btn = document.getElementById(id);
-  const label = btn.textContent;
+  const label = btn.getAttribute('aria-label');
+  const show = (state, text) => {
+    if (state) btn.dataset.state = state; else delete btn.dataset.state;
+    btn.setAttribute('aria-label', text);
+    btn.title = text;
+  };
   btn.addEventListener('click', async ()=>{
     try {
       await action();
-      btn.dataset.state = 'ok'; btn.textContent = okText;
+      show('ok', okText);
     } catch(err){
       console.error(id + ' failed', err);
-      btn.dataset.state = 'err'; btn.textContent = errText;
+      show('err', errText);
     }
-    setTimeout(()=>{ delete btn.dataset.state; btn.textContent = label; }, 1400);
+    setTimeout(()=>show(null, label), 1400);
   });
 });
 

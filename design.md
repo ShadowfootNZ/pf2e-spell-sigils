@@ -148,18 +148,21 @@ A sigil is drawn in a 600 by 600 viewBox centred on (300, 300) with an outer rad
 - `buildSigil` builds the DOM along with a timeline of `{el, delay, dur, kind}` entries, then plays it with the Web Animations API. Sections run in sequence: bands, polygon, chords, second polygon, center, ring medallions, and for rituals the caster stations. Items within a section overlap in a fast stagger, because a fully serial draw would push high-rank sigils, with up to 64 border marks, past 20 seconds.
 - Ring medallions are appended last so they paint on top, but `reserveSatelliteSlot` reserves their timing slot right after the outer band.
 - Strokes draw on with a dash-offset animation while a `spark` comet rides the tip.
-- Glow stays at its floor while the sigil draws, flashes once at `totalEnd` and then goes out, leaving crisp lines. The flash has three parts:
-  - the `#sigilGlow` SVG filter, a wide blur in a darkened version of each line's color;
-  - CSS drop-shadows on the whole sigil;
+- Glow stays at its floor while the sigil draws, flashes once at `totalEnd` and then goes out, leaving crisp lines. The flash has two parts:
+  - the `#sigilGlow` SVG filter on the whole sigil: a wide blur in a darkened version of each line's color, then two chained `feDropShadow` halos in the spell's main color;
   - `glowDuplicate` clones, which are wider blurred copies of each stroke in a shared layer behind everything else.
-- `startGlow` raises the filter and the drop-shadows together over 1.6 seconds, then switches both off in one frame and returns the blur to its floor, so a settled sigil isn't blurred on every repaint. The clones fade in over 0.9 seconds and straight back out. Continuous breathing and a tight bright near-line blur were tried and dropped on 2026-10-23.
+- `setGlow` sets every part of the filter at once, between `GLOW_FLOOR` and `GLOW_PEAK`. `startGlow` raises it over 1.6 seconds, then switches it off in one frame and returns the blur to its floor, so a settled sigil isn't blurred on every repaint. The clones fade in over 0.9 seconds and straight back out. Continuous breathing and a tight bright near-line blur were tried and dropped on 2026-10-23.
+- At rest the halos have no blur but still lay a sharp copy of each line underneath, which lightens semi-transparent lines and anti-aliased edges toward the spell's main color. That is the look every design was approved in, and it is kept deliberately.
+- Every blur and glow is an SVG filter referenced by attribute, never a CSS `blur()` or `drop-shadow()`: Safari ignores CSS filter functions on SVG elements, and drops a whole filter list that contains one, so until 2026-10-24 iOS showed no glow, max glow did nothing there and comets were hard-edged discs. Comets and halos get small filters from `svgBlur` and `svgShadow`, made on first use and cleared with each new spell. Their numbers are the old CSS ones, which Chrome had applied in the sigil's own units. `#sigilGlow` is an attribute on `#sigilRoot` rather than a stylesheet rule so that copied images keep the glow.
 - The generation counter `blurGen` abandons the flash of the previously selected spell.
 - After the sigil settles, about a third of its lines pulse in opacity. Faint comets from `energyLoop` circle the outer band, the inner border and the polygon; focus spells have no band lines, so only the polygon comet.
 
 ## Interface
 
 - **Layout.**
-  - From 700 px wide and 560 px tall, the sidebar sits beside the stage, and the circle never grows wider than the stage. The Paizo notice is a grid item of its own under the sidebar column, not part of the sidebar.
+  - From 700 px wide and 560 px tall, the sidebar sits beside the stage. The Paizo notice is a grid item of its own under the sidebar column, not part of the sidebar.
+  - The stage is a CSS size container, so the readout follows the stage's own shape rather than the window's width. In a landscape stage the circle fills the stage's height and the readout splits into the corners the circle leaves empty, as described under Readout. In a portrait stage, such as an iPad held upright, the circle is capped at 72% of the height and the stage's width and the readout sits under it.
+  - Heights use `svh`, the viewport with the browser's toolbars showing. Safari's `vh` is the height with them hidden, which pushed the bottom of this non-scrolling page off an iPad's screen.
   - Below either size, a phone upright or on its side, the page scrolls instead: a sticky top bar with a Spells button, the sigil at full width, the readout, the toolbar in a row, then the Paizo notice, which stays on the page. The sidebar becomes a drawer that slides over the page while `body.drawer-open` is set. Picking a spell, the close button, the backdrop or Escape closes it, and picking a spell also scrolls back to the sigil. Parchment mode reaches only to the side gutters, so the readout stays on the dark background.
 - **Permalinks.** The URL's hash holds the slug of the spell on show, so a link reproduces its sigil as long as the code and that spell's data haven't changed. `showSpell` replaces the hash rather than adding a history entry, so Back leaves the page, and sets the tab title to the spell's name. The slug is encoded with `encodeURIComponent` plus `!'()*`, which it leaves alone, so a pasted link stays whole in Markdown and chat apps. On load, and when the hash is edited by hand, `showFromHash` draws the named spell and centres it in the list. With no hash it draws a random spell. With a slug that isn't in the data, for example after upstream drops the spell, it draws a random spell and the readout says why.
 - **Filters.**
@@ -170,20 +173,24 @@ A sigil is drawn in a 600 by 600 viewBox centred on (300, 300) with an outer rad
   - Rank chips.
   - An empty selection means no filter.
 - **Readout.**
-  - Shows the name, rank, badges and traits. On windows 1400 px wide or more it sits right-aligned in the stage's top-right corner, mirroring the toolbar at top-left, with a faint backdrop in case a medallion reaches that corner; narrower windows put it back under the circle.
+  - Shows the name, rank, badges and traits. In a landscape stage the toolbar keeps the top-left corner, the name and rank take the top-right, the tradition badges the bottom-left and the traits the bottom-right, each at most 230 px wide. There the name is 1.2rem, and the 43 names over 24 characters 1rem, so that a long name wrapping onto a second line stays clear of the drawing in a nearly square stage such as an iPad's in landscape. In a portrait stage, and on phones, the readout sits centred under the circle.
   - Traditionless spells show their class name, or "other", in place of a tradition badge.
   - Rituals get an extra ritual badge.
   - The trait list hides concentrate, manipulate and the four alignment traits. The `cantrip` and `focus` traits, and a class focus spell's class trait, aren't stored at all.
-- **Parchment toggle.** A CSS-only display mode: a parchment texture behind the circle and a `saturate/brightness/contrast/sepia` filter over the SVG that makes the bright palette look inked. It leaves the JS color system untouched.
-- **Max glow.** Holds the glow at the peak of `startGlow`'s flash, or puts it back to the floor. Its constants are duplicated from `startGlow`.
+- **Toolbar.** A row of 34 px icon buttons at the stage's top-left, drawn in the glyphs' line style, each named by its `aria-label` and tooltip. The two display modes come first as toggle buttons that stay lit while on, with `aria-pressed`: parchment, a hanging scroll, and max glow, a sun. After a gap come the two actions: copy, two overlapping sheets, and save, an arrow onto a line. After copy or save the icon turns green or red for a moment and its label says what happened.
+- **Parchment mode.** A CSS-only display mode: a parchment texture behind the circle and a `saturate/brightness/contrast/sepia` filter over the SVG that makes the bright palette look inked. The glow is switched off. It leaves the JS color system untouched.
+- **Max glow.** Holds the glow at `GLOW_PEAK`, the top of the flash, or puts it back to `GLOW_FLOOR`. A new spell turns it off.
 - **Copy image and Save image.** `captureSigilSvg`:
   - commits every animation's end state with `commitStyles()`;
   - clones the SVG and widens the viewBox to the real bounding box plus padding, since medallions overflow the 600 box;
-  - bakes in the parchment background and filter when that mode is on.
+  - keeps the glow, since `#sigilGlow` is an attribute on the sigil, so max glow carries into the image;
+  - bakes in the parchment background and filter when that mode is on, and drops the glow filter, which on screen the stylesheet removes.
+
+  A comet in flight when the image is taken is captured with it.
 
   The PNG is rasterized at up to 1200 px on its long side. Copy hands `ClipboardItem` a pending promise so the write still counts as part of the click. The PNG output has been checked pixel for pixel. The clipboard write itself could not be confirmed in headless Chrome and still needs a manual check in desktop browsers.
-- **Startup.** A random spell is drawn on load.
-- **Legal footer.** The sidebar ends with Paizo's Community Use Policy notice, a credit for the pf2e data and a link to the repo for contact. It stays visible rather than sitting behind a link.
+- **Startup.** The spell the URL names is drawn on load, or a random one; see Permalinks.
+- **Legal footer.** Paizo's Community Use Policy notice, a credit for the pf2e data and a link to the repo for contact, at the foot of the sidebar column, or under the sigil on a phone. It stays visible rather than sitting behind a link.
 
 ## Licensing
 

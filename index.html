@@ -29,37 +29,59 @@
   <main class="stage">
     <header class="topbar">
       <span class="topbar-title">Spell Sigils</span>
-      <button class="toolbar-btn toolbar-label" id="drawerOpen" type="button" aria-controls="sidebar" aria-expanded="false">Spells</button>
+      <button class="topbar-btn" id="drawerOpen" type="button" aria-controls="sidebar" aria-expanded="false">Spells</button>
     </header>
     <div class="circle-wrap">
       <svg id="sigil" viewBox="0 0 600 600">
         <defs>
+          <!-- every part of the glow lives in this one filter, driven by setGlow (js/sigil.js): Safari
+               ignores CSS drop-shadow() on SVG elements, and drops the whole filter list with it -->
           <filter id="sigilGlow" x="-60%" y="-60%" width="220%" height="220%">
             <!-- a wide, dim haze in a darkened version of each line's own color, behind the crisp lines -->
             <feGaussianBlur id="sigilBlurFar" in="SourceGraphic" stdDeviation="0" result="blurFar"/>
             <feColorMatrix id="sigilBlurFarColor" in="blurFar" type="matrix" values="0.55 0 0 0 0  0 0.55 0 0 0  0 0 0.55 0 0  0 0 0 1 0" result="glowFar"/>
-            <feMerge>
+            <feMerge result="lit">
               <feMergeNode in="glowFar"/>
               <feMergeNode in="SourceGraphic"/>
             </feMerge>
+            <!-- two neon halos in the spell's main color, each a blurred silhouette of everything before
+                 it laid underneath: feDropShadow is what a CSS drop-shadow() is defined as, chained here as
+                 the two CSS drop-shadows were, and blending in sRGB as CSS filters do -->
+            <feDropShadow id="sigilHaloA" in="lit" dx="0" dy="0" stdDeviation="0" flood-color="#8fd0ff" color-interpolation-filters="sRGB" result="litA"/>
+            <feDropShadow id="sigilHaloB" in="litA" dx="0" dy="0" stdDeviation="0" flood-color="#8fd0ff" color-interpolation-filters="sRGB"/>
           </filter>
         </defs>
-        <g id="sigilRoot" class="glow"></g>
+        <!-- the filter is an attribute rather than a stylesheet rule so that copied images keep the glow -->
+        <g id="sigilRoot" class="glow" filter="url(#sigilGlow)"></g>
       </svg>
     </div>
+    <!-- the two display modes, lit while on, then the two one-off actions -->
     <div class="toolbar" id="toolbar">
-      <div class="toggle-row" id="bgToggle" data-active="0">
-        <span class="toggle-track"><span class="toggle-knob"></span></span>
-        <span class="toolbar-label">parchment</span>
-      </div>
-      <div class="toolbar-btn toolbar-label" id="maxGlowToggle" data-active="0">max glow</div>
-      <button class="toolbar-btn toolbar-label" id="copyImage" type="button">copy image</button>
-      <button class="toolbar-btn toolbar-label" id="saveImage" type="button">save image</button>
+      <button class="tool" id="bgToggle" type="button" aria-pressed="false" aria-label="Parchment" title="Parchment">
+        <!-- a hanging scroll: a roll at each end, the sheet between them, two lines of writing -->
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="4" rx="2"/><rect x="4" y="17" width="16" height="4" rx="2"/><path d="M6 7v10M18 7v10M9 10.5h6M9 13.5h4"/></svg>
+      </button>
+      <button class="tool" id="maxGlowToggle" type="button" aria-pressed="false" aria-label="Max glow" title="Max glow">
+        <!-- a sun -->
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12h2.5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></svg>
+      </button>
+      <span class="tool-gap"></span>
+      <button class="tool" id="copyImage" type="button" aria-label="Copy image" title="Copy image">
+        <!-- two overlapping sheets -->
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M15 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3"/></svg>
+      </button>
+      <button class="tool" id="saveImage" type="button" aria-label="Save image" title="Save image">
+        <!-- an arrow down onto a line -->
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14"/></svg>
+      </button>
     </div>
+    <!-- under the circle in a portrait stage; split into the corners in a landscape one (see styles.css) -->
     <div class="readout">
-      <div class="note" id="roNote" hidden></div>
-      <div class="name" id="roName">—</div>
-      <div class="rank" id="roRank"></div>
+      <div class="title">
+        <div class="note" id="roNote" hidden></div>
+        <div class="name" id="roName">—</div>
+        <div class="rank" id="roRank"></div>
+      </div>
       <div class="badges" id="roBadges"></div>
       <div class="traits" id="roTraits"></div>
     </div>
