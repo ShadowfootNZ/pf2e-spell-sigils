@@ -101,7 +101,7 @@ Tradition spells are drawn with the most precision: ruled bands, tightly set wri
 - Changing the number or order of `rng()` calls changes the sigil of every spell whose stream passes that point.
 - Adding or removing a rune changes the sigils of spells that draw from that rune's tradition, because that tradition's pool is shuffled at a different size. Reordering runes within a tradition does too. Order across traditions doesn't matter, since each tradition's pool keeps its own runes in array order.
 - Adding or removing a glyph changes only the sigils of spells with that trait. The order of `GLYPHS` doesn't matter, because it is only ever looked up by trait name; it is kept alphabetical.
-- `Math.random()` is used only for comet particle jitter and for choosing the spell shown on load.
+- `Math.random()` is used only for comet particle jitter and for choosing the spell shown when the URL names none.
 - Class hues are stored in `data/classes.json`, and the refresh only ever appends to it, so an existing class's hue never changes.
 
 Once images are shared publicly, treat any of these as a visible change to existing sigils.
@@ -158,6 +158,10 @@ A sigil is drawn in a 600 by 600 viewBox centred on (300, 300) with an outer rad
 
 ## Interface
 
+- **Layout.**
+  - From 700 px wide and 560 px tall, the sidebar sits beside the stage, and the circle never grows wider than the stage. The Paizo notice is a grid item of its own under the sidebar column, not part of the sidebar.
+  - Below either size, a phone upright or on its side, the page scrolls instead: a sticky top bar with a Spells button, the sigil at full width, the readout, the toolbar in a row, then the Paizo notice, which stays on the page. The sidebar becomes a drawer that slides over the page while `body.drawer-open` is set. Picking a spell, the close button, the backdrop or Escape closes it, and picking a spell also scrolls back to the sigil. Parchment mode reaches only to the side gutters, so the readout stays on the dark background.
+- **Permalinks.** The URL's hash holds the slug of the spell on show, so a link reproduces its sigil as long as the code and that spell's data haven't changed. `showSpell` replaces the hash rather than adding a history entry, so Back leaves the page, and sets the tab title to the spell's name. The slug is encoded with `encodeURIComponent` plus `!'()*`, which it leaves alone, so a pasted link stays whole in Markdown and chat apps. On load, and when the hash is edited by hand, `showFromHash` draws the named spell and centres it in the list. With no hash it draws a random spell. With a slug that isn't in the data, for example after upstream drops the spell, it draws a random spell and the readout says why.
 - **Filters.**
   - Name search.
   - Tradition chips: multi-select, matching any selected tradition.

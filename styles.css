@@ -10,10 +10,13 @@ body{
   margin:0; background:radial-gradient(ellipse at 50% 30%, var(--bg-1), var(--bg-0) 70%);
   color:var(--ink); font-family:'EB Garamond', Georgia, serif; overflow:hidden;
 }
-.app{display:grid; grid-template-columns:320px 1fr; height:100vh;}
+/* the Paizo notice is its own grid item under the sidebar, not part of it, so that on a phone it can stay
+   on the page while the sidebar becomes a drawer */
+.app{display:grid; grid-template-columns:320px 1fr; grid-template-rows:minmax(0,1fr) auto; height:100vh;}
 
 /* ---------- sidebar ---------- */
 .sidebar{
+  grid-column:1; grid-row:1;
   background:linear-gradient(180deg, rgba(18,20,31,.9), rgba(10,11,18,.94));
   border-right:1px solid var(--panel-border);
   display:flex; flex-direction:column; min-height:0;
@@ -66,7 +69,10 @@ body{
 .list li:hover{background:rgba(255,255,255,.03); color:var(--ink);}
 /* Paizo's Community Use Policy requires its notice to be legible on the page itself, so it stays
    visible at the foot of the sidebar rather than behind a link */
-.legal{padding:10px 16px 14px; border-top:1px solid var(--panel-border); font-size:.62rem; line-height:1.4; color:var(--ink-faint);}
+.legal{
+  grid-column:1; grid-row:2; padding:10px 16px 14px; font-size:.62rem; line-height:1.4; color:var(--ink-faint);
+  border-top:1px solid var(--panel-border); border-right:1px solid var(--panel-border); background:rgba(10,11,18,.94);
+}
 .legal p{margin:0 0 6px;}
 .legal p:last-child{margin-bottom:0;}
 .legal a{color:var(--ink-dim);}
@@ -76,7 +82,9 @@ body{
 .list::-webkit-scrollbar-thumb{background:#242739; border-radius:4px;}
 
 /* ---------- stage ---------- */
-.stage{position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:0; padding:20px;}
+.stage{grid-column:2; grid-row:1 / 3; position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:0; padding:20px;}
+/* the phone layout's top bar, drawer close button and backdrop */
+.topbar, .drawer-close, .drawer-backdrop{display:none;}
 .circle-wrap{width:min(80vh, 62vw); aspect-ratio:1; position:relative;}
 #sigil{width:100%; height:100%; overflow:visible;}
 /* the neon halo lives in this same filter list permanently (as two drop-shadows at --dropA/--dropB),
@@ -92,6 +100,8 @@ body{
   position:absolute; top:14px; right:20px; text-align:right; max-width:260px;
   padding:8px 12px; border-radius:10px; background:rgba(5,6,10,.55);
 }
+/* says why a link's spell wasn't drawn (see showFromHash in js/ui.js) */
+.readout .note{font-style:italic; font-size:.85rem; color:var(--ink-dim); margin-bottom:8px;}
 .readout .name{
   font-family:'Cinzel',serif; font-weight:700; font-size:1.4rem; letter-spacing:.04em;
   color:#fff; text-shadow:0 0 18px var(--nameglow, rgba(150,170,255,.55));
@@ -112,9 +122,9 @@ body{
 .trait-tag.curated{color:#e9ebf7; border-color:#454a72; background:rgba(120,130,200,.12);}
 
 /* without room beside the circle, the readout goes back under it, centered, and the circle shrinks to
-   leave it the height (phones still need their own layout, plan item 48) */
+   leave it the height, and never grows wider than the stage beside the 320px sidebar */
 @media (max-width:1399px){
-  .circle-wrap{width:min(72vh, 62vw);}
+  .circle-wrap{width:min(72vh, 62vw, 100vw - 360px);}
   .readout{position:static; text-align:center; max-width:640px; margin-top:6px; padding:0; background:none;}
   .badges, .traits{justify-content:center;}
 }
@@ -183,3 +193,52 @@ body{
    void background regardless of mode, and dark ink text was unreadable against that once it wasn't
    guaranteed to be on parchment underneath it (a spell with a long trait list pushes it well past the
    circle, e.g. Cataclysm's 7 traits) */
+
+/* ---------- phones: the sidebar becomes a drawer ----------
+   below 700px wide there's no room for the sidebar beside the circle, and below 560px tall, a phone on
+   its side, the sidebar can't fit its filters, its list and the Paizo notice. The page scrolls instead:
+   a top bar with a Spells button, the sigil at full width, the readout, the toolbar and then the Paizo
+   notice, which stays on the page rather than in the drawer. The sidebar slides over it from the left
+   while body.drawer-open is set (js/ui.js), which also stops the page behind it scrolling. */
+@media (max-width:699px), (max-height:559px){
+  body{overflow:auto;}
+  body.drawer-open{overflow:hidden;}
+  .app{display:block; height:auto;}
+  /* clip, not hidden: the parchment backdrop and spilling medallions mustn't widen the page, and clip
+     keeps the top bar's position:sticky working */
+  .stage{padding:0 16px 20px; overflow-x:clip;}
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between; align-self:stretch;
+    position:sticky; top:0; z-index:10; margin:0 -16px 12px; padding:10px 16px;
+    background:rgba(5,6,10,.88); border-bottom:1px solid var(--panel-border);
+  }
+  .topbar-title{font-family:'Cinzel',serif; font-size:.95rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase;}
+  /* the full width less a margin for medallions that spill past the circle, and short enough on a phone
+     on its side to fit under the top bar */
+  .circle-wrap{width:min(100vw - 40px, 100vh - 80px); width:min(100vw - 40px, 100svh - 80px);}
+  .readout{position:static; order:1; text-align:center; max-width:none; margin-top:8px; padding:0; background:none;}
+  /* the parchment reaches only to the page's side gutters, and the readout clears it, so the dim rank
+     text never sits on parchment */
+  .stage.parchment .circle-wrap::before{inset:-16px;}
+  .stage.parchment .readout{margin-top:26px;}
+  .badges, .traits{justify-content:center;}
+  .toolbar{position:static; order:2; flex-direction:row; flex-wrap:wrap; justify-content:center; align-items:center; gap:8px 10px; margin-top:16px;}
+  .toolbar-btn{width:auto;}
+  .legal{border-right:none;}
+
+  .sidebar{
+    position:fixed; top:0; bottom:0; left:0; z-index:30; width:min(340px, 88vw);
+    background:var(--bg-1); border-right:1px solid var(--panel-border);
+    transform:translateX(-100%); visibility:hidden; transition:transform .2s ease, visibility 0s linear .2s;
+  }
+  body.drawer-open .sidebar{transform:none; visibility:visible; transition:transform .2s ease;}
+  .drawer-close{
+    display:block; position:absolute; top:12px; right:10px; width:36px; height:36px; padding:0;
+    border:1px solid var(--panel-border); border-radius:6px; background:#1b1e30; color:var(--ink-dim);
+    font-size:1.3rem; line-height:1; cursor:pointer;
+  }
+  body.drawer-open .drawer-backdrop{display:block; position:fixed; inset:0; z-index:25; background:rgba(0,0,0,.55);}
+}
+@media (prefers-reduced-motion:reduce){
+  .sidebar{transition:none !important;}
+}

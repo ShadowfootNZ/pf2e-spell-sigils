@@ -6,10 +6,6 @@ Remove completed items as the details will be in git history.
 
 ## Before the page goes public
 
-48. **Make the layout work on phones.** The sidebar is a fixed 320 px column and `body` has `overflow:hidden` (`styles.css` lines 9 to 13). At 390 px wide the page lays out 602 px wide, can't scroll, and the sigil sits mostly off-screen. Below a breakpoint, stack the stage above the spell list or move the list into a drawer, size `.circle-wrap` from the viewport width, and keep the toolbar clear of the sigil. The Paizo notice at the foot of the sidebar must stay visible without opening the drawer. The readout sits in the stage's top-right corner from 1400 px wide and under the circle below that (`styles.css`, `.readout`); a phone needs its own place for it. Verify with Puppeteer screenshots at 390×844, 768×1024 and a desktop size.
-
-49. **Permalinks.** The page draws a random spell on load (`js/ui.js` line 293) and never updates the URL. Write `#<slug>` on selection, read it on load and on `hashchange`, and only fall back to a random spell when the hash is empty or unknown. A slug disappears when upstream drops its spell, as Divine Vessel's did on 2026-10-22, so an unknown hash should show a short note that the spell is no longer in the data before drawing a random one. Encode the hash with `encodeURIComponent`, since 125 slugs contain apostrophes, commas or parentheses. Rendering is deterministic, so a link reproduces the same sigil as long as the code and that spell's data haven't changed. Scroll the selected spell into view in the list.
-
 51. **Keyboard access.** The filter chips (`js/ui.js` lines 32, 57, 90), the max-glow toggle and the list items are `div` or `li` elements with click handlers only. Make chips and toggles `<button>` elements with `aria-pressed`, let the list take focus with arrow-key navigation and Enter to draw, and give the SVG `role="img"` with an `aria-label` naming the spell.
 
 ## Bugs

@@ -237,7 +237,70 @@ async function saveSigilImage(){
   });
 });
 
+/* ---------------- phone drawer ---------------- */
+// on a phone the sidebar is a drawer over the page (see styles.css): body.drawer-open slides it in and
+// stops the page behind it scrolling. On wider screens the class has no effect, so nothing here needs to
+// know which layout is showing.
+const drawerOpenBtn = document.getElementById('drawerOpen');
+function setDrawer(open){
+  document.body.classList.toggle('drawer-open', open);
+  drawerOpenBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+drawerOpenBtn.addEventListener('click', () => setDrawer(true));
+document.getElementById('drawerClose').addEventListener('click', () => setDrawer(false));
+document.getElementById('drawerBackdrop').addEventListener('click', () => setDrawer(false));
+document.addEventListener('keydown', e => { if (e.key === 'Escape') setDrawer(false); });
+
+/* ---------------- permalinks ---------------- */
+// the URL's hash names the spell on show, so a link reproduces its sigil for as long as the code and that
+// spell's data are unchanged. It's replaced rather than pushed, so Back leaves the page instead of
+// stepping through every spell looked at. Slugs can hold apostrophes, commas and parentheses; encoding
+// those as well keeps a pasted link whole in Markdown and chat apps.
+function slugToHash(slug){
+  return '#' + encodeURIComponent(slug).replace(/[!'()*]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase());
+}
+function slugFromHash(){
+  const raw = location.hash.slice(1);
+  try { return decodeURIComponent(raw); } catch (e){ return raw; } // a malformed %-escape, typed by hand
+}
+function setNote(text){
+  const note = document.getElementById('roNote');
+  note.textContent = text;
+  note.hidden = !text;
+}
+
 let currentSlug = null;
+// draws a spell and makes it the current one, with the list highlight, the URL and the tab title following
+function showSpell(s){
+  currentSlug = s.slug;
+  document.querySelectorAll('#list li').forEach(li => li.classList.toggle('active', li.dataset.slug === s.slug));
+  buildSigil(s);
+  history.replaceState(null, '', slugToHash(s.slug));
+  document.title = `${s.name} · Spell Sigils`;
+  setNote('');
+}
+// on load and whenever the hash is changed by hand: the spell the hash names, or a random one when it
+// names none, or names one that is no longer in the data, as happens when upstream drops a spell
+function showFromHash(){
+  const slug = slugFromHash();
+  const named = slug && SPELLS.find(s => s.slug === slug);
+  if (named){
+    if (named.slug !== currentSlug) showSpell(named);
+  } else {
+    showSpell(SPELLS[Math.floor(Math.random()*SPELLS.length)]);
+    if (slug) setNote(`The linked spell "${slug}" isn't in the current spell data, so a random spell is shown instead.`);
+  }
+  scrollListToCurrent();
+}
+// centres the current spell in the list, if the filters show it. Measured from layout rather than with
+// scrollIntoView, which would also scroll the page itself on a phone
+function scrollListToCurrent(){
+  const list = document.getElementById('list');
+  const li = list.querySelector('li.active');
+  if (!li) return;
+  list.scrollTop += li.getBoundingClientRect().top - list.getBoundingClientRect().top - (list.clientHeight - li.offsetHeight)/2;
+}
+
 function renderList(){
   const listEl = document.getElementById('list');
   listEl.innerHTML = '';
@@ -256,6 +319,7 @@ function renderList(){
   document.getElementById('count').textContent = `${filtered.length} of ${SPELLS.length} spells`;
   filtered.forEach(s=>{
     const li = document.createElement('li');
+    li.dataset.slug = s.slug;
     const primary = s.traditions[0] || 'none';
     li.style.setProperty('--dot', tradColorSolid(primary));
     if (s.slug === currentSlug) li.classList.add('active');
@@ -263,10 +327,10 @@ function renderList(){
     const rk = document.createElement('span'); rk.className='r'; rk.textContent = s.rank===0?'cantrip':'rank '+s.rank;
     li.appendChild(nm); li.appendChild(rk);
     li.addEventListener('click', ()=>{
-      currentSlug = s.slug;
-      [...listEl.children].forEach(c=>c.classList.remove('active'));
-      li.classList.add('active');
-      buildSigil(s);
+      showSpell(s);
+      // on a phone, picking a spell closes the drawer and brings the sigil back into view
+      setDrawer(false);
+      window.scrollTo(0, 0);
     });
     listEl.appendChild(li);
   });
@@ -285,10 +349,9 @@ async function init(){
   classes.forEach(c => { FOCUS_CLASS_HUE[c.name] = c.hue; });
   SPELLS = spells;
   buildClassFilters();
-  const defaultSpell = SPELLS[Math.floor(Math.random()*SPELLS.length)];
-  if (defaultSpell) currentSlug = defaultSpell.slug;
   renderList();
-  if (defaultSpell) buildSigil(defaultSpell);
+  showFromHash();
+  window.addEventListener('hashchange', showFromHash);
 }
 init().catch(err => {
   console.error(err);

@@ -14,20 +14,23 @@
 </head>
 <body>
 <div class="app">
-  <aside class="sidebar">
+  <!-- on a phone the sidebar becomes a drawer that slides over the page (see styles.css) -->
+  <aside class="sidebar" id="sidebar">
     <h1>Spell Sigils<span>drawn from the four currents</span></h1>
+    <button class="drawer-close" id="drawerClose" type="button" aria-label="Close the spell list">×</button>
     <div class="search"><input id="search" type="text" placeholder="Search a spell…" autocomplete="off"></div>
     <div class="filters" id="tradFilters"></div>
     <div class="filters" id="classFilters" hidden></div>
     <div class="rank-row" id="rankFilters"></div>
     <div class="count" id="count">Loading spells…</div>
     <ul class="list" id="list"></ul>
-    <footer class="legal">
-      <p>Spell Sigils uses trademarks and/or copyrights owned by Paizo Inc., used under Paizo's Community Use Policy (<a href="https://paizo.com/licenses/communityuse" target="_blank" rel="noopener">paizo.com/licenses/communityuse</a>). We are expressly prohibited from charging you to use or access this content. Spell Sigils is not published, endorsed, or specifically approved by Paizo. For more information about Paizo Inc. and Paizo products, visit <a href="https://paizo.com" target="_blank" rel="noopener">paizo.com</a>.</p>
-      <p>Spell data from the <a href="https://github.com/foundryvtt/pf2e" target="_blank" rel="noopener">PF2E system for Foundry VTT</a>. Code under the MIT License. <a href="https://github.com/ShadowfootNZ/pf2e-spell-sigils" target="_blank" rel="noopener">Source and contact</a>.</p>
-    </footer>
   </aside>
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
   <main class="stage">
+    <header class="topbar">
+      <span class="topbar-title">Spell Sigils</span>
+      <button class="toolbar-btn toolbar-label" id="drawerOpen" type="button" aria-controls="sidebar" aria-expanded="false">Spells</button>
+    </header>
     <div class="circle-wrap">
       <svg id="sigil" viewBox="0 0 600 600">
         <defs>
@@ -54,12 +57,19 @@
       <button class="toolbar-btn toolbar-label" id="saveImage" type="button">save image</button>
     </div>
     <div class="readout">
+      <div class="note" id="roNote" hidden></div>
       <div class="name" id="roName">—</div>
       <div class="rank" id="roRank"></div>
       <div class="badges" id="roBadges"></div>
       <div class="traits" id="roTraits"></div>
     </div>
   </main>
+  <!-- Paizo's Community Use Policy notice: at the foot of the sidebar column on wide screens, and under
+       the sigil on a phone, where it must stay visible without opening the drawer -->
+  <footer class="legal">
+    <p>Spell Sigils uses trademarks and/or copyrights owned by Paizo Inc., used under Paizo's Community Use Policy (<a href="https://paizo.com/licenses/communityuse" target="_blank" rel="noopener">paizo.com/licenses/communityuse</a>). We are expressly prohibited from charging you to use or access this content. Spell Sigils is not published, endorsed, or specifically approved by Paizo. For more information about Paizo Inc. and Paizo products, visit <a href="https://paizo.com" target="_blank" rel="noopener">paizo.com</a>.</p>
+    <p>Spell data from the <a href="https://github.com/foundryvtt/pf2e" target="_blank" rel="noopener">PF2E system for Foundry VTT</a>. Code under the MIT License. <a href="https://github.com/ShadowfootNZ/pf2e-spell-sigils" target="_blank" rel="noopener">Source and contact</a>.</p>
+  </footer>
 </div>
 
 <script src="js/core.js"></script>
