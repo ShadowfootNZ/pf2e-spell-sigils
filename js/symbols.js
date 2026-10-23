@@ -20,7 +20,7 @@ const GLYPHS = {
   // Excluded are any traits that are a class.
   acid:      g=>{gpath(g,'M12,4 C8,10 7,13 9,16.5 C10.2,18.7 13.8,18.7 15,16.5 C17,13 16,10 12,4 Z'); gcircle(g,16,8,1,'currentColor'); gcircle(g,18,12,0.8,'currentColor');},
   air:       g=>{gpath(g,'M4,9 Q9,6 13,9 T20,8'); gpath(g,'M4,13 Q9,10 13,13 T20,12'); gpath(g,'M4,17 Q8,15 11,17');},
-  auditory:  g=>{gpath(g,'M9,6 Q4,7 4,12 Q4,18 10,18 Q14,18 14,14 Q14,11 11,11 Q9,11 9,13'); gpath(g,arcPath(1,12,2.2,-45,45)); gpath(g,arcPath(1,12,4.4,-52,52));}, // ear, with sound arriving at it — sonic's waves need no listener, this does
+  auditory:  g=>{gpath(g,'M13,6 Q8,7 8,12 Q8,18 14,18 Q18,18 18,14 Q18,11 15,11 Q13,11 13,13'); gpath(g,arcPath(2,12,2.2,-45,45)); gpath(g,arcPath(2,12,4.4,-52,52));}, // ear, with sound arriving at it — sonic's waves need no listener, this does
   aura:      g=>g.appendChild(el('circle',{cx:12,cy:12,r:8,fill:'none','stroke-dasharray':'2,2.4'})),
   beast:      g=>{gcircle(g,12,16,4.2); gcircle(g,7,10,1.8); gcircle(g,10.5,6.5,1.8); gcircle(g,13.5,6.5,1.8); gcircle(g,17,10,1.8);}, // paw print
   cold:      g=>grays(g,6,2,9,0),

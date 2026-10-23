@@ -10,16 +10,39 @@ let blurGen = 0;
 // version of each line's own color, and two neon halos in the spell's main color. glowDuplicate's
 // per-line halos flash and fade on their own timing.
 
+// Safari draws SVG and CSS blurs in software, so a filter over the whole sigil runs at a few frames a
+// second on an iPad or iPhone, where Chrome keeps 60. So the sigil carries #sigilGlow only while the
+// glow shows (see setGlow), and the flash watches its own frame times: if they're slow, it ends at once,
+// and for the rest of the visit there's no flash and no per-line halos, and max glow holds the sigil
+// still while it's on (see setIdleStill)
+let glowTooSlow = false;
+
 // the glow's floor, and its peak, which the flash rises to and max glow holds (js/ui.js)
 const GLOW_FLOOR = {farStd:0.05, farAlpha:0.05, haloA:0, haloB:0};
 const GLOW_PEAK = {farStd:6.0, farAlpha:1, haloA:1.2, haloB:2.8};
 // sets every part of the glow at once. The halos are given as drop-shadow blur radii: a drop-shadow's
-// radius is twice the standard deviation of its Gaussian blur
+// radius is twice the standard deviation of its Gaussian blur. At the floor the sigil drops the filter,
+// and the outer <svg>'s two 0px CSS drop-shadows lay the same faint resting tint instead (styles.css)
 function setGlow({farStd, farAlpha, haloA, haloB}){
   document.getElementById('sigilBlurFar').setAttribute('stdDeviation', farStd.toFixed(2));
   document.getElementById('sigilBlurFarColor').setAttribute('values', `0.55 0 0 0 0  0 0.55 0 0 0  0 0 0.55 0 0  0 0 0 ${farAlpha.toFixed(2)} 0`);
   document.getElementById('sigilHaloA').setAttribute('stdDeviation', (haloA/2).toFixed(2));
   document.getElementById('sigilHaloB').setAttribute('stdDeviation', (haloB/2).toFixed(2));
+  const lit = farAlpha > GLOW_FLOOR.farAlpha || haloA > 0 || haloB > 0;
+  const root = document.getElementById('sigilRoot');
+  if (lit) root.setAttribute('filter', 'url(#sigilGlow)'); else root.removeAttribute('filter');
+  document.getElementById('sigil').classList.toggle('lit', lit);
+}
+
+// holds a settled sigil still: the comets hide and stop asking for frames, and the line pulses pause.
+// Max glow does this on a device too slow for the glow, so the glow is drawn once rather than every frame
+let idleStill = false;
+const stillLoops = new Set(); // comet loops waiting to carry on
+function setIdleStill(still){
+  idleStill = still;
+  document.getElementById('sigil').classList.toggle('still', still);
+  document.getAnimations().forEach(a => { if (a.effect && a.effect.getTiming().iterations === Infinity) still ? a.pause() : a.play(); });
+  if (!still){ stillLoops.forEach(f => requestAnimationFrame(f)); stillLoops.clear(); }
 }
 
 // Bumps blurGen (abandoning any previous spell's still-running flash) and pins the glow at its floor —
@@ -32,15 +55,25 @@ function resetGlow(){
   return myGen;
 }
 
-function startGlow(myGen){
-  if (myGen !== blurGen) return; // abandoned before its ramp even got to start
+function startGlow(myGen, glowLayer){
+  if (myGen !== blurGen || glowTooSlow) return; // abandoned before its ramp even got to start
   const introDur = 1600;
   const lerp = (key, t) => GLOW_FLOOR[key] + (GLOW_PEAK[key] - GLOW_FLOOR[key])*t;
   let start = null; // anchored on the first frame actually painted, not the moment this was called —
                      // on first page load, list rendering/font loading can eat the first chunk of the
                      // ramp before anything is even on screen, making it look like it starts mid-swing
+  let last = null, slowFrames = 0;
   function frame(now){
     if (myGen !== blurGen) return; // a newer spell was picked — abandon this flash
+    // two frames in a row slower than 50ms: this device draws the blur in software (see glowTooSlow)
+    slowFrames = last !== null && now - last > 50 ? slowFrames + 1 : 0;
+    last = now;
+    if (slowFrames >= 2){
+      glowTooSlow = true;
+      setGlow({...GLOW_FLOOR, farAlpha:0});
+      glowLayer.replaceChildren();
+      return;
+    }
     if (start === null) start = now;
     const elapsed = now - start;
     const frac = Math.min(1, elapsed/introDur);
@@ -106,9 +139,10 @@ function rideComet(pathEl, delayMs, color, getFrac, opts){
   const own = pathEl.transform && pathEl.transform.baseVal.consolidate();
   const pointAt = own ? l => pathEl.getPointAtLength(l).matrixTransform(own.matrix) : l => pathEl.getPointAtLength(l);
 
-  const flare = el('circle', {r:opts.flareR||8, fill:color, opacity:0, filter:svgBlur(3.5, 100)});
+  // class comet: hidden while the sigil is held still (see setIdleStill)
+  const flare = el('circle', {r:opts.flareR||8, fill:color, opacity:0, filter:svgBlur(3.5, 100), class:'comet'});
   parent.appendChild(flare);
-  const core = el('circle', {r:opts.coreR||2.6, fill:'#fff', opacity:0, filter:svgShadow(opts.coreR?1.5:3, color)});
+  const core = el('circle', {r:opts.coreR||2.6, fill:'#fff', opacity:0, filter:svgShadow(opts.coreR?1.5:3, color), class:'comet'});
   parent.appendChild(core);
 
   const particles = [];
@@ -134,6 +168,7 @@ function rideComet(pathEl, delayMs, color, getFrac, opts){
       flare.remove(); core.remove(); particles.forEach(p=>p.el.remove());
       return;
     }
+    if (idleStill){ stillLoops.add(frame); return; } // carries on when setIdleStill(false) asks
     const elapsed = now - start;
     if (elapsed < 0){ requestAnimationFrame(frame); return; }
     const frac = getFrac(elapsed);
@@ -160,7 +195,7 @@ function rideComet(pathEl, delayMs, color, getFrac, opts){
     if (withParticles && now-lastSpawn > 45 && edgeFade > 0.3){
       lastSpawn = now;
       const px = pt.x + (Math.random()-0.5)*4, py = pt.y + (Math.random()-0.5)*4;
-      const pDot = el('circle',{cx:px.toFixed(2), cy:py.toFixed(2), r:(0.6+Math.random()), fill:'#fff', opacity:0.8});
+      const pDot = el('circle',{cx:px.toFixed(2), cy:py.toFixed(2), r:(0.6+Math.random()), fill:'#fff', opacity:0.8, class:'comet'});
       parent.appendChild(pDot);
       particles.push({el:pDot, vx:(Math.random()-0.5)*0.05, vy:(Math.random()-0.5)*0.05, life:1});
     }
@@ -226,6 +261,7 @@ function buildSigil(spell){
   // a new spell always starts its own settle-from-scratch sequence, regardless of whatever the max-glow
   // toggle was left at for the previous one
   document.getElementById('maxGlowToggle').setAttribute('aria-pressed', 'false');
+  setIdleStill(false);
   const sigilRoot = document.getElementById('sigilRoot');
   sigilRoot.innerHTML = '';
   clearSvgFilters(); // the previous spell's comets and halos went with it
@@ -275,6 +311,7 @@ function buildSigil(spell){
   const colorAt = i => tradColor(colorSlotTrads[i % colorSlotTrads.length], tradJitters[i % colorSlotTrads.length]);
 
   ['sigilHaloA', 'sigilHaloB'].forEach(id => document.getElementById(id).setAttribute('flood-color', colorAt(0)));
+  document.getElementById('sigil').style.setProperty('--glowcolor', colorAt(0)); // the resting tint (styles.css)
   const glowGen = resetGlow(); // glow stays pinned at floor until the sigil finishes drawing (see totalEnd below)
 
   // focus spells are personal magic rather than drilled tradition magic, so they're drawn less formally:
@@ -761,8 +798,9 @@ function buildSigil(spell){
       );
       spark(e, delay, dur, e.getAttribute('stroke'));
       // fades in at totalEnd, not with this stroke's own draw-in — otherwise each line's glow halo
-      // lights up as soon as that line is drawn, well before the sigil as a whole is finished
-      glowDuplicate(e, totalEnd, 900, darkenHsl(e.getAttribute('stroke'), 0.6), 2, glowLayer);
+      // lights up as soon as that line is drawn, well before the sigil as a whole is finished. None on a
+      // device too slow for the flash
+      if (!glowTooSlow) glowDuplicate(e, totalEnd, 900, darkenHsl(e.getAttribute('stroke'), 0.6), 2, glowLayer);
     } else if (kind === 'fade'){
       e.animate([{opacity:0},{opacity:1}], {duration:dur, delay, easing:'ease-out', fill:'forwards'});
     } else if (kind === 'pop'){
@@ -777,7 +815,7 @@ function buildSigil(spell){
   });
 
   idleTimer = setTimeout(()=>{
-    startGlow(glowGen);
+    startGlow(glowGen, glowLayer);
     // a subset of lines/gems get their own independent slow pulse, so the circle feels alive rather than static
     pulseables.forEach(({el:pe, base})=>{
       if (rng() > 0.32) return;

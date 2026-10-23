@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <title>Spell Sigils</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- the 512px icon is for a web app manifest, should the site get one -->
+<link rel="icon" href="favicon.ico" sizes="16x16 32x32">
+<link rel="icon" href="favicon-32x32.png" type="image/png" sizes="32x32">
+<link rel="icon" href="favicon-192x192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="favicon-192x192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=EB+Garamond:ital@0;1&display=swap" rel="stylesheet">
@@ -35,7 +40,8 @@
       <svg id="sigil" viewBox="0 0 600 600">
         <defs>
           <!-- every part of the glow lives in this one filter, driven by setGlow (js/sigil.js): Safari
-               ignores CSS drop-shadow() on SVG elements, and drops the whole filter list with it -->
+               ignores CSS drop-shadow() on SVG elements, and drops the whole filter list with it.
+               Copied images always use it (captureSigilSvg in js/ui.js) -->
           <filter id="sigilGlow" x="-60%" y="-60%" width="220%" height="220%">
             <!-- a wide, dim haze in a darkened version of each line's own color, behind the crisp lines -->
             <feGaussianBlur id="sigilBlurFar" in="SourceGraphic" stdDeviation="0" result="blurFar"/>
@@ -51,8 +57,8 @@
             <feDropShadow id="sigilHaloB" in="litA" dx="0" dy="0" stdDeviation="0" flood-color="#8fd0ff" color-interpolation-filters="sRGB"/>
           </filter>
         </defs>
-        <!-- the filter is an attribute rather than a stylesheet rule so that copied images keep the glow -->
-        <g id="sigilRoot" class="glow" filter="url(#sigilGlow)"></g>
+        <!-- setGlow (js/sigil.js) gives this the glow filter only while the glow shows -->
+        <g id="sigilRoot" class="glow"></g>
       </svg>
     </div>
     <!-- the two display modes, lit while on, then the two one-off actions -->

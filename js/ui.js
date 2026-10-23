@@ -138,6 +138,7 @@ maxGlowToggle.addEventListener('click', () => {
   const on = maxGlowToggle.getAttribute('aria-pressed') !== 'true';
   maxGlowToggle.setAttribute('aria-pressed', on);
   setGlow(on ? GLOW_PEAK : GLOW_FLOOR);
+  if (glowTooSlow) setIdleStill(on);
 });
 // shared by copy-to-clipboard and save-to-file — everything up to the serialized SVG string runs
 // synchronously (no `await` yet), so the current visual state is frozen before either path does any
@@ -167,8 +168,13 @@ function captureSigilSvg(){
     const bg = el('rect', {x:vx, y:vy, width:vw, height:vh, fill:'#c2a877'});
     clone.insertBefore(bg, clone.firstChild);
     clone.setAttribute('style', 'filter:saturate(.6) brightness(.6) contrast(1.15) sepia(.15)');
-    // on screen the stylesheet takes the glow off an inked sigil; the clone has no stylesheet
+    // an inked sigil doesn't glow; on screen the stylesheet takes off any glow filter the sigil carries
     clone.querySelector('#sigilRoot').removeAttribute('filter');
+  } else {
+    // the glow filter, which on screen the sigil carries only while the glow shows: at rest its 0px halos
+    // lay the faint tint that the stylesheet's drop-shadows give the live sigil, and the clone has no
+    // stylesheet
+    clone.querySelector('#sigilRoot').setAttribute('filter', 'url(#sigilGlow)');
   }
   return { svgString: new XMLSerializer().serializeToString(clone), vw, vh };
 }

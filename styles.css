@@ -96,6 +96,14 @@ body{
    stage beside the 320px sidebar */
 .circle-wrap{width:min(72vh, 62vw, 100vw - 360px); width:min(72svh, 62vw, 100vw - 360px); aspect-ratio:1; position:relative;}
 #sigil{width:100%; height:100%; overflow:visible;}
+/* the resting tint: two sharp copies of the drawing in the spell's main color laid underneath, which
+   lighten semi-transparent lines and anti-aliased edges toward it. Chrome draws them; Safari skips a 0px
+   drop-shadow and shows crisp lines, which keeps it smooth (see setGlow in js/sigil.js). While the glow
+   shows, the SVG filter on the sigil carries its own halos instead */
+#sigil{filter:drop-shadow(0 0 0 var(--glowcolor, transparent)) drop-shadow(0 0 0 var(--glowcolor, transparent));}
+#sigil.lit{filter:none;}
+/* held still by setIdleStill: the comets hide */
+#sigil.still .comet{visibility:hidden;}
 
 /* in a portrait stage the readout sits centred under the circle */
 .readout{text-align:center; max-width:640px; margin-top:6px;}
