@@ -120,7 +120,7 @@ A sigil is drawn in a 600 by 600 viewBox centred on (300, 300) with an outer rad
   - Secondary stations are spaced evenly round the rest of the ring, one per caster or per secondary skill, whichever is more, at most 8. Skills repeat across extra casters; a skill offered as one of a choice gets a dotted square; with no caster count upstream, the skills stand in for it; a check that accepts any skill leaves its station empty.
   - Each sigil faces the center, as a caster standing there would read it. Magical skills take their tradition's color and other skills the ritual's main color.
   - The station ring is broken around each square so it never runs through a sigil. Stations draw last, the primary first.
-  - Each square carries its own placement and stroke rather than inheriting them from a group, because `glowDuplicate` clones a single element into the shared glow layer.
+  - Each square carries its own placement and stroke rather than inheriting them from a group, because `glowDuplicate` clones a single element into the shared glow layer. The spark that rides a square as it draws reads points in the square's own coordinates, so `rideComet` carries them through the square's transform.
 - **Mythic spells**, 33 of them, rule the central polygon twice, like a rune band at half its spacing: a thinner line 6 units outside the polygon, drawn alongside it. `offsetPolygon` shifts each edge outward and joins neighbouring edges where they meet, so every side stays parallel. Outside keeps the star chords ending at the polygon's own corners, and the thin line reads paler than the polygon. It works at every rank, including the two mythic spells below rank 3, which have no chords.
 
 ### Symbol vocabularies

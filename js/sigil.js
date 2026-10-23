@@ -125,6 +125,10 @@ function rideComet(pathEl, delayMs, color, getFrac, opts){
   let len = 0;
   try { len = pathEl.getTotalLength(); } catch(e){}
   if (!len) return;
+  // a path placed by its own transform (a ritual station's square) reports points in its own coordinates,
+  // centred on the origin, while the comet is drawn in its parent's: carry each point through the transform
+  const own = pathEl.transform && pathEl.transform.baseVal.consolidate();
+  const pointAt = own ? l => pathEl.getPointAtLength(l).matrixTransform(own.matrix) : l => pathEl.getPointAtLength(l);
 
   const flare = el('circle', {r:opts.flareR||8, fill:color, opacity:0});
   flare.style.filter = 'blur(3.5px)';
@@ -170,12 +174,12 @@ function rideComet(pathEl, delayMs, color, getFrac, opts){
     }
 
     const edgeFade = (frac<0.08 ? frac/0.08 : (frac>0.82 ? Math.max(0,(1-frac)/0.18) : 1)) * peak;
-    const pt = pathEl.getPointAtLength(frac*len);
+    const pt = pointAt(frac*len);
     core.setAttribute('cx', pt.x.toFixed(2)); core.setAttribute('cy', pt.y.toFixed(2));
     core.setAttribute('opacity', edgeFade);
     const trailFrac = Math.min(0.02, 5/len); // a fixed ~5px trail, not a fraction of the path — stays
                                               // tight to the core on long paths instead of splitting off
-    const behind = pathEl.getPointAtLength(Math.max(0,(frac-trailFrac)%1)*len);
+    const behind = pointAt(Math.max(0,(frac-trailFrac)%1)*len);
     flare.setAttribute('cx', behind.x.toFixed(2)); flare.setAttribute('cy', behind.y.toFixed(2));
     flare.setAttribute('opacity', edgeFade*0.5);
 
