@@ -35,7 +35,7 @@ The scripts are classic scripts that share globals, loaded in the order above; e
 {"name":"Lay on Hands","slug":"lay-on-hands","rank":1,"traditions":[],"traits":["healing","manipulate","vitality"],"rarity":"uncommon","category":"focus","focusClass":"champion"}
 ```
 
-`casters`, `primaryCheck` and `secondaryChecks` appear only on rituals. `focusClass` appears only on focus spells with a single owning class.
+`casters`, `primaryCheck` and `secondaryChecks` appear only on rituals. `focusClass` appears only on focus spells with a single owning class. `rarity` is stored but deliberately never drawn: Paizo uses rarity to let a GM keep mystery-breaking spells out of a campaign, not to mark a difference in power.
 
 ### Field sources
 
