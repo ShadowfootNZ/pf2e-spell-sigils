@@ -19,6 +19,7 @@ Spell Sigils draws an animated magic circle for each Pathfinder Second Edition s
 | `data/spells.json` | The spell data, one record per line, fetched at startup. |
 | `data/classes.json` | The hue for each class's focus spells, in the order classes were first seen. Fetched at startup; the refresh appends new classes. |
 | `atlas.html` | Symbol atlas: every rune, trait glyph and skill sigil drawn live from `js/symbols.js`, labelled with the comment beside each. |
+| `help.html` | How to read a sigil and use the page, kept short so the rest is found by exploring, with example links that open the main page on a spell; then Paizo's notice and the credits. A static page with its own styles, like the atlas. |
 | `favicon*` | The site icon, a pair of footprints, as `favicon.ico` (16 and 32px) and PNGs at 16, 32, 192 and 512px. Both pages link the ICO, the 32 and the 192, which is also the iPhone home-screen icon; the 512 waits for a web app manifest. |
 | `refresh-data.mjs` | Updates the sparse clone of `foundryvtt/pf2e` in `.cache/pf2e-pack` and rebuilds `data/spells.json` from it. |
 | `test/snapshots.mjs` | Render regression check, run with `npm test`; see Snapshots below. |
@@ -179,10 +180,10 @@ A sigil is drawn in a 600 by 600 viewBox centred on (300, 300) with an outer rad
 ## Interface
 
 - **Layout.**
-  - From 700 px wide and 560 px tall, the sidebar sits beside the stage. The Paizo notice is a grid item of its own under the sidebar column, not part of the sidebar.
+  - From 700 px wide and 560 px tall, the sidebar sits beside the stage. The footer is a grid item of its own under the sidebar column, not part of the sidebar.
   - The stage is a CSS size container, so the readout follows the stage's own shape rather than the window's width. In a landscape stage the circle fills the stage's height and the readout splits into the corners the circle leaves empty, as described under Readout. In a portrait stage, such as an iPad held upright, the circle is capped at 72% of the height and the stage's width and the readout sits under it.
   - Heights use `svh`, the viewport with the browser's toolbars showing. Safari's `vh` is the height with them hidden, which pushed the bottom of this non-scrolling page off an iPad's screen.
-  - Below either size, a phone upright or on its side, the page scrolls instead: a sticky top bar with a Spells button, the sigil at full width, the readout, the toolbar in a row, then the Paizo notice, which stays on the page. The sidebar becomes a drawer that slides over the page while `body.drawer-open` is set. Picking a spell, the close button, the backdrop or Escape closes it, and picking a spell also scrolls back to the sigil. In parchment mode the whole page above the Paizo notice, top bar included, becomes paper.
+  - Below either size, a phone upright or on its side, the page scrolls instead: a sticky top bar with a Spells button, the sigil at full width, the readout, the toolbar in a row, then the footer, which stays on the page. The sidebar becomes a drawer that slides over the page while `body.drawer-open` is set. Picking a spell, the close button, the backdrop or Escape closes it, and picking a spell also scrolls back to the sigil. In parchment mode the whole page above the Paizo notice, top bar included, becomes paper.
 - **Permalinks.** The URL's hash holds the slug of the spell on show, so a link reproduces its sigil as long as the code and that spell's data haven't changed. `showSpell` replaces the hash rather than adding a history entry, so Back leaves the page, and sets the tab title to the spell's name. The slug is encoded with `encodeURIComponent` plus `!'()*`, which it leaves alone, so a pasted link stays whole in Markdown and chat apps. On load, and when the hash is edited by hand, `showFromHash` draws the named spell and centres it in the list. With no hash it draws a random spell. With a slug that isn't in the data, for example after upstream drops the spell, it draws a random spell and the readout says why.
 - **Filters.**
   - Name search.
@@ -204,7 +205,7 @@ A sigil is drawn in a 600 by 600 viewBox centred on (300, 300) with an outer rad
   - The trait list hides concentrate, manipulate and the four alignment traits. The `cantrip` and `focus` traits, and a class focus spell's class trait, aren't stored at all.
 - **Toolbar.** A row of 34 px icon buttons at the stage's top-left, drawn in the glyphs' line style, each named by its `aria-label` and tooltip. The two display modes come first as toggle buttons that stay lit while on, with `aria-pressed`: parchment, a hanging scroll, and max glow, a sun. After a gap comes Export, an arrow up out of a box, which opens the Export panel and stays lit while it's open.
 - **Parchment mode.** Ink on paper, by CSS alone, so toggling is instant and nothing is redrawn; the JS color system is untouched.
-  - The whole stage becomes paper: a faint grain, two soft stains and a cream ground darkening toward the edges. The sidebar and the Paizo notice stay dark. The readout, toolbar and phone top bar take ink colours; the tradition badges keep theirs.
+  - The whole stage becomes paper: a faint grain, two soft stains and a cream ground darkening toward the edges. The sidebar and the footer stay dark. The readout, toolbar and phone top bar take ink colours; the tradition badges keep theirs.
   - The sigil is drawn in a warm near-black ink, with trait glyphs and ritual skill sigils in red, as rubrication in a manuscript. Rune-only filler medallions stay in ink. `inkRules` in `js/ui.js` holds these rules, defined once for the page and for copied images. They find the red parts by `data-part="glyph"` and `data-part="skill"`, which `buildSigil` sets, and override the colours the sigil is drawn with as attributes, which any CSS rule outranks.
   - An inked sigil doesn't glow: the glow filter, the resting tint, the per-line halos and the comets' light all go, and max glow is switched off and disabled. A draw-on spark keeps only its core, as an ink dot riding the tip of each line like a pen nib. Once drawn, the sigil sits still: `setIdleStill('parchment', true)` hides the idle comets, stops their frame loops and rests every pulse at its full opacity.
 - **Holding still.** `setIdleStill(reason, still)` keeps a set of reasons, `'parchment'` and `'max glow'`, and the sigil is held still while any remains. Held still, idle comets (tagged `data-idle`) hide and stop asking for frames, and the line pulses pause at their resting opacity; draw-on sparks carry on.
@@ -226,13 +227,13 @@ A sigil is drawn in a 600 by 600 viewBox centred on (300, 300) with an outer rad
   - Safari leaves each encoded chunk's duration empty, which `mp4-muxer` refuses, so MP4 chunks go in with their data and the frame's duration given outright; an error inside the encoder's output callback is kept and rethrown, or it would vanish.
   - A new spell drawn meanwhile, or Cancel, stops it. Afterwards the clock goes back to the page's own, offset so that time carries on from the stepped time, and the waiting frames and timers are handed over, so the sigil is left settled and live.
 - **Startup.** The spell the URL names is drawn on load, or a random one; see Permalinks.
-- **Legal footer.** Paizo's Community Use Policy notice, a credit for the pf2e data and a link to the repo for contact, at the foot of the sidebar column, or under the sigil on a phone. It stays visible rather than sitting behind a link.
+- **Footer.** Links to the help page, which carries Paizo's notice, the credits and the contact link, and to the symbol atlas, then the sigil version, at the foot of the sidebar column or under the sigil on a phone. The atlas links to the help page for the notice too.
 
 ## Licensing
 
 Paizo material is used under Paizo's Community Use Policy, which covers free, non-commercial use of Paizo's trademarks and copyrights. That material includes spell names, traits and other game terms, deity and Golarion names, and the runes based on the Cosmic Caravan art. The ORC License and OGL are not used: they cover rules content only, exclude proper nouns such as deity names, and would need attribution for each of the roughly 100 source books. The policy requires:
 
-- the notice, in legible form, on the page and in the README;
+- the notice, "in a legible/accessible form in each project, product, or on each website that uses any Paizo Material": once on the site, not on every page, so it sits on the help page, which every page links to, and in the README;
 - the tool staying free, with no paywall, sign-up or email gate (donations and ads are allowed);
 - no Paizo logos or trade dress, and nothing implying Paizo's endorsement, though descriptive references such as "for Pathfinder Second Edition" are fine;
 - up-to-date contact information in a visible place;

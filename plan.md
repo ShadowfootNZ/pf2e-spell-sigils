@@ -20,8 +20,6 @@ Remove completed items as the details will be in git history.
 
 72. **Random mode.** A toggle that, a few seconds after a sigil finishes drawing, draws another spell at random from those the current search and filters show, and carries on until switched off. Decide the pause, whether to work through a shuffled queue so nothing repeats until the selection is used up, and that a manual pick or a filter change stops it. The URL already follows each spell drawn. `design.md` lists every use of `Math.random`; add this one.
 
-73. **Help page.** Explain how to read a sigil: what rank, traditions, traits, focus spells, rituals and mythic spells change in the drawing, with examples, and link the symbol atlas (`atlas.html`). It could be a separate `help.html` linked from the sidebar and the phone's top bar, or an overlay. Keep it in step with `design.md`'s Structure section, and carry the Paizo notice.
-
 ## Sigil design
 
 Every idea below changes existing sigils, so they cost least before the page goes public. `npm test` names exactly which sigils each one moves.

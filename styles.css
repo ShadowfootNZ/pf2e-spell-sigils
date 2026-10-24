@@ -10,8 +10,8 @@ body{
   margin:0; background:radial-gradient(ellipse at 50% 30%, var(--bg-1), var(--bg-0) 70%);
   color:var(--ink); font-family:'EB Garamond', Georgia, serif; overflow:hidden;
 }
-/* the Paizo notice is its own grid item under the sidebar, not part of it, so that on a phone it can stay
-   on the page while the sidebar becomes a drawer */
+/* the footer is its own grid item under the sidebar, not part of it, so that on a phone it can stay on the
+   page while the sidebar becomes a drawer */
 /* heights use svh, the viewport with the browser's own toolbars showing: Safari's vh is the height with
    them hidden, which pushed the bottom of this non-scrolling page off an iPad's screen. Each vh line is
    the fallback for browsers without svh */
@@ -72,8 +72,7 @@ body{
   border-left:3px solid transparent; display:flex; justify-content:space-between; gap:8px;
 }
 .list li:hover{background:rgba(255,255,255,.03); color:var(--ink);}
-/* Paizo's Community Use Policy requires its notice to be legible on the page itself, so it stays
-   visible at the foot of the sidebar rather than behind a link */
+/* the footer's links to help (with the Paizo notice and credits) and the atlas */
 .legal{
   grid-column:1; grid-row:2; padding:10px 16px 14px; font-size:.62rem; line-height:1.4; color:var(--ink-faint);
   border-top:1px solid var(--panel-border); border-right:1px solid var(--panel-border); background:rgba(10,11,18,.94);
@@ -241,9 +240,9 @@ body{
 
 /* ---------- phones: the sidebar becomes a drawer ----------
    below 700px wide there's no room for the sidebar beside the circle, and below 560px tall, a phone on
-   its side, the sidebar can't fit its filters, its list and the Paizo notice. The page scrolls instead:
-   a top bar with a Spells button, the sigil at full width, the readout, the toolbar and then the Paizo
-   notice, which stays on the page rather than in the drawer. The sidebar slides over it from the left
+   its side, the sidebar can't fit its filters and its list. The page scrolls instead: a top bar with a
+   Spells button, the sigil at full width, the readout, the toolbar and then the footer, which stays on
+   the page rather than in the drawer. The sidebar slides over it from the left
    while body.drawer-open is set (js/ui.js), which also stops the page behind it scrolling. */
 @media (max-width:699px), (max-height:559px){
   body{overflow:auto;}

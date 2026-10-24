@@ -26,6 +26,7 @@ jobs:
           tar -czf - \
            index.html \
            atlas.html \
+           help.html \
            styles.css \
            favicon.ico \
            favicon-16x16.png \

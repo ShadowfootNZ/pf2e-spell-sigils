@@ -179,7 +179,7 @@ maxGlowToggle.addEventListener('click', () => {
   if (glowTooSlow || !on) setIdleStill('max glow', on);
 });
 // the drawing rules' version, in the footer (see SIGIL_VERSION in js/sigil.js)
-document.getElementById('sigilVersion').textContent = `Sigils v${SIGIL_VERSION}.`;
+document.getElementById('sigilVersion').textContent = `Sigils v${SIGIL_VERSION}`;
 
 /* ---------------- phone drawer ---------------- */
 // on a phone the sidebar is a drawer over the page (see styles.css): body.drawer-open slides it in and

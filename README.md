@@ -31,7 +31,7 @@ npm install
 npm test
 ```
 
-`design.md` explains how the tool works, `plan.md` lists open work, and `atlas.html` shows every rune, trait glyph and skill sigil the sigils are drawn from.
+`help.html` is the page's own short guide to reading a sigil. `design.md` explains how the tool works, `plan.md` lists open work, and `atlas.html` shows every rune, trait glyph and skill sigil the sigils are drawn from.
 
 ## Deployment
 

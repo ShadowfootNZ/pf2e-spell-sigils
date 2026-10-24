@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Spell Sigils Help</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- the 512px icon is for a web app manifest, should the site get one -->
+<link rel="icon" href="favicon.ico" sizes="16x16 32x32">
+<link rel="icon" href="favicon-32x32.png" type="image/png" sizes="32x32">
+<link rel="icon" href="favicon-192x192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="favicon-192x192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=EB+Garamond:ital@0;1&display=swap" rel="stylesheet">
+<!-- how to read a sigil and use the page, kept short so the rest is found by exploring; and the notices and
+     credits, which every page on the site links to. Example links open the main page on that spell -->
+<style>
+  :root{
+    --bg-0:#05060a; --bg-1:#0b0d16; --line:#262a42;
+    --ink:#d8dae8; --ink-dim:#8388a8; --ink-faint:#565b7e; --accent:#8fd0ff;
+    --arcane:210 70% 60%; --divine:42 75% 58%; --occult:272 62% 63%; --primal:140 50% 50%;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0; padding:0;}
+  html{background:var(--bg-0);}
+  body{
+    background:radial-gradient(ellipse at 50% 0%, var(--bg-1), var(--bg-0) 900px) no-repeat, var(--bg-0);
+    color:var(--ink); font-family:'EB Garamond', Georgia, serif; font-size:1.08rem; line-height:1.55; min-height:100vh;
+  }
+  a{color:var(--accent);}
+  .wrap{max-width:680px; margin:0 auto; padding:56px 24px 80px;}
+  header{text-align:center; margin-bottom:44px;}
+  h1{font-family:'Cinzel', serif; font-weight:700; letter-spacing:.05em; font-size:clamp(1.8rem, 3vw, 2.4rem); margin:0 0 .3em; text-shadow:0 0 24px rgba(143,208,255,.18);}
+  header p{font-style:italic; color:var(--ink-dim); margin:0 auto; max-width:52ch;}
+  h2{font-family:'Cinzel', serif; font-weight:700; letter-spacing:.06em; text-transform:uppercase; font-size:1rem; margin:40px 0 14px; padding-bottom:10px; border-bottom:1px solid var(--line);}
+  ul{list-style:none; margin:0; padding:0;}
+  li{margin:0 0 12px;}
+  li b{font-family:'Cinzel', serif; font-weight:700; font-size:.92rem; letter-spacing:.03em;}
+  .eg{color:var(--ink-dim); font-style:italic; white-space:nowrap;}
+  .trad{font-weight:700; font-style:normal;}
+  .trad.arcane{color:hsl(var(--arcane));} .trad.divine{color:hsl(var(--divine));} .trad.occult{color:hsl(var(--occult));} .trad.primal{color:hsl(var(--primal));}
+  .notices p{color:var(--ink-dim); font-size:.95rem; margin:0 0 12px;}
+  .back{text-align:center; margin-top:44px;}
+  @media (max-width:640px){ .wrap{padding:40px 16px 64px;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Spell Sigils</h1>
+    <p>Every Pathfinder spell has a sigil of its own, drawn from what the spell is. The same spell always draws the same sigil. <a href="./">Back to the sigils</a></p>
+  </header>
+
+  <h2>Reading a sigil</h2>
+  <ul>
+    <li><b>Colour</b> is the spell's tradition: <span class="trad arcane">arcane</span>, <span class="trad divine">divine</span>, <span class="trad occult">occult</span> or <span class="trad primal">primal</span>. A spell of several traditions mixes theirs.</li>
+    <li><b>Rings of writing</b> grow with rank: a plain circle for a cantrip, one ring, then two from 4th rank and three from 7th. <span class="eg">See <a href="./#electric-arc">Electric Arc</a>, <a href="./#fireball">Fireball</a>, <a href="./#cataclysm">Cataclysm</a>.</span></li>
+    <li><b>The central shape</b> gains sides with rank. Star lines cross it from 3rd rank, and from 5th a second shape turns inside it.</li>
+    <li><b>Medallions</b> hold the symbols of the spell's traits, on the outer ring and at the centre. Smaller ones hold only writing. The <a href="atlas.html">symbol atlas</a> shows every symbol and what it stands for.</li>
+    <li><b>Focus spells</b> are written without ruled lines, in spaced letters, in the colour of their class. <span class="eg">See <a href="./#lay-on-hands">Lay on Hands</a>.</span></li>
+    <li><b>Rituals</b> are ringed by their casters, each square holding the skill a caster uses. The primary caster stands at the bottom, the outline showing the proficiency needed: one line for trained, two for expert, a thick outer line for master, both thick for legendary, three for mythic. A dotted square is a choice of skills. <span class="eg">See <a href="./#awaken-animal">Awaken Animal</a>.</span></li>
+    <li><b>Mythic spells</b> rule their central shape twice. <span class="eg">See <a href="./#it-is-written">It is Written</a>.</span></li>
+  </ul>
+
+  <h2>Using it</h2>
+  <ul>
+    <li>Search or filter the list and pick a spell. The page's address names the spell, so a link brings back the same sigil.</li>
+    <li><b>Parchment</b> redraws the sigil in ink on paper.</li>
+    <li><b>Max glow</b> holds the glow that flashes as a sigil finishes drawing.</li>
+    <li><b>Export</b> copies, saves or shares the sigil as an image, or as an animation of it being drawn.</li>
+  </ul>
+
+  <h2 id="notices">Notices and credits</h2>
+  <div class="notices">
+    <p>Spell Sigils uses trademarks and/or copyrights owned by Paizo Inc., used under Paizo's Community Use Policy (<a href="https://paizo.com/licenses/communityuse" target="_blank" rel="noopener">paizo.com/licenses/communityuse</a>). We are expressly prohibited from charging you to use or access this content. Spell Sigils is not published, endorsed, or specifically approved by Paizo. For more information about Paizo Inc. and Paizo products, visit <a href="https://paizo.com" target="_blank" rel="noopener">paizo.com</a>.</p>
+    <p>Spell data from the <a href="https://github.com/foundryvtt/pf2e" target="_blank" rel="noopener">Pathfinder Second Edition system for Foundry VTT</a>, created and maintained by the PF2E for Foundry VTT volunteer development team.</p>
+    <p>The code is released under the MIT License, which doesn't cover Paizo's material. Fonts: Cinzel and EB Garamond, under the SIL Open Font License. Video files are packed by <a href="https://github.com/Vanilagy/mp4-muxer" target="_blank" rel="noopener">mp4-muxer</a> and <a href="https://github.com/Vanilagy/webm-muxer" target="_blank" rel="noopener">webm-muxer</a>, under the MIT License.</p>
+    <p>Questions and problems: <a href="https://github.com/ShadowfootNZ/pf2e-spell-sigils" target="_blank" rel="noopener">source and contact</a>.</p>
+  </div>
+
+  <p class="back"><a href="./">Back to the sigils</a></p>
+</div>
+</body>
+</html>
