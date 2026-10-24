@@ -24,6 +24,12 @@ node refresh-data.mjs
 
 `design.md` explains how the tool works, `plan.md` lists open work, and `atlas.html` shows every rune, trait glyph and skill sigil the sigils are drawn from.
 
+## Deployment
+
+Pushes to `main` deploy the static app over SSH using `.github/workflows/deploy-ssh.yml`. The workflow expects `SSH_PRIVATE_KEY`, `SSH_USER`, `SSH_HOST` and `REMOTE_PATH` as GitHub Actions secrets. The app is served under `/pf2e-spell-sigils/`, so paths in the pages must stay relative.
+
+`catalogue.json` describes the app for the [apps catalogue](https://apps.shadowfoot.com/), and `docs/` holds its catalogue images. Neither is deployed with the app.
+
 ## Licence and credits
 
 Spell Sigils uses trademarks and/or copyrights owned by Paizo Inc., used under Paizo's Community Use Policy ([paizo.com/licenses/communityuse](https://paizo.com/licenses/communityuse)). We are expressly prohibited from charging you to use or access this content. Spell Sigils is not published, endorsed, or specifically approved by Paizo. For more information about Paizo Inc. and Paizo products, visit [paizo.com](https://paizo.com).

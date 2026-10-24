@@ -1,0 +1,37 @@
+name: Deploy to Shadowfoot
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Add SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy files
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p '${{ secrets.REMOTE_PATH }}'"
+          tar -czf - \
+           index.html \
+           atlas.html \
+           styles.css \
+           favicon.ico \
+           favicon-16x16.png \
+           favicon-32x32.png \
+           favicon-192x192.png \
+           favicon-512x512.png \
+           js/ \
+           data/ \
+           | ssh -i ~/.ssh/deploy_key ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "tar -xzf - -C '${{ secrets.REMOTE_PATH }}'"

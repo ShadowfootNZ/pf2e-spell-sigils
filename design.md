@@ -22,6 +22,9 @@ Spell Sigils draws an animated magic circle for each Pathfinder Second Edition s
 | `plan.md` | Open and proposed work, as numbered items. |
 | `README.md` | Public overview, usage, the Paizo notice and credits. |
 | `LICENSE` | MIT License for the original code. |
+| `catalogue.json` | The app's entry in the apps catalogue at apps.shadowfoot.com, read by the apps-site repository. Not deployed. |
+| `docs/` | Catalogue images named in `catalogue.json`. Not deployed. |
+| `.github/workflows/deploy-ssh.yml` | Deploys the pages, stylesheet, scripts, data and icons over SSH on every push to `main`. |
 | `.cache/` | Gitignored, disposable sparse clone of `packs/pf2e/spells` and `packs/pf2e/classes`. |
 
 The scripts are classic scripts that share globals, loaded in the order above; each one only calls functions from the ones before it, plus `SPELLS`, which `js/ui.js` declares and fills.

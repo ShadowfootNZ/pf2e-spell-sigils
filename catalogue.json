@@ -1,0 +1,125 @@
+{
+  "slug": "pf2e-spell-sigils",
+  "title": "Spell Sigils",
+  "summary": "Animated magic circles for Pathfinder Second Edition spells, each derived from the spell's rank, traditions, traits and category.",
+  "tagline": "An animated magic circle for every Pathfinder spell.",
+  "description": "Pick any of more than 2,000 Pathfinder Second Edition spells, focus spells and rituals and watch its magic circle draw itself. Rank, traditions, traits and category decide the sigil's bands, geometry, colours and glyphs, and a random stream seeded on the spell's identity fills in the rest, so a spell always produces the same sigil.",
+  "features": [
+    {
+      "title": "Drawn from the rules",
+      "description": "Rank sets the rune bands and the sides of the central polygon, traditions set the colours and the runes, and traits appear as glyphs in medallions round the ring."
+    },
+    {
+      "title": "The same sigil every time",
+      "description": "Each sigil comes from a random stream seeded on the spell's identity, so a spell draws the same circle on every visit and every device."
+    },
+    {
+      "title": "Ritual caster stations",
+      "description": "A ritual is ringed by caster stations, the primary caster at the bottom, each marked with the sigil of a skill its checks accept and ruled to show the proficiency needed."
+    },
+    {
+      "title": "Focus spells",
+      "description": "Focus spells take their class's colour and are written as spaced script with no ruled lines, as personal magic rather than drilled tradition magic."
+    },
+    {
+      "title": "Search and filter",
+      "description": "Search by name, filter by tradition, rank, ritual or focus spell, and narrow focus spells by class."
+    },
+    {
+      "title": "Parchment mode",
+      "description": "Shows the sigil as ink on paper, with trait glyphs and skill sigils picked out in red as in a manuscript."
+    },
+    {
+      "title": "Max glow",
+      "description": "Holds the sigil at the peak of the glow it flashes once when it finishes drawing."
+    },
+    {
+      "title": "Copy and save",
+      "description": "Copy the sigil to the clipboard or save it as a PNG, in either look."
+    },
+    {
+      "title": "A link for every spell",
+      "description": "The address names the spell on show, so a link opens the same sigil."
+    },
+    {
+      "title": "Symbol atlas",
+      "description": "A separate page shows every rune, trait glyph and skill sigil the sigils are drawn from."
+    },
+    {
+      "title": "Phones and tablets",
+      "description": "The layout adapts to the screen, with the spell list in a drawer on a phone."
+    }
+  ],
+  "origin": {
+    "title": "TODO: the problem or question that prompted Spell Sigils.",
+    "body": "TODO: a short first-person account of why you built it."
+  },
+  "repoUrl": "https://github.com/ShadowfootNZ/pf2e-spell-sigils",
+  "appUrl": "https://apps.shadowfoot.com/pf2e-spell-sigils/",
+  "deployDir": ".",
+  "entryPoint": "index.html",
+  "media": {
+    "thumbnail": {
+      "path": "docs/spell-sigils-thumbnail.webp",
+      "alt": "A glowing Spell Sigils magic circle"
+    },
+    "key": {
+      "path": "docs/spell-sigils-key.webp",
+      "alt": "A glowing high-rank spell sigil with three rune bands, a star polygon and trait medallions round its ring"
+    },
+    "screenshots": [
+      {
+        "path": "docs/spell-sigils-ranks.webp",
+        "alt": "A cantrip's single circle beside a high-rank spell's three rune bands and star polygon",
+        "caption": "Higher ranks add bands and geometry"
+      },
+      {
+        "path": "docs/spell-sigils-ritual.webp",
+        "alt": "A ritual sigil ringed by caster stations, each square holding the sigil of a skill its checks accept",
+        "caption": "Rituals gain a ring of caster stations"
+      },
+      {
+        "path": "docs/spell-sigils-focus.webp",
+        "alt": "A focus spell sigil written as spaced script with no ruled lines, in its class's colour",
+        "caption": "Focus spells are written more loosely"
+      },
+      {
+        "path": "docs/spell-sigils-parchment.webp",
+        "alt": "A sigil in dark ink on parchment, with its trait glyphs in red",
+        "caption": "Parchment mode draws the sigil in ink"
+      },
+      {
+        "path": "docs/spell-sigils-phone.webp",
+        "alt": "Spell Sigils on a phone, with the spell's name, traditions and traits under the sigil",
+        "caption": "Works on a phone"
+      },
+      {
+        "path": "docs/spell-sigils-atlas.webp",
+        "alt": "The symbol atlas, with runes grouped by tradition, trait glyphs and skill sigils",
+        "caption": "Every rune and glyph in the symbol atlas"
+      },
+      {
+        "path": "docs/spell-sigils-desktop.webp",
+        "alt": "Spell Sigils on a desktop screen, with the filterable spell list beside the sigil",
+        "caption": "Search and filter every spell"
+      }
+    ]
+  },
+  "credits": [
+    {
+      "name": "PF2E for Foundry VTT",
+      "role": "Spell data",
+      "url": "https://github.com/foundryvtt/pf2e"
+    },
+    {
+      "name": "Paizo Inc.",
+      "role": "Pathfinder Second Edition material, used under the Community Use Policy",
+      "url": "https://paizo.com/licenses/communityuse"
+    }
+  ],
+  "tags": [
+    "pathfinder",
+    "art"
+  ],
+  "status": "in testing"
+}
