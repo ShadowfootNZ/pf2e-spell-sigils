@@ -1,12 +1,14 @@
 # Spell Sigils plan
 
-Open and proposed work as of 2026-10-24. Item numbers stay fixed, so "item N" in a code comment always means one thing. Numbers that aren't listed here belong to completed work, and `design.md` explains the systems referred to below. Line references are to the files as they were on 2026-10-22.
+Open and proposed work as of 2026-10-25. Item numbers stay fixed, so "item N" in a code comment always means one thing. Numbers that aren't listed here belong to completed work, and `design.md` explains the systems referred to below. Line references are to the files as they were on 2026-10-22.
 
 Remove completed items as the details will be in git history.
 
-## Repository and CI
+## Repository and deployment
 
-58. **CI on pull requests:** `node --check` on the scripts and `npm test`, which already serves the folder, fails on any page error and compares every sigil with `test/sigils.snapshot`. Pushes to `main` deploy, so the deploy workflow could also run the tests first and stop on a failure.
+78. **Catalogue entry.** `catalogue.json` lists nine images under `docs/`, which doesn't exist, and `origin` is still a TODO. `features` predates export: it says "Copy and save" and doesn't mention animations, sharing or the help page. The screenshots can be made with Puppeteer to match their alt texts; the origin text is the author's own. The README already says `docs/` holds the images.
+
+79. **Video muxers.** The vendored mp4-muxer and webm-muxer are deprecated upstream in favour of Mediabunny. They only package video the page made, in stable formats, so they stay. Move to Mediabunny only if a browser change breaks them; it's a larger library built as ES modules, which the page's classic scripts would have to load differently.
 
 ## Polish
 

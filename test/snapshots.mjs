@@ -4,7 +4,7 @@
 // hashes its markup and animation timeline, and compares the hashes with the baseline in
 // test/sigils.snapshot. It also lets a few sigils finish drawing by themselves and checks their copied
 // images in both display modes, the path that once lost whole bands without any sigil changing, and
-// makes a short animation in each format and plays it back.
+// makes a short animation in each format the browser can handle and plays it back.
 //
 // Usage: npm test              compare with the baseline; exits 1 on any difference
 //        npm run test:update   rewrite the baseline to match, after an intended change
@@ -189,6 +189,14 @@ try {
   const clips = await p.evaluate(async () => {
     const results = [];
     for (const format of Object.keys(FORMATS)){
+      // a Chrome built without H.264, as some Linux builds are, can neither make nor play an MP4. That's
+      // the browser rather than the page, so the format is skipped, and the summary says so
+      const f = FORMATS[format];
+      const config = { codec: f.codec, width: ANIMATION.size, height: ANIMATION.size, bitrate: ANIMATION.bitrate, framerate: ANIMATION.fps };
+      if (!(await VideoEncoder.isConfigSupported(config)).supported || !document.createElement("video").canPlayType(`${f.mime}; codecs="${f.codec}"`)){
+        results.push({ format, skipped: true });
+        continue;
+      }
       const blob = await makeAnimation(format);
       const video = Object.assign(document.createElement("video"), { src: URL.createObjectURL(blob), muted: true });
       const problem = await new Promise(resolve => { video.onloadedmetadata = () => resolve(null); video.onerror = () => resolve("doesn't play"); });
@@ -198,9 +206,11 @@ try {
     return results;
   });
   await p.close();
-  const clipFailures = clips.filter(c => c.problem || !(c.seconds > 3) || c.width !== 720 || c.height !== 720 || !c.settled);
-  if (clipFailures.length){ console.log("Animation check failed:", JSON.stringify(clipFailures)); failed = true; }
-  else console.log(`Animation check: ${clips.map(c => `${c.format} ${c.seconds.toFixed(1)}s ${c.mb} MB`).join(", ")}, both played back.`);
+  const made = clips.filter(c => !c.skipped), skipped = clips.filter(c => c.skipped).map(c => c.format);
+  const clipFailures = made.filter(c => c.problem || !(c.seconds > 3) || c.width !== 720 || c.height !== 720 || !c.settled);
+  if (clipFailures.length || !made.length){ console.log("Animation check failed:", JSON.stringify(clipFailures.length ? clipFailures : clips)); failed = true; }
+  else console.log(`Animation check: ${made.map(c => `${c.format} ${c.seconds.toFixed(1)}s ${c.mb} MB`).join(", ")}, played back` +
+    (skipped.length ? `; ${skipped.join(", ")} skipped, as this browser can't encode or play it.` : "."));
 
   if (errors.length){ console.log("Page errors:"); [...new Set(errors)].forEach(e => console.log("  " + e)); failed = true; }
 } finally {

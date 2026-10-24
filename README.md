@@ -35,7 +35,7 @@ npm test
 
 ## Deployment
 
-Pushes to `main` deploy the static app over SSH using `.github/workflows/deploy-ssh.yml`. The workflow expects `SSH_PRIVATE_KEY`, `SSH_USER`, `SSH_HOST` and `REMOTE_PATH` as GitHub Actions secrets. The app is served under `/pf2e-sigils/`, so paths in the pages must stay relative.
+Pushes to `main` run `npm test` on GitHub Actions and, if it passes, deploy the static app over SSH using `.github/workflows/deploy-ssh.yml`. Each deploy replaces the live folder whole, so anything in it that the workflow doesn't list is removed. The workflow expects `SSH_PRIVATE_KEY`, `SSH_USER`, `SSH_HOST` and `REMOTE_PATH` as GitHub Actions secrets. The app is served under `/pf2e-sigils/`, so paths in the pages must stay relative.
 
 `catalogue.json` describes the app for the [apps catalogue](https://apps.shadowfoot.com/), and `docs/` holds its catalogue images. Neither is deployed with the app.
 

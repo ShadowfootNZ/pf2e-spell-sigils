@@ -1,0 +1,5 @@
+# Browsers check every file for a newer copy before using a cached one, and get a quick 304 when it's
+# unchanged, so after a deploy no visitor pairs a new page with old scripts
+<IfModule mod_headers.c>
+  Header set Cache-Control "no-cache"
+</IfModule>

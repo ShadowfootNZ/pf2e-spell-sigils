@@ -135,30 +135,34 @@ async function makeAnimation(format, {onProgress = () => {}, signal = new AbortC
     throw new Error(`this browser can't make ${f.label} video`);
   const spell = SPELLS.find(s => s.slug === currentSlug);
   const stage = document.querySelector('.stage');
-  stage.classList.add('exporting');
-  // the flash is recorded even on a device too slow to show it live, since frames take as long as they need
-  const wasTooSlow = glowTooSlow;
-  glowTooSlow = false;
-  sigilClock.startStepping();
-  const t0 = sigilClock.now();
+  const wasTooSlow = glowTooSlow, wasReduced = motionReduced;
   let endAt = Infinity;
   const onReady = () => { endAt = sigilClock.now() + ANIMATION.hold; };
-  document.addEventListener('sigil-ready', onReady, {once:true});
-  const target = f.target(), muxer = f.muxer(target);
-  let failure = null;
-  // Safari leaves each chunk's duration empty, which mp4-muxer refuses, so a chunk goes in with its data
-  // and the frame's duration given outright; WebM needs no duration. An error here would otherwise vanish
-  // inside the encoder, so it's kept and rethrown by the frame loop
-  const frameUs = Math.round(1e6 / fps);
-  const encoder = new VideoEncoder({output: (chunk, meta) => {
-    try {
-      if (format !== 'mp4') return muxer.addVideoChunk(chunk, meta);
-      const data = new Uint8Array(chunk.byteLength);
-      chunk.copyTo(data);
-      muxer.addVideoChunkRaw(data, chunk.type, chunk.timestamp, chunk.duration || frameUs, meta);
-    } catch (e){ failure = failure || e; }
-  }, error: e => { failure = failure || e; }});
+  let encoder = null, failure = null;
+  // every change to the page is made inside the try, so the finally puts the page back however far
+  // the setup got
   try {
+    stage.classList.add('exporting');
+    // the flash is recorded even on a device too slow to show it live, since frames take as long as they need
+    glowTooSlow = false;
+    // and the drawing is recorded even when the system asks for reduced motion, since it's what was asked for
+    motionReduced = false;
+    sigilClock.startStepping();
+    const t0 = sigilClock.now();
+    document.addEventListener('sigil-ready', onReady, {once:true});
+    const target = f.target(), muxer = f.muxer(target);
+    // Safari leaves each chunk's duration empty, which mp4-muxer refuses, so a chunk goes in with its data
+    // and the frame's duration given outright; WebM needs no duration. An error here would otherwise vanish
+    // inside the encoder, so it's kept and rethrown by the frame loop
+    const frameUs = Math.round(1e6 / fps);
+    encoder = new VideoEncoder({output: (chunk, meta) => {
+      try {
+        if (format !== 'mp4') return muxer.addVideoChunk(chunk, meta);
+        const data = new Uint8Array(chunk.byteLength);
+        chunk.copyTo(data);
+        muxer.addVideoChunkRaw(data, chunk.type, chunk.timestamp, chunk.duration || frameUs, meta);
+      } catch (e){ failure = failure || e; }
+    }, error: e => { failure = failure || e; }});
     buildSigil(spell);
     const myGen = blurGen; // buildSigil bumps it, so another spell drawn while recording shows up here
     const expected = readyTimer.due + ANIMATION.hold - t0; // readyTimer is a stepped timer while stepping
@@ -190,9 +194,10 @@ async function makeAnimation(format, {onProgress = () => {}, signal = new AbortC
     return new Blob([target.buffer], {type:f.mime});
   } finally {
     document.removeEventListener('sigil-ready', onReady);
-    if (encoder.state !== 'closed') encoder.close();
+    if (encoder && encoder.state !== 'closed') encoder.close();
     glowTooSlow = wasTooSlow;
-    sigilClock.stopStepping();
+    motionReduced = wasReduced;
+    if (sigilClock.stepped) sigilClock.stopStepping();
     stage.classList.remove('exporting');
   }
 }

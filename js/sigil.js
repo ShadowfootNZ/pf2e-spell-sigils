@@ -89,9 +89,10 @@ function setGlow({farStd, farAlpha, haloA, haloB}){
 }
 
 // holds a settled sigil still: the idle comets hide and stop asking for frames, and the line pulses
-// pause at their resting, full opacity. Two things ask for it, each by name: max glow on a device too slow for the glow ('max glow'), so
-// the glow is drawn once rather than every frame, and parchment mode ('parchment'), where the inked
-// drawing sits still once drawn. The draw-on sparks carry on regardless
+// pause at their resting, full opacity. Three things ask for it, each by name: max glow on a device too slow for the glow ('max glow'), so
+// the glow is drawn once rather than every frame, parchment mode ('parchment'), where the inked
+// drawing sits still once drawn, and a system set to reduce motion ('reduced motion', see motionReduced).
+// The draw-on sparks carry on regardless
 const stillReasons = new Set();
 let idleStill = false;
 const stillLoops = new Set(); // idle comet loops waiting to carry on
@@ -104,6 +105,19 @@ function setIdleStill(reason, still){
 }
 // a pulse's first keyframe is its resting opacity, at the end of its start delay
 function restPulse(a){ a.pause(); a.currentTime = a.effect.getTiming().delay; }
+
+// A visitor whose system asks for reduced motion gets each sigil whole: it fades in at once, with no
+// draw-on, sparks or flash, and is held still. A change to the setting mid-visit is followed, and the
+// sigil on show is let go or held at once. An exported animation still draws (js/export.js), since the
+// drawing is what was asked for
+const REDUCED_FADE = 400;
+const reducedMotionQuery = matchMedia('(prefers-reduced-motion: reduce)');
+let motionReduced = reducedMotionQuery.matches;
+setIdleStill('reduced motion', motionReduced);
+reducedMotionQuery.addEventListener('change', e => {
+  motionReduced = e.matches;
+  setIdleStill('reduced motion', motionReduced);
+});
 
 // Bumps blurGen (abandoning any previous spell's still-running flash) and pins the glow at its floor —
 // called immediately when a new sigil starts building, so the old spell's glow doesn't linger or bleed
@@ -850,38 +864,45 @@ function buildSigil(spell){
   }
 
   const totalEnd = t + 700;
+  // with reduced motion, every element's animation is finished as soon as it's made, so each sits as
+  // its drawing leaves it, and the whole sigil fades in instead (see motionReduced)
+  const instant = motionReduced;
+  const drawnAt = instant ? REDUCED_FADE : totalEnd;
 
   // run animations
   timeline.forEach(({el:e, delay, dur, kind})=>{
+    let a = null;
     if (kind === 'stroke'){
       let len = 0;
       try { len = e.getTotalLength(); } catch(err){ len = 300; }
       e.style.strokeDasharray = len;
       e.style.strokeDashoffset = len;
-      e.animate(
+      a = e.animate(
         [{strokeDashoffset:len, opacity:0.2},{opacity:1, offset:0.08},{strokeDashoffset:0, opacity:1}],
         {duration:dur, delay, easing:'cubic-bezier(.3,.7,.3,1)', fill:'forwards'}
       );
-      spark(e, delay, dur, e.getAttribute('stroke'));
+      if (!instant) spark(e, delay, dur, e.getAttribute('stroke'));
       // fades in at totalEnd, not with this stroke's own draw-in — otherwise each line's glow halo
       // lights up as soon as that line is drawn, well before the sigil as a whole is finished. None on a
       // device too slow for the flash
-      if (!glowTooSlow) glowDuplicate(e, totalEnd, 900, darkenHsl(e.getAttribute('stroke'), 0.6), 2, glowLayer);
+      if (!glowTooSlow && !instant) glowDuplicate(e, totalEnd, 900, darkenHsl(e.getAttribute('stroke'), 0.6), 2, glowLayer);
     } else if (kind === 'fade'){
-      e.animate([{opacity:0},{opacity:1}], {duration:dur, delay, easing:'ease-out', fill:'forwards'});
+      a = e.animate([{opacity:0},{opacity:1}], {duration:dur, delay, easing:'ease-out', fill:'forwards'});
     } else if (kind === 'appear'){
       // a medallion's glyph: a quick fade in place, at full opacity within the first 60ms or so. It was once
       // meant to pop, growing from the medallion's centre, but that transform never parsed, and the fade
       // alone was kept by choice (2026-10-24)
-      e.animate(
+      a = e.animate(
         [{opacity:0}, {opacity:1, offset:0.7}, {opacity:1}],
         {duration:dur, delay, easing:'cubic-bezier(.2,1.4,.4,1)', fill:'forwards'}
       );
     }
+    if (instant && a) a.finish();
   });
+  if (instant) sigilRoot.animate([{opacity:0}, {opacity:1}], {duration:REDUCED_FADE, easing:'ease-out'});
 
   idleTimer = sigilClock.later(()=>{
-    startGlow(glowGen, glowLayer);
+    if (!instant) startGlow(glowGen, glowLayer);
     // a subset of lines/gems get their own independent slow pulse, so the circle feels alive rather than static
     pulseables.forEach(({el:pe, base})=>{
       if (rng() > 0.32) return;
@@ -896,10 +917,12 @@ function buildSigil(spell){
     energyLoop(outer, colorAt(0), 5200 + rng()*2200);
     energyLoop(innerBorder, colorAt(1), 6600 + rng()*2400);
     energyLoop(poly, colorAt(2), 4200 + rng()*1800);
-  }, totalEnd);
+  }, drawnAt);
   // the per-line halos take 900ms to light and 900ms to fade, which outlasts startGlow's 1600ms flash; the
-  // fade starts a moment after the light finishes, so 200ms more keeps an image from catching its tail
-  readyTimer = sigilClock.later(() => document.dispatchEvent(new Event('sigil-ready')), totalEnd + 2000);
+  // fade starts a moment after the light finishes, so 200ms more keeps an image from catching its tail.
+  // Without the flash, the sigil is ready once its fade is over, with a margin, as a timer can fire a
+  // frame before the fade's last
+  readyTimer = sigilClock.later(() => document.dispatchEvent(new Event('sigil-ready')), instant ? drawnAt + 100 : totalEnd + 2000);
 
   // readout
   document.getElementById('roName').textContent = spell.name;

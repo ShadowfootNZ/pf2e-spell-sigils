@@ -6,7 +6,31 @@ on:
       - main
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Ubuntu's AppArmor stops Chrome making the user namespaces its sandbox needs
+      - name: Allow Chrome's sandbox
+        run: echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
+
+      - name: Run tests
+        run: npm test
+
   deploy:
+    needs: test
     runs-on: ubuntu-latest
 
     steps:
@@ -20,10 +44,16 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
 
+      # Each deploy is unpacked into a fresh folder beside the live one, which then takes the live one's
+      # place, so files removed from the repo leave the server too and no visitor gets half of one deploy
       - name: Deploy files
+        env:
+          SSH_TARGET: ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}
+          REMOTE_PATH: ${{ secrets.REMOTE_PATH }}
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p '${{ secrets.REMOTE_PATH }}'"
+          live=$(printf %q "${REMOTE_PATH%/}")
           tar -czf - \
+           .htaccess \
            index.html \
            atlas.html \
            help.html \
@@ -35,4 +65,10 @@ jobs:
            favicon-512x512.png \
            js/ \
            data/ \
-           | ssh -i ~/.ssh/deploy_key ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "tar -xzf - -C '${{ secrets.REMOTE_PATH }}'"
+           | ssh -i ~/.ssh/deploy_key "$SSH_TARGET" "set -e
+              rm -rf $live.new $live.old
+              mkdir -p $live.new
+              tar -xzf - -C $live.new
+              if [ -e $live ]; then mv $live $live.old; fi
+              mv $live.new $live
+              rm -rf $live.old"
