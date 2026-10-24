@@ -22,6 +22,15 @@ The spell data lives in `data/spells.json`, separate from the code. `refresh-dat
 node refresh-data.mjs
 ```
 
+## Checking changes
+
+`npm test` builds every spell's sigil in headless Chrome and compares it with the snapshot in `test/sigils.snapshot`, so a code change can't redraw existing sigils unnoticed. It needs Node.js 22.12 or later; run `npm install` once first. After an intended change, `npm run test:update` rewrites the snapshot to commit with it.
+
+```sh
+npm install
+npm test
+```
+
 `design.md` explains how the tool works, `plan.md` lists open work, and `atlas.html` shows every rune, trait glyph and skill sigil the sigils are drawn from.
 
 ## Deployment

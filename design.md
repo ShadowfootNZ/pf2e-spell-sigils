@@ -19,6 +19,9 @@ Spell Sigils draws an animated magic circle for each Pathfinder Second Edition s
 | `atlas.html` | Symbol atlas: every rune, trait glyph and skill sigil drawn live from `js/symbols.js`, labelled with the comment beside each. |
 | `favicon*` | The site icon, a pair of footprints, as `favicon.ico` (16 and 32px) and PNGs at 16, 32, 192 and 512px. Both pages link the ICO, the 32 and the 192, which is also the iPhone home-screen icon; the 512 waits for a web app manifest. |
 | `refresh-data.mjs` | Updates the sparse clone of `foundryvtt/pf2e` in `.cache/pf2e-pack` and rebuilds `data/spells.json` from it. |
+| `test/snapshots.mjs` | Render regression check, run with `npm test`; see Snapshots below. |
+| `test/sigils.snapshot` | The baseline: `SIGIL_VERSION`, then one line per spell, its slug and a hash of its sigil. |
+| `package.json` | Development tooling only, Puppeteer for the snapshot check; the site has no dependencies or build step. Not deployed. |
 | `plan.md` | Open and proposed work, as numbered items. |
 | `README.md` | Public overview, usage, the Paizo notice and credits. |
 | `LICENSE` | MIT License for the original code. |
@@ -109,6 +112,14 @@ Tradition spells are drawn with the most precision: ruled bands, tightly set wri
 - Class hues are stored in `data/classes.json`, and the refresh only ever appends to it, so an existing class's hue never changes.
 
 Once images are shared publicly, treat any of these as a visible change to existing sigils.
+
+### Snapshots
+
+`npm test` (`test/snapshots.mjs`) serves the folder, builds every spell's sigil in headless Chrome and compares each with `test/sigils.snapshot`. It takes about 35 seconds.
+
+- **What's hashed.** The whole `<svg>`, defs included: every element's tag and sorted attributes, plus each element's scheduled animations (delay, duration, iterations, easing, fill and keyframes). The hash is taken as soon as `buildSigil` returns, before any frame runs, so it covers what the code decides and none of the `Math.random` comet jitter that frames add. Decimals are rounded to two places so that last-digit differences in path lengths between Chrome builds don't count. It doesn't depend on the spells built before: the per-spell filter ids restart with each spell.
+- **The copy check.** Cataclysm, Freedom and Lay on Hands are each left to finish drawing by themselves, then the image copy would produce is checked in dark and parchment modes: full size, no comets, nothing undrawn or invisible, and a PNG that decodes at that size. This is the path that lost whole bands while every sigil was unchanged.
+- **Changing sigils on purpose.** `npm run test:update` rewrites the baseline; commit it with the change, so the diff names every spell that moved. If code redrew existing sigils, bump `SIGIL_VERSION` in `js/sigil.js` first, which the page shows in its footer so a saved image can be matched to the rules that drew it. A data refresh that changes some spells' sigils doesn't need a bump. The update warns when existing sigils changed and the version didn't.
 
 ### Structure
 
@@ -217,6 +228,7 @@ The original code is MIT-licensed. `LICENSE` keeps the standard MIT text so GitH
 - **Render before and after visual changes.**
   - For a new shape, render the candidates at large scale in a scratch HTML page and screenshot them with Puppeteer before touching the scripts. Hand-derived curves have rendered as something else entirely; one "vesica lens" came out as a plain diamond.
   - After editing, check with Puppeteer: no console or page errors, expected counts such as `RUNES.length`, and a screenshot of the change in context inside a real band or medallion.
+  - Run `npm test` before committing. It names every spell whose sigil moved, which should be exactly the ones the change meant to move.
   - For timing changes, monkey-patch `Element.prototype.animate` to log the real delays and durations.
   - When a fix answers a specific critique, confirm the stated problem is gone, not only that the shape changed.
   - Delete scratch files afterwards.

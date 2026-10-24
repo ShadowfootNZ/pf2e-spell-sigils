@@ -294,6 +294,9 @@ const clipboardAvailable = window.isSecureContext && !!navigator.clipboard && ty
   ['copyImage', 'saveImage'].forEach(id => { document.getElementById(id).disabled = type === 'sigil-drawing'; });
 }));
 
+// the drawing rules' version, in the footer (see SIGIL_VERSION in js/sigil.js)
+document.getElementById('sigilVersion').textContent = `Sigils v${SIGIL_VERSION}.`;
+
 /* ---------------- phone drawer ---------------- */
 // on a phone the sidebar is a drawer over the page (see styles.css): body.drawer-open slides it in and
 // stops the page behind it scrolling. On wider screens the class has no effect, so nothing here needs to

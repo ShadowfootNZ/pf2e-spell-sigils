@@ -1,5 +1,9 @@
 // Spell Sigils: builds and animates one spell's sigil.
 
+// Bumped whenever a code change redraws existing sigils, and shown in the page's footer, so a saved image
+// can be matched to the drawing rules that made it. test/snapshots.mjs checks it against the baseline
+const SIGIL_VERSION = 1;
+
 /* ---------------- sigil construction ---------------- */
 let idleTimer = null;
 // buildSigil fires 'sigil-drawing' on the document when it starts and 'sigil-ready' once the drawing and
@@ -128,6 +132,7 @@ const svgShadow = (radius, color) => svgFilter(`shadow ${radius} ${color}`, 150,
 function clearSvgFilters(){
   document.querySelectorAll('#sigil defs [data-per-spell]').forEach(f => f.remove());
   svgFilters.clear();
+  svgFilterCount = 0; // so a spell's filter ids don't depend on the spells drawn before it
 }
 
 // a comet riding a path: a soft trailing flare blob + a hot white core + a spawned trail of fading

@@ -1,0 +1,15 @@
+{
+  "name": "pf2e-spell-sigils",
+  "private": true,
+  "description": "Development tooling for Spell Sigils. The site itself has no build step or dependencies.",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "test": "node test/snapshots.mjs",
+    "test:update": "node test/snapshots.mjs --update"
+  },
+  "devDependencies": {
+    "puppeteer": "^25.16.0"
+  }
+}
