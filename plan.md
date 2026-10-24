@@ -14,7 +14,7 @@ Remove completed items as the details will be in git history.
 
 54. **The glyph "pop" is only a fade.** The `pop` keyframe (`js/sigil.js` line 811) turns the SVG `transform` attribute into a CSS transform such as `translate(300,300) scale(0.001,2)`. CSS requires units on `translate`, so Chrome rejects the keyframe (`CSS.supports` returns false) and only the opacity animates. Even if it parsed, it would squash horizontally only, and `'scale(0.001,'.replace(', ',',')` is a no-op. Either animate a wrapper `<g>` with a valid CSS transform and `transform-box: fill-box`, or remove the transform and treat it as a fade.
 
-75. **Copy image fails on the iPad.** Copy reports failure on an iPad (seen 2026-10-24). Find the actual error with Safari's Web Inspector from a Mac before changing anything. Candidates: the SVG data URL failing to load as an image, or loading without its filters, in `renderSigilBlob`; the canvas being tainted by drawing it; the size of the PNG; or Safari's rules for `navigator.clipboard.write`, though `copySigilImage` already calls it during the tap and hands `ClipboardItem` a pending promise as Safari expects. Item 62 covers confirming copy everywhere; this is its first confirmed failure.
+75. **Copy image fails on the iPad.** Copy reports failure on an iPad (seen 2026-10-24). The likely cause is the test setup rather than the code: the iPad reaches the dev server by the Mac's network address over plain http, which isn't a secure context, and browsers offer the clipboard API only to secure pages (https or `localhost`). WebKit confirms the API is missing there, and copy now says so in the readout instead of only turning red. Confirm by testing copy on the iPad against an https deployment. If it still fails there, get the actual error from Safari's Web Inspector on a Mac; the remaining candidates are Safari's rules for `navigator.clipboard.write`, though `copySigilImage` already calls it during the tap and hands `ClipboardItem` a pending promise as Safari expects, and the size of the PNG.
 
 ## Stability
 
@@ -30,7 +30,7 @@ Remove completed items as the details will be in git history.
 
 60. **Self-host the fonts.** Cinzel and EB Garamond load from Google Fonts (`index.html` line 9), so every visitor makes a third-party request. Both fonts are under the SIL Open Font License, so subsetted WOFF2 files can be served from a `fonts/` folder with their licence texts.
 
-62. **Confirm copy image across browsers.** The clipboard write has never been confirmed end to end. Test Chrome, Safari and Firefox on desktop and mobile. When `ClipboardItem` is missing or the write is rejected, say so on the button and point to Save image.
+62. **Confirm copy image across browsers.** The clipboard write has never been confirmed end to end. Test Chrome, Safari and Firefox on desktop and mobile, on an https deployment, since the clipboard API is missing from pages served over plain http to another device. A missing API already says so in the readout and points to Save image; a write that the browser rejects still only turns the button red, and could say the same.
 
 64. **Share previews.** Add `og:` and Twitter meta tags with a representative sigil image so links unfurl in chat apps. Per-spell previews would need pre-rendered images for all 2018 spells, which a static host can serve but which adds roughly 2000 files to the repo.
 

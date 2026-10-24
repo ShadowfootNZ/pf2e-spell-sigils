@@ -165,6 +165,8 @@ body{
 .tool[aria-pressed="true"]{background:#e8c878; color:#2a2410; border-color:#c9a24a; box-shadow:0 0 10px rgba(232,200,120,.6);}
 .tool[data-state="ok"]{color:#8fe0a8; border-color:#3a6b4a;}
 .tool[data-state="err"]{color:#e88a8a; border-color:#6b3a3a;}
+/* disabled: copy and save while a sigil draws, max glow while parchment is on */
+.tool:disabled{opacity:.35; pointer-events:none;}
 /* font set directly, not inherited, so a native <button>'s own UI font can't win */
 .topbar-btn{padding:7px 10px; font-family:'Cinzel',serif; font-size:.68rem; letter-spacing:.05em; text-transform:uppercase;}
 
@@ -192,8 +194,6 @@ body{
 .stage.parchment .tool[aria-pressed="true"]{color:#2a2410; background:#e8c878; border-color:#c9a24a;}
 .stage.parchment .topbar{background:rgba(238,226,196,.92); border-color:#b9a77f;}
 .stage.parchment .topbar-title{color:var(--parchment-ink);}
-/* max glow has nothing to show on paper, so it's switched off while parchment is on */
-.tool:disabled{opacity:.35; pointer-events:none;}
 
 /* ---------- phones: the sidebar becomes a drawer ----------
    below 700px wide there's no room for the sidebar beside the circle, and below 560px tall, a phone on

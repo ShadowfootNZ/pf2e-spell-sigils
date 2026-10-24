@@ -194,8 +194,17 @@ function captureSigilSvg(){
     const cs = getComputedStyle(e), c = cloneEls[i].style;
     c.opacity = cs.opacity; c.strokeDasharray = cs.strokeDasharray; c.strokeDashoffset = cs.strokeDashoffset;
   });
+  // the comets are light passing over the drawing, not part of it
+  clone.querySelectorAll('.comet').forEach(c => c.remove());
   clone.setAttribute('xmlns', NS);
   clone.setAttribute('viewBox', `${vx.toFixed(1)} ${vy.toFixed(1)} ${vw.toFixed(1)} ${vh.toFixed(1)}`);
+  // the PNG's own size, at most EXPORT_MAX on its long side. The viewBox isn't guaranteed square (a
+  // satellite can stick out further on one side than another), so it keeps the viewBox's aspect ratio.
+  // The image is given this size, not left to its natural one: with only a viewBox, an SVG image comes
+  // out 150px tall, and Safari draws its filters at that size before scaling up, which left iPad copies
+  // soft, with blurred doubled lines
+  const scale = EXPORT_MAX / Math.max(vw, vh), width = Math.round(vw*scale), height = Math.round(vh*scale);
+  clone.setAttribute('width', width); clone.setAttribute('height', height);
   const isParchment = document.querySelector('.stage').classList.contains('parchment');
   // parchment gets the paper baked in and the ink rules embedded, since the paper is CSS on the stage and
   // the ink rules are a stylesheet, neither of which the standalone clone has; the dark mode gets no
@@ -214,24 +223,20 @@ function captureSigilSvg(){
     // stylesheet
     clone.querySelector('#sigilRoot').setAttribute('filter', 'url(#sigilGlow)');
   }
-  return { svgString: new XMLSerializer().serializeToString(clone), vw, vh };
+  return { svgString: new XMLSerializer().serializeToString(clone), width, height };
 }
 // returns a promise for the rasterized PNG blob — kept as a *pending* promise (not awaited here) so
 // copySigilImage can hand it straight to ClipboardItem, which is what lets the eventual clipboard write
 // still count against the click's transient user activation despite the decode/encode work taking a beat
+const EXPORT_MAX = 1200;
 function renderSigilBlob(){
-  const { svgString, vw, vh } = captureSigilSvg();
+  const { svgString, width, height } = captureSigilSvg();
   return (async () => {
     const img = new Image();
     await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString); });
-    // the exported viewBox isn't guaranteed square (a satellite can stick out further on one side than
-    // another) — size the canvas to match its actual aspect ratio instead of a fixed square, or a
-    // non-square sigil would get stretched to fit
-    const targetMax = 1200;
-    const scale = targetMax / Math.max(vw, vh);
     const canvas = document.createElement('canvas');
-    canvas.width = Math.round(vw*scale); canvas.height = Math.round(vh*scale);
-    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+    canvas.width = width; canvas.height = height;
+    canvas.getContext('2d').drawImage(img, 0, 0, width, height);
     return await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
   })();
 }
@@ -255,6 +260,10 @@ async function saveSigilImage(){
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
+// browsers offer the clipboard for images only to a secure page, one served over https or from
+// localhost; reached by a network address over plain http, as an iPad on the same network reaches a dev
+// server, the API isn't there at all
+const clipboardAvailable = window.isSecureContext && !!navigator.clipboard && typeof ClipboardItem === 'function';
 // the icon turns green or red for a moment, and its label and tooltip say what happened
 [['copyImage', copySigilImage, 'Copied', 'Copy failed'], ['saveImage', saveSigilImage, 'Saved', 'Save failed']].forEach(([id, action, okText, errText]) => {
   const btn = document.getElementById(id);
@@ -266,6 +275,11 @@ async function saveSigilImage(){
   };
   btn.addEventListener('click', async ()=>{
     try {
+      if (id === 'copyImage' && !clipboardAvailable){
+        // a tooltip never shows on a touch screen, so the reason goes in the readout
+        setNote('Copying an image needs the page on https. Save works anywhere.');
+        throw new Error('the clipboard API needs a secure context');
+      }
       await action();
       show('ok', okText);
     } catch(err){
@@ -275,6 +289,10 @@ async function saveSigilImage(){
     setTimeout(()=>show(null, label), 1400);
   });
 });
+// copy and save wait for the drawing and its flash to finish, so an image is never taken mid-draw
+['sigil-drawing', 'sigil-ready'].forEach(type => document.addEventListener(type, () => {
+  ['copyImage', 'saveImage'].forEach(id => { document.getElementById(id).disabled = type === 'sigil-drawing'; });
+}));
 
 /* ---------------- phone drawer ---------------- */
 // on a phone the sidebar is a drawer over the page (see styles.css): body.drawer-open slides it in and

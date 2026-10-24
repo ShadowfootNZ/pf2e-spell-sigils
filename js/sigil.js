@@ -2,6 +2,9 @@
 
 /* ---------------- sigil construction ---------------- */
 let idleTimer = null;
+// buildSigil fires 'sigil-drawing' on the document when it starts and 'sigil-ready' once the drawing and
+// its flash are over, so the page can hold back copy and save until there's a finished sigil to take
+let readyTimer = null;
 let blurGen = 0;
 
 // The sigil's glow flashes once when it finishes drawing and then goes out, leaving crisp lines; the
@@ -266,6 +269,8 @@ function ritualTraditions(spell){
 
 function buildSigil(spell){
   clearTimeout(idleTimer);
+  clearTimeout(readyTimer);
+  document.dispatchEvent(new Event('sigil-drawing'));
   // a new spell always starts its own settle-from-scratch sequence, regardless of whatever the max-glow
   // toggle was left at for the previous one
   document.getElementById('maxGlowToggle').setAttribute('aria-pressed', 'false');
@@ -839,6 +844,8 @@ function buildSigil(spell){
     energyLoop(innerBorder, colorAt(1), 6600 + rng()*2400);
     energyLoop(poly, colorAt(2), 4200 + rng()*1800);
   }, totalEnd);
+  // the per-line halos take 900ms to light and 900ms to fade, which outlasts startGlow's 1600ms flash
+  readyTimer = setTimeout(() => document.dispatchEvent(new Event('sigil-ready')), totalEnd + 1800);
 
   // readout
   document.getElementById('roName').textContent = spell.name;

@@ -187,13 +187,13 @@ A sigil is drawn in a 600 by 600 viewBox centred on (300, 300) with an outer rad
 - **Max glow.** Holds the glow at `GLOW_PEAK`, the top of the flash, or puts it back to `GLOW_FLOOR`. On a device too slow for the glow it also holds the sigil still while on. A new spell turns it off.
 - **Copy image and Save image.** `captureSigilSvg`:
   - clones the SVG and gives every element in the clone the computed opacity and stroke dash values of the element on screen. The draw-on animations hold elements at their finished state without writing it back, and inline the elements still say "undrawn". `commitStyles()` was used until 2026-10-24 but can't be trusted: once an idle pulse takes over an element's opacity, Chrome drops the finished draw-on animation, so a sigil left to finish drawing by itself copied without its outer band, many runes and the centre glyph;
+  - leaves out the comets, which are light passing over the drawing, not part of it;
   - widens the viewBox to the real bounding box plus padding, since medallions overflow the 600 box;
+  - gives the clone explicit `width` and `height`, the PNG's size, at most `EXPORT_MAX` (1200 px) on the long side. With only a viewBox an SVG image comes out 150 px tall, and Safari draws its filters at that size before scaling up, which left iPad copies soft, with blurred, doubled-looking lines;
   - gives the clone `#sigilGlow`, so the image carries the resting tint and, with max glow on, the glow;
   - in parchment mode, bakes in the paper as a radial gradient, embeds `inkRules` as a `<style>`, and drops the glow filter.
 
-  A comet in flight when the image is taken is captured with it.
-
-  The PNG is rasterized at up to 1200 px on its long side. Copy hands `ClipboardItem` a pending promise so the write still counts as part of the click. The PNG output has been checked pixel for pixel. The clipboard write itself could not be confirmed in headless Chrome and still needs a manual check in desktop browsers.
+  Copy and save are disabled while a sigil draws: `buildSigil` fires `sigil-drawing` when it starts and `sigil-ready` 1.8 seconds after the drawing ends, once the flash and the per-line halos are over, and the buttons follow. Copy hands `ClipboardItem` a pending promise so the write still counts as part of the click. The clipboard API exists only in a secure context, a page on https or `localhost`; reached over plain http by a network address, as an iPad reaches a dev server on the same network, there is none, and a tap on copy says so in the readout and points to save. Save works anywhere. The PNG output has been checked pixel for pixel. The clipboard write itself still needs a manual check on https in each browser (plan item 62).
 - **Startup.** The spell the URL names is drawn on load, or a random one; see Permalinks.
 - **Legal footer.** Paizo's Community Use Policy notice, a credit for the pf2e data and a link to the repo for contact, at the foot of the sidebar column, or under the sigil on a phone. It stays visible rather than sitting behind a link.
 
