@@ -55,7 +55,7 @@
     "body": "TODO: a short first-person account of why you built it."
   },
   "repoUrl": "https://github.com/ShadowfootNZ/pf2e-spell-sigils",
-  "appUrl": "https://apps.shadowfoot.com/pf2e-spell-sigils/",
+  "appUrl": "https://apps.shadowfoot.com/pf2e-sigils/",
   "deployDir": ".",
   "entryPoint": "index.html",
   "media": {
