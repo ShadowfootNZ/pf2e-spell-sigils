@@ -61,7 +61,9 @@ async function sigilHash(slug){
   let text = "";
   for (const e of [svg, ...svg.querySelectorAll("*")]){
     text += e.tagName;
-    for (const a of [...e.attributes].sort((x, y) => x.name < y.name ? -1 : 1)) text += " " + a.name + "=" + a.value;
+    // role and aria-* name the sigil for assistive technology and don't change the drawing
+    for (const a of [...e.attributes].filter(a => a.name !== "role" && !a.name.startsWith("aria-")).sort((x, y) => x.name < y.name ? -1 : 1))
+      text += " " + a.name + "=" + a.value;
     for (const a of animations.get(e) || []) text += " @" + a;
     text += "\n";
   }

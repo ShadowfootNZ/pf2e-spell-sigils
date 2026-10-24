@@ -24,11 +24,11 @@
     <h1>Spell Sigils<span>drawn from the four currents</span></h1>
     <button class="drawer-close" id="drawerClose" type="button" aria-label="Close the spell list">×</button>
     <div class="search"><input id="search" type="text" placeholder="Search a spell…" autocomplete="off"></div>
-    <div class="filters" id="tradFilters"></div>
-    <div class="filters" id="classFilters" hidden></div>
-    <div class="rank-row" id="rankFilters"></div>
-    <div class="count" id="count">Loading spells…</div>
-    <ul class="list" id="list"></ul>
+    <div class="filters" id="tradFilters" role="group" aria-label="Tradition or category"></div>
+    <div class="filters" id="classFilters" role="group" aria-label="Focus spell class" hidden></div>
+    <div class="rank-row" id="rankFilters" role="group" aria-label="Rank"></div>
+    <div class="count" id="count" aria-live="polite">Loading spells…</div>
+    <ul class="list" id="list" role="listbox" aria-label="Spells"></ul>
   </aside>
   <div class="drawer-backdrop" id="drawerBackdrop"></div>
   <main class="stage">
@@ -37,7 +37,8 @@
       <button class="topbar-btn" id="drawerOpen" type="button" aria-controls="sidebar" aria-expanded="false">Spells</button>
     </header>
     <div class="circle-wrap">
-      <svg id="sigil" viewBox="0 0 600 600">
+      <!-- one image to assistive technology, labelled with the spell it shows (showSpell in js/ui.js) -->
+      <svg id="sigil" viewBox="0 0 600 600" role="img" aria-label="Spell sigil">
         <defs>
           <!-- every part of the glow lives in this one filter, driven by setGlow (js/sigil.js): Safari
                ignores CSS drop-shadow() on SVG elements, and drops the whole filter list with it.

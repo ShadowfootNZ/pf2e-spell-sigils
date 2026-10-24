@@ -1,12 +1,8 @@
 # Spell Sigils plan
 
-Open and proposed work as of 2026-10-23. Item numbers stay fixed, so "item N" in a code comment always means one thing. Numbers that aren't listed here belong to completed work, and `design.md` explains the systems referred to below. Line references are to the files as they were on 2026-10-22.
+Open and proposed work as of 2026-10-24. Item numbers stay fixed, so "item N" in a code comment always means one thing. Numbers that aren't listed here belong to completed work, and `design.md` explains the systems referred to below. Line references are to the files as they were on 2026-10-22.
 
 Remove completed items as the details will be in git history.
-
-## Before the page goes public
-
-51. **Keyboard access.** The filter chips (`js/ui.js` lines 32, 57, 90) and the list items are `div` or `li` elements with click handlers only. Make the chips `<button>` elements with `aria-pressed`, as the toolbar's parchment and max glow toggles already are, let the list take focus with arrow-key navigation and Enter to draw, and give the SVG `role="img"` with an `aria-label` naming the spell.
 
 ## Bugs
 

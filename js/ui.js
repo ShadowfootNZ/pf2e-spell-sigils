@@ -1,6 +1,14 @@
 // Spell Sigils: the sidebar, readout and image export, plus loading the spell data and startup.
 
 function el2(tag, cls, text){ const e=document.createElement(tag); e.className=cls; e.textContent=text; return e; }
+// a filter chip: a toggle button, its state in aria-pressed, which the stylesheet also keys on
+function chipButton(cls, text){
+  const b = el2('button', cls, text);
+  b.type = 'button';
+  press(b, false);
+  return b;
+}
+function press(el, on){ el.setAttribute('aria-pressed', on ? 'true' : 'false'); }
 
 // every spell record, fetched from data/spells.json by init() at the bottom of this file
 let SPELLS = [];
@@ -23,22 +31,22 @@ const classFilterEl = document.getElementById('classFilters');
 function resetClassFilter(){
   state.focusClass = null;
   classFilterEl.hidden = true;
-  [...classFilterEl.children].forEach(el => el.dataset.active = '0');
+  [...classFilterEl.children].forEach(el => press(el, false));
 }
 
 const tradFilterEl = document.getElementById('tradFilters');
 const categoryChipEls = [];
 ['arcane','divine','occult','primal'].forEach(tr=>{
-  const c = el2('div','chip', tr);
-  c.dataset.trad = tr; c.dataset.active = '0';
+  const c = chipButton('chip', tr);
+  c.dataset.trad = tr;
   c.addEventListener('click', ()=>{
     if (state.trads.has(tr)) state.trads.delete(tr); else state.trads.add(tr);
-    c.dataset.active = state.trads.has(tr) ? '1':'0';
+    press(c, state.trads.has(tr));
     // stepping into tradition-space backs out of category mode, even on a deselecting click —
     // the two axes don't combine
     if (state.category !== null){
       state.category = null;
-      categoryChipEls.forEach(el => el.dataset.active = '0');
+      categoryChipEls.forEach(el => press(el, false));
       resetClassFilter();
     }
     renderList();
@@ -54,15 +62,15 @@ const categoryChipEls = [];
 // empty. If that ever stops being true, a spell like that is still reachable by name via search with
 // nothing else selected.
 ['ritual','focus'].forEach(cat=>{
-  const c = el2('div','chip', cat);
-  c.dataset.trad = cat; c.dataset.active = '0';
+  const c = chipButton('chip', cat);
+  c.dataset.trad = cat;
   c.addEventListener('click', ()=>{
     state.category = state.category === cat ? null : cat;
-    categoryChipEls.forEach(el => el.dataset.active = state.category === el.dataset.trad ? '1' : '0');
+    categoryChipEls.forEach(el => press(el, state.category === el.dataset.trad));
     if (state.trads.size){
       state.trads.clear();
       [...tradFilterEl.querySelectorAll('.chip')].forEach(el=>{
-        if (!categoryChipEls.includes(el)) el.dataset.active = '0';
+        if (!categoryChipEls.includes(el)) press(el, false);
       });
     }
     // the class subselector only makes sense while Focus is the active category — show it fresh on
@@ -87,14 +95,14 @@ function buildClassFilters(){
   classes.push('other');
   const classChipEls = [];
   classes.forEach(cls=>{
-    const c = el2('div','chip', cls);
-    c.dataset.class = cls; c.dataset.active = '0';
+    const c = chipButton('chip', cls);
+    c.dataset.class = cls;
     if (cls !== 'other') c.style.setProperty('--class-hue', hueForClass(cls).toFixed(1));
     c.addEventListener('click', ()=>{
       // single-select: picking a class deselects any other, same as Ritual/Focus/tradition are already
       // mutually exclusive with each other one level up
       state.focusClass = state.focusClass === cls ? null : cls;
-      classChipEls.forEach(el => el.dataset.active = state.focusClass === el.dataset.class ? '1' : '0');
+      classChipEls.forEach(el => press(el, state.focusClass === el.dataset.class));
       renderList();
     });
     classChipEls.push(c);
@@ -104,11 +112,11 @@ function buildClassFilters(){
 
 const rankFilterEl = document.getElementById('rankFilters');
 for(let r=0;r<=10;r++){
-  const c = el2('div','rank-chip', r===0?'C':String(r));
-  c.dataset.active='0';
+  const c = chipButton('rank-chip', r===0?'C':String(r));
+  c.setAttribute('aria-label', r===0 ? 'Cantrips' : `Rank ${r}`);
   c.addEventListener('click', ()=>{
     if (state.ranks.has(r)) state.ranks.delete(r); else state.ranks.add(r);
-    c.dataset.active = state.ranks.has(r) ? '1':'0';
+    press(c, state.ranks.has(r));
     renderList();
   });
   rankFilterEl.appendChild(c);
@@ -302,11 +310,17 @@ document.getElementById('sigilVersion').textContent = `Sigils v${SIGIL_VERSION}.
 // stops the page behind it scrolling. On wider screens the class has no effect, so nothing here needs to
 // know which layout is showing.
 const drawerOpenBtn = document.getElementById('drawerOpen');
-function setDrawer(open){
+// focusInside: move keyboard focus into the drawer as it opens. Only for a keyboard press: focus inside
+// would otherwise show a ring after a tap. On closing, focus that was inside goes back to the Spells button
+function setDrawer(open, focusInside){
+  const wasOpen = document.body.classList.contains('drawer-open');
   document.body.classList.toggle('drawer-open', open);
   drawerOpenBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  if (open && !wasOpen && focusInside) document.getElementById('drawerClose').focus();
+  if (!open && wasOpen && document.getElementById('sidebar').contains(document.activeElement)) drawerOpenBtn.focus();
 }
-drawerOpenBtn.addEventListener('click', () => setDrawer(true));
+// a click from Enter or Space has no pointer position, and reports detail 0
+drawerOpenBtn.addEventListener('click', e => setDrawer(true, e.detail === 0));
 document.getElementById('drawerClose').addEventListener('click', () => setDrawer(false));
 document.getElementById('drawerBackdrop').addEventListener('click', () => setDrawer(false));
 document.addEventListener('keydown', e => { if (e.key === 'Escape') setDrawer(false); });
@@ -330,11 +344,18 @@ function setNote(text){
 }
 
 let currentSlug = null;
-// draws a spell and makes it the current one, with the list highlight, the URL and the tab title following
+// draws a spell and makes it the current one, with the list selection, the sigil's label, the URL and
+// the tab title following
 function showSpell(s){
   currentSlug = s.slug;
-  document.querySelectorAll('#list li').forEach(li => li.classList.toggle('active', li.dataset.slug === s.slug));
+  listEl.querySelectorAll('li').forEach(li => {
+    const on = li.dataset.slug === s.slug;
+    li.classList.toggle('active', on);
+    li.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+  setListEntry();
   buildSigil(s);
+  document.getElementById('sigil').setAttribute('aria-label', `Sigil of ${s.name}`);
   history.replaceState(null, '', slugToHash(s.slug));
   document.title = `${s.name} · Spell Sigils`;
   setNote('');
@@ -355,14 +376,44 @@ function showFromHash(){
 // centres the current spell in the list, if the filters show it. Measured from layout rather than with
 // scrollIntoView, which would also scroll the page itself on a phone
 function scrollListToCurrent(){
-  const list = document.getElementById('list');
-  const li = list.querySelector('li.active');
+  const li = listEl.querySelector('li.active');
   if (!li) return;
-  list.scrollTop += li.getBoundingClientRect().top - list.getBoundingClientRect().top - (list.clientHeight - li.offsetHeight)/2;
+  listEl.scrollTop += li.getBoundingClientRect().top - listEl.getBoundingClientRect().top - (listEl.clientHeight - li.offsetHeight)/2;
 }
 
+/* ---------------- the spell list ---------------- */
+// a listbox that takes one tab stop: Tab reaches it at its "entry" item, the current spell if the filters
+// show it or else the first, and from there the arrow keys, Page Up and Down, Home and End move focus
+// through the spells, and Enter or Space draws the focused one. Down from the search box enters it too
+const listEl = document.getElementById('list');
+function setListEntry(){
+  if (listEl.contains(document.activeElement)) return; // focus is in the list, and is the entry
+  const entry = listEl.querySelector('li.active') || listEl.firstElementChild;
+  listEl.querySelectorAll('li[tabindex="0"]').forEach(li => { li.tabIndex = -1; });
+  if (entry) entry.tabIndex = 0;
+}
+function focusListItem(li){
+  listEl.querySelectorAll('li[tabindex="0"]').forEach(x => { x.tabIndex = -1; });
+  li.tabIndex = 0;
+  li.focus();
+}
+listEl.addEventListener('keydown', e => {
+  const items = [...listEl.children], i = items.indexOf(document.activeElement);
+  if (i < 0) return;
+  if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); items[i].click(); return; }
+  const step = {ArrowDown:1, ArrowUp:-1, PageDown:10, PageUp:-10}[e.key];
+  const next = step ? items[Math.max(0, Math.min(items.length - 1, i + step))]
+    : e.key === 'Home' ? items[0] : e.key === 'End' ? items[items.length - 1] : null;
+  if (!next) return;
+  e.preventDefault();
+  focusListItem(next);
+});
+document.getElementById('search').addEventListener('keydown', e => {
+  const entry = listEl.querySelector('li[tabindex="0"]');
+  if (e.key === 'ArrowDown' && entry){ e.preventDefault(); focusListItem(entry); }
+});
+
 function renderList(){
-  const listEl = document.getElementById('list');
   listEl.innerHTML = '';
   const filtered = SPELLS.filter(s=>{
     if (state.search && !s.name.toLowerCase().includes(state.search)) return false;
@@ -380,6 +431,9 @@ function renderList(){
   filtered.forEach(s=>{
     const li = document.createElement('li');
     li.dataset.slug = s.slug;
+    li.setAttribute('role', 'option');
+    li.setAttribute('aria-selected', s.slug === currentSlug ? 'true' : 'false');
+    li.tabIndex = -1;
     const primary = s.traditions[0] || 'none';
     li.style.setProperty('--dot', tradColorSolid(primary));
     if (s.slug === currentSlug) li.classList.add('active');
@@ -394,6 +448,7 @@ function renderList(){
     });
     listEl.appendChild(li);
   });
+  setListEntry();
 }
 
 // the spell data and class hues live in their own files so they can be refreshed separately from the

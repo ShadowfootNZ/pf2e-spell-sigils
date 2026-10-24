@@ -187,6 +187,12 @@ A sigil is drawn in a 600 by 600 viewBox centred on (300, 300) with an outer rad
   - A class row while Focus is active: single select, listing only classes that own a focus spell plus "other".
   - Rank chips.
   - An empty selection means no filter.
+  - Every chip is a `<button>` with its state in `aria-pressed`, which the stylesheet keys on, in a labelled group. Rank chips are named "Cantrips" and "Rank 1" to "Rank 10".
+- **Keyboard and assistive technology.**
+  - The spell list is a listbox and one tab stop. Tab reaches it at its entry item: the current spell if the filters show it, otherwise the first, or the spell last focused there. The arrow keys, Page Up and Down, Home and End move focus through it, and Enter or Space draws the focused spell. Down from the search box enters it.
+  - On a phone, the drawer takes focus to its close button when opened by keyboard, not by a tap, which would show a focus ring; closing it returns focus inside it to the Spells button. Escape closes it.
+  - Every control shows a focus ring for keyboard focus only (`:focus-visible`).
+  - The sigil's `<svg>` is one image, `role="img"`, labelled "Sigil of" and the spell's name. The spell count is a polite live region, so a filter change is announced. The snapshot check ignores `role` and `aria-*`.
 - **Readout.**
   - Shows the name, rank, badges and traits. In a landscape stage the toolbar keeps the top-left corner, the name and rank take the top-right, the tradition badges the bottom-left and the traits the bottom-right, each at most 230 px wide. There the name is 1.2rem, and the 43 names over 24 characters 1rem, so that a long name wrapping onto a second line stays clear of the drawing in a nearly square stage such as an iPad's in landscape. In a portrait stage, and on phones, the readout sits centred under the circle.
   - Traditionless spells show their class name, or "other", in place of a tradition badge.

@@ -38,31 +38,33 @@ body{
 .search input:focus{outline:none; border-color:#4a4f78;}
 .filters{padding:0 14px 10px; display:flex; flex-wrap:wrap; gap:6px;}
 .filters[hidden]{display:none;} /* .filters' own display:flex is equal-specificity to the UA [hidden] rule and would otherwise win */
+/* the chips are buttons: their own font, line height and margin are reset so they look as plain boxes did */
+.chip, .rank-chip{appearance:none; -webkit-appearance:none; margin:0; line-height:normal;}
 .chip{
   font-family:'Cinzel',serif; font-size:.62rem; letter-spacing:.05em; text-transform:uppercase;
   padding:5px 9px; border-radius:20px; border:1px solid var(--panel-border); cursor:pointer;
   color:var(--ink-dim); background:#0c0e17; user-select:none; transition:.15s;
 }
-.chip[data-active="1"]{color:#0a0b10; font-weight:700;}
-.chip[data-trad="arcane"][data-active="1"]{background:hsl(var(--arcane)); box-shadow:0 0 10px hsla(var(--arcane)/.6);}
-.chip[data-trad="divine"][data-active="1"]{background:hsl(var(--divine)); box-shadow:0 0 10px hsla(var(--divine)/.6);}
-.chip[data-trad="occult"][data-active="1"]{background:hsl(var(--occult)); box-shadow:0 0 10px hsla(var(--occult)/.6);}
-.chip[data-trad="primal"][data-active="1"]{background:hsl(var(--primal)); box-shadow:0 0 10px hsla(var(--primal)/.6);}
-.chip[data-trad="ritual"][data-active="1"]{background:hsl(var(--ritual)); box-shadow:0 0 10px hsla(var(--ritual)/.6);}
-.chip[data-trad="focus"][data-active="1"]{background:hsl(var(--focus)); box-shadow:0 0 10px hsla(var(--focus)/.6);}
+.chip[aria-pressed="true"]{color:#0a0b10; font-weight:700;}
+.chip[data-trad="arcane"][aria-pressed="true"]{background:hsl(var(--arcane)); box-shadow:0 0 10px hsla(var(--arcane)/.6);}
+.chip[data-trad="divine"][aria-pressed="true"]{background:hsl(var(--divine)); box-shadow:0 0 10px hsla(var(--divine)/.6);}
+.chip[data-trad="occult"][aria-pressed="true"]{background:hsl(var(--occult)); box-shadow:0 0 10px hsla(var(--occult)/.6);}
+.chip[data-trad="primal"][aria-pressed="true"]{background:hsl(var(--primal)); box-shadow:0 0 10px hsla(var(--primal)/.6);}
+.chip[data-trad="ritual"][aria-pressed="true"]{background:hsl(var(--ritual)); box-shadow:0 0 10px hsla(var(--ritual)/.6);}
+.chip[data-trad="focus"][aria-pressed="true"]{background:hsl(var(--focus)); box-shadow:0 0 10px hsla(var(--focus)/.6);}
 /* class subselector chips share Focus's own color — they're a refinement of that same selection, not a new axis */
 /* each class chip carries its own --class-hue custom property (set inline in JS from hueForClass, a
    bare number) — 'other' (no single owning class) has none set, so it falls back to 190, --focus's own
    hue (can't fall back to var(--focus) itself here: that holds a full "H S% L%" triplet, not a bare
    hue, and splicing it into `hsl(var(--focus) 62% 56%)` would produce five components, not three) */
-.chip[data-class][data-active="1"]{background:hsl(var(--class-hue, 190) 62% 56%); box-shadow:0 0 10px hsl(var(--class-hue, 190) 62% 56% / .6);}
+.chip[data-class][aria-pressed="true"]{background:hsl(var(--class-hue, 190) 62% 56%); box-shadow:0 0 10px hsl(var(--class-hue, 190) 62% 56% / .6);}
 .rank-row{padding:0 14px 12px; display:flex; flex-wrap:wrap; gap:4px;}
 .rank-chip{
-  width:24px; height:24px; display:flex; align-items:center; justify-content:center;
+  width:24px; height:24px; display:flex; align-items:center; justify-content:center; padding:0;
   border-radius:50%; border:1px solid var(--panel-border); background:#0c0e17;
-  font-size:.68rem; color:var(--ink-dim); cursor:pointer;
+  font-family:inherit; font-size:.68rem; color:var(--ink-dim); cursor:pointer;
 }
-.rank-chip[data-active="1"]{background:#3a3f66; color:#fff; border-color:#5b6198;}
+.rank-chip[aria-pressed="true"]{background:#3a3f66; color:#fff; border-color:#5b6198;}
 .count{padding:0 16px 8px; font-size:.7rem; color:var(--ink-faint); letter-spacing:.03em;}
 .list{list-style:none; margin:0; padding:0 0 16px; overflow-y:auto; flex:1; border-top:1px solid var(--panel-border);}
 .list li{
@@ -83,6 +85,14 @@ body{
 .list li .r{font-size:.7rem; color:var(--ink-faint); font-variant:small-caps;}
 .list::-webkit-scrollbar{width:8px;}
 .list::-webkit-scrollbar-thumb{background:#242739; border-radius:4px;}
+
+/* keyboard focus: a ring on every control, shown only when focus came from the keyboard. List items sit in
+   a scrolling box that would clip a ring outside them, so theirs is drawn inside */
+.chip:focus-visible, .rank-chip:focus-visible, .tool:focus-visible, .topbar-btn:focus-visible, .drawer-close:focus-visible{
+  outline:2px solid #9aa6ff; outline-offset:2px;
+}
+.list:focus-visible{outline:none;}
+.list li:focus-visible{outline:2px solid #9aa6ff; outline-offset:-2px;}
 
 /* ---------- stage ---------- */
 /* a size container, so the readout's placement can follow the stage's own shape (see below) */
