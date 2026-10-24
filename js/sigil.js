@@ -34,16 +34,22 @@ function setGlow({farStd, farAlpha, haloA, haloB}){
   document.getElementById('sigil').classList.toggle('lit', lit);
 }
 
-// holds a settled sigil still: the comets hide and stop asking for frames, and the line pulses pause.
-// Max glow does this on a device too slow for the glow, so the glow is drawn once rather than every frame
+// holds a settled sigil still: the idle comets hide and stop asking for frames, and the line pulses
+// pause at their resting, full opacity. Two things ask for it, each by name: max glow on a device too slow for the glow ('max glow'), so
+// the glow is drawn once rather than every frame, and parchment mode ('parchment'), where the inked
+// drawing sits still once drawn. The draw-on sparks carry on regardless
+const stillReasons = new Set();
 let idleStill = false;
-const stillLoops = new Set(); // comet loops waiting to carry on
-function setIdleStill(still){
-  idleStill = still;
-  document.getElementById('sigil').classList.toggle('still', still);
-  document.getAnimations().forEach(a => { if (a.effect && a.effect.getTiming().iterations === Infinity) still ? a.pause() : a.play(); });
-  if (!still){ stillLoops.forEach(f => requestAnimationFrame(f)); stillLoops.clear(); }
+const stillLoops = new Set(); // idle comet loops waiting to carry on
+function setIdleStill(reason, still){
+  if (still) stillReasons.add(reason); else stillReasons.delete(reason);
+  idleStill = stillReasons.size > 0;
+  document.getElementById('sigil').classList.toggle('still', idleStill);
+  document.getAnimations().forEach(a => { if (a.effect && a.effect.getTiming().iterations === Infinity) idleStill ? restPulse(a) : a.play(); });
+  if (!idleStill){ stillLoops.forEach(f => requestAnimationFrame(f)); stillLoops.clear(); }
 }
+// a pulse's first keyframe is its resting opacity, at the end of its start delay
+function restPulse(a){ a.pause(); a.currentTime = a.effect.getTiming().delay; }
 
 // Bumps blurGen (abandoning any previous spell's still-running flash) and pins the glow at its floor —
 // called immediately when a new sigil starts building, so the old spell's glow doesn't linger or bleed
@@ -139,10 +145,12 @@ function rideComet(pathEl, delayMs, color, getFrac, opts){
   const own = pathEl.transform && pathEl.transform.baseVal.consolidate();
   const pointAt = own ? l => pathEl.getPointAtLength(l).matrixTransform(own.matrix) : l => pathEl.getPointAtLength(l);
 
-  // class comet: hidden while the sigil is held still (see setIdleStill)
-  const flare = el('circle', {r:opts.flareR||8, fill:color, opacity:0, filter:svgBlur(3.5, 100), class:'comet'});
+  // tagged so the stylesheet can find them: an idle comet hides while the sigil is held still (see
+  // setIdleStill), and in parchment mode a spark keeps only its core, as an ink dot (see inkRules in js/ui.js)
+  const tags = part => Object.assign({class:'comet', 'data-part':part}, opts.idle ? {'data-idle':''} : {});
+  const flare = el('circle', {r:opts.flareR||8, fill:color, opacity:0, filter:svgBlur(3.5, 100), ...tags('flare')});
   parent.appendChild(flare);
-  const core = el('circle', {r:opts.coreR||2.6, fill:'#fff', opacity:0, filter:svgShadow(opts.coreR?1.5:3, color), class:'comet'});
+  const core = el('circle', {r:opts.coreR||2.6, fill:'#fff', opacity:0, filter:svgShadow(opts.coreR?1.5:3, color), ...tags('core')});
   parent.appendChild(core);
 
   const particles = [];
@@ -168,7 +176,7 @@ function rideComet(pathEl, delayMs, color, getFrac, opts){
       flare.remove(); core.remove(); particles.forEach(p=>p.el.remove());
       return;
     }
-    if (idleStill){ stillLoops.add(frame); return; } // carries on when setIdleStill(false) asks
+    if (idleStill && opts.idle){ stillLoops.add(frame); return; } // carries on when the sigil is let go
     const elapsed = now - start;
     if (elapsed < 0){ requestAnimationFrame(frame); return; }
     const frac = getFrac(elapsed);
@@ -195,7 +203,7 @@ function rideComet(pathEl, delayMs, color, getFrac, opts){
     if (withParticles && now-lastSpawn > 45 && edgeFade > 0.3){
       lastSpawn = now;
       const px = pt.x + (Math.random()-0.5)*4, py = pt.y + (Math.random()-0.5)*4;
-      const pDot = el('circle',{cx:px.toFixed(2), cy:py.toFixed(2), r:(0.6+Math.random()), fill:'#fff', opacity:0.8, class:'comet'});
+      const pDot = el('circle',{cx:px.toFixed(2), cy:py.toFixed(2), r:(0.6+Math.random()), fill:'#fff', opacity:0.8, ...tags('particle')});
       parent.appendChild(pDot);
       particles.push({el:pDot, vx:(Math.random()-0.5)*0.05, vy:(Math.random()-0.5)*0.05, life:1});
     }
@@ -243,7 +251,7 @@ function glowDuplicate(sourceEl, delay, dur, color, widthMult, layer){
 // deliberately subtler than the draw-in spark — this is background ambience, not something to track.
 function energyLoop(pathEl, color, speed){
   if (!pathEl) return;
-  rideComet(pathEl, 0, color, elapsed => (elapsed % speed) / speed, {peak:0.4, coreR:1.5, flareR:2, particles:false});
+  rideComet(pathEl, 0, color, elapsed => (elapsed % speed) / speed, {peak:0.4, coreR:1.5, flareR:2, particles:false, idle:true});
 }
 
 // a ritual's caster stations ring sits outside the ring medallions, so a ritual is drawn at this scale
@@ -261,7 +269,7 @@ function buildSigil(spell){
   // a new spell always starts its own settle-from-scratch sequence, regardless of whatever the max-glow
   // toggle was left at for the previous one
   document.getElementById('maxGlowToggle').setAttribute('aria-pressed', 'false');
-  setIdleStill(false);
+  setIdleStill('max glow', false);
   const sigilRoot = document.getElementById('sigilRoot');
   sigilRoot.innerHTML = '';
   clearSvgFilters(); // the previous spell's comets and halos went with it
@@ -273,7 +281,7 @@ function buildSigil(spell){
     : sigilRoot;
   // every glowDuplicate() clone lands here, as the first child of sigilRoot, so every soft halo
   // paints behind every crisp line in the sigil regardless of when each was built
-  const glowLayer = el('g',{});
+  const glowLayer = el('g',{'data-part':'halos'});
   root.appendChild(glowLayer);
 
   const rng = rngFor(spell);
@@ -642,7 +650,7 @@ function buildSigil(spell){
     let inner;
     if (glyphKey){
       // GLYPHS are drawn in a 24x24 box, so recenter it on the holder's local origin
-      inner = el('g',{transform:'translate(-12,-12)', stroke:iconColor, color:iconColor, 'stroke-width':(1.5/scale).toFixed(2), 'stroke-linecap':'round', 'stroke-linejoin':'round', fill:'none'});
+      inner = el('g',{transform:'translate(-12,-12)', stroke:iconColor, color:iconColor, 'stroke-width':(1.5/scale).toFixed(2), 'stroke-linecap':'round', 'stroke-linejoin':'round', fill:'none', 'data-part':'glyph'});
       GLYPHS[glyphKey](inner);
     } else {
       // a glyph-less ring circle is a "runic" filler — its center mark should be a rune too, matching the
@@ -774,7 +782,7 @@ function buildSigil(spell){
       const draw = p.skill && skillSigil(p.skill);
       if (draw){
         const k = p.size*0.6/24;
-        const s = el('g', {transform:`${place} scale(${k.toFixed(3)}) translate(-12,-12)`, fill:'none', stroke:color, color, 'stroke-width':(1.3/k).toFixed(2), 'stroke-linecap':'round', 'stroke-linejoin':'round', opacity:0});
+        const s = el('g', {transform:`${place} scale(${k.toFixed(3)}) translate(-12,-12)`, fill:'none', stroke:color, color, 'stroke-width':(1.3/k).toFixed(2), 'stroke-linecap':'round', 'stroke-linejoin':'round', opacity:0, 'data-part':'skill'});
         draw(s);
         root.appendChild(s);
         sectionEnd = Math.max(sectionEnd, push(s, 300, 'fade', delay + 300));
@@ -820,10 +828,11 @@ function buildSigil(spell){
     pulseables.forEach(({el:pe, base})=>{
       if (rng() > 0.32) return;
       const low = base * (0.35 + rng()*0.25);
-      pe.animate(
+      const pulse = pe.animate(
         [{opacity:base},{opacity:low},{opacity:base}],
         {duration: 1400 + rng()*2400, iterations:Infinity, easing:'ease-in-out', delay: rng()*1500}
       );
+      if (idleStill) restPulse(pulse); // a sigil held still starts still (see setIdleStill)
     });
     // once the sigil is fully inscribed, a bead of light keeps circling its primary loops — the working stays "live"
     energyLoop(outer, colorAt(0), 5200 + rng()*2200);

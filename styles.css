@@ -102,8 +102,8 @@ body{
    shows, the SVG filter on the sigil carries its own halos instead */
 #sigil{filter:drop-shadow(0 0 0 var(--glowcolor, transparent)) drop-shadow(0 0 0 var(--glowcolor, transparent));}
 #sigil.lit{filter:none;}
-/* held still by setIdleStill: the comets hide */
-#sigil.still .comet{visibility:hidden;}
+/* held still by setIdleStill: the idle comets hide; a draw-on spark still rides a new spell's lines */
+#sigil.still .comet[data-idle]{visibility:hidden;}
 
 /* in a portrait stage the readout sits centred under the circle */
 .readout{text-align:center; max-width:640px; margin-top:6px;}
@@ -168,30 +168,32 @@ body{
 /* font set directly, not inherited, so a native <button>'s own UI font can't win */
 .topbar-btn{padding:7px 10px; font-family:'Cinzel',serif; font-size:.68rem; letter-spacing:.05em; text-transform:uppercase;}
 
-/* a tileable fractal-noise grain, tinted brown, at very low opacity — feColorMatrix's alpha row
-   (the last '0.05') is what keeps it faint; everything else about the noise itself stays full-strength.
-   Scoped to .circle-wrap (via this ::before, inset *beyond* its own box to give ring medallions that
-   spill past it — see #sigil's own overflow:visible — some room to still land on parchment rather than
-   visibly crossing onto bare void) rather than the whole stage, matching the region Copy Image exports. */
-.stage.parchment .circle-wrap{position:relative;}
-.stage.parchment .circle-wrap::before{
-  content:''; position:absolute; inset:-70px; z-index:-1; border-radius:16px;
+/* ---------- parchment ----------
+   the whole stage becomes paper: a faint tileable fractal-noise grain, tinted brown (feColorMatrix's alpha
+   row, the last '0.05', keeps it faint), two soft stains, and a cream ground darkening toward the edges.
+   The sigil's ink rules are in js/ui.js (inkRules), shared with copied images, which also sets the
+   colours used here as --parchment-ink and --paper-0 to 2 */
+.stage.parchment{
   background:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.32  0 0 0 0 0.24  0 0 0 0 0.13  0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
-    radial-gradient(ellipse at 28% 22%, rgba(120,88,46,.16), transparent 55%),
-    radial-gradient(ellipse at 78% 82%, rgba(94,64,30,.2), transparent 60%),
-    radial-gradient(ellipse at 50% 50%, #d9c69d, #c2a877 72%, #a48a5c 100%);
+    radial-gradient(ellipse at 30% 25%, rgba(150,110,60,.10), transparent 55%),
+    radial-gradient(ellipse at 75% 80%, rgba(120,85,40,.12), transparent 60%),
+    radial-gradient(ellipse at 50% 50%, var(--paper-0), var(--paper-1) 70%, var(--paper-2) 100%);
 }
-/* an inked sigil doesn't glow — the whole blur filter chain is dropped, leaving crisp lines */
-.stage.parchment #sigil .glow{filter:none;}
-/* darkens and desaturates the existing bright, void-tuned palette into something ink-like, entirely in
-   CSS — deliberately not a second color system in JS, so nothing about colorAt()/TRAD_HSL changes */
-.stage.parchment #sigil{filter:saturate(.6) brightness(.6) contrast(1.15) sepia(.15);}
-/* the readout/badges/trait-tags deliberately do NOT get dark-ink colors any more — the parchment
-   background itself is now scoped to just .circle-wrap (see below), so this text sits on the ordinary
-   void background regardless of mode, and dark ink text was unreadable against that once it wasn't
-   guaranteed to be on parchment underneath it (a spell with a long trait list pushes it well past the
-   circle, e.g. Cataclysm's 7 traits) */
+/* an inked sigil doesn't glow: no glow filter, and no resting tint */
+.stage.parchment #sigil, .stage.parchment #sigil .glow{filter:none;}
+/* the readout, toolbar and phone top bar in ink; the tradition badges keep their colours */
+.stage.parchment .readout .name{color:var(--parchment-ink); text-shadow:none;}
+.stage.parchment .readout .rank, .stage.parchment .readout .note{color:#6b5d4d;}
+.stage.parchment .trait-tag{color:#5a4d40; border-color:#b9a77f; background:rgba(255,255,255,.25);}
+.stage.parchment .trait-tag.curated{color:var(--parchment-ink); border-color:#8f7b55; background:rgba(160,120,60,.12);}
+.stage.parchment .tool, .stage.parchment .topbar-btn{color:#5a4d40; background:#efe3c3; border-color:#b9a77f; box-shadow:none;}
+.stage.parchment .tool:hover, .stage.parchment .topbar-btn:hover{color:var(--parchment-ink); background:#e6d6ae;}
+.stage.parchment .tool[aria-pressed="true"]{color:#2a2410; background:#e8c878; border-color:#c9a24a;}
+.stage.parchment .topbar{background:rgba(238,226,196,.92); border-color:#b9a77f;}
+.stage.parchment .topbar-title{color:var(--parchment-ink);}
+/* max glow has nothing to show on paper, so it's switched off while parchment is on */
+.tool:disabled{opacity:.35; pointer-events:none;}
 
 /* ---------- phones: the sidebar becomes a drawer ----------
    below 700px wide there's no room for the sidebar beside the circle, and below 560px tall, a phone on
@@ -203,7 +205,7 @@ body{
   body{overflow:auto;}
   body.drawer-open{overflow:hidden;}
   .app{display:block; height:auto;}
-  /* clip, not hidden: the parchment backdrop and spilling medallions mustn't widen the page, and clip
+  /* clip, not hidden: spilling medallions mustn't widen the page, and clip
      keeps the top bar's position:sticky working. Not a size container here: the page's height comes from
      its content, so the readout always sits under the circle */
   .stage{padding:0 16px 20px; overflow-x:clip; container-type:normal;}
@@ -217,10 +219,6 @@ body{
      on its side to fit under the top bar */
   .circle-wrap{width:min(100vw - 40px, 100vh - 80px); width:min(100vw - 40px, 100svh - 80px);}
   .readout{order:1; max-width:none; margin-top:8px;}
-  /* the parchment reaches only to the page's side gutters, and the readout clears it, so the dim rank
-     text never sits on parchment */
-  .stage.parchment .circle-wrap::before{inset:-16px;}
-  .stage.parchment .readout{margin-top:26px;}
   .toolbar{position:static; order:2; justify-content:center; margin-top:16px;}
   .legal{border-right:none;}
 

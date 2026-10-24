@@ -119,12 +119,42 @@ document.getElementById('search').addEventListener('input', e=>{
   renderList();
 });
 
-// purely a display toggle — doesn't touch colorAt()/TRAD_HSL or any spell state, just swaps the stage's
-// own background and lets CSS (.stage.parchment ...) reshape how the existing SVG output looks on it
+/* ---------------- parchment: ink on paper ---------------- */
+// Parchment mode turns the whole stage to paper and redraws the sigil in ink, by CSS alone: nothing about
+// colorAt()/TRAD_HSL or the spell changes, and nothing is redrawn. Everything is a warm near-black ink, with
+// the trait and skill sigils picked out in red, as rubrication in a manuscript. An inked sigil doesn't
+// glow: the halos and the comets' light go, a draw-on spark keeps only its core, as an ink dot riding the
+// tip like a pen nib, and once drawn the sigil sits still (setIdleStill). These colours and the sigil's
+// rules are defined here, once, for the page and for copied images, whose standalone SVG has no stylesheet
+const PARCHMENT = {ink:'#2b2520', red:'#a3301f', paper:['#f5edd8', '#eee2c4', '#dfcda4']};
+// the sigil's ink rules, inside `scope` (the page's parchment stage, or nothing in a copied image). They
+// override the colours the sigil is drawn with as attributes, which any CSS rule outranks; the sigils'
+// rules come after the general ones, which they otherwise tie with
+function inkRules(scope){
+  const r = `${scope}#sigilRoot`, sigils = ['glyph', 'skill'].map(p => `${r} [data-part="${p}"]`);
+  return `
+    ${r} [stroke]:not([stroke="none"]){stroke:${PARCHMENT.ink};}
+    ${r} [fill]:not([fill="none"]):not([fill="transparent"]){fill:${PARCHMENT.ink};}
+    ${r} [color]{color:${PARCHMENT.ink};}
+    ${sigils.map(g => `${g}[stroke], ${g} [stroke]:not([stroke="none"])`).join(', ')}{stroke:${PARCHMENT.red};}
+    ${sigils.map(g => `${g} [fill]:not([fill="none"]):not([fill="transparent"])`).join(', ')}{fill:${PARCHMENT.red};}
+    ${sigils.join(', ')}{color:${PARCHMENT.red};}
+    ${r} [data-part="halos"], ${r} [data-part="flare"], ${r} [data-part="particle"], ${r} [data-idle]{display:none;}
+    ${r} [data-part="core"]{filter:none;}`;
+}
+document.head.appendChild(Object.assign(document.createElement('style'), {textContent: inkRules('.stage.parchment ')}));
+// the paper and the ink for the rest of the stage's parchment styling (styles.css)
+[['--parchment-ink', PARCHMENT.ink], ...PARCHMENT.paper.map((c, i) => [`--paper-${i}`, c])]
+  .forEach(([name, value]) => document.documentElement.style.setProperty(name, value));
+
 document.getElementById('bgToggle').addEventListener('click', function(){
   const on = this.getAttribute('aria-pressed') !== 'true';
   this.setAttribute('aria-pressed', on);
   document.querySelector('.stage').classList.toggle('parchment', on);
+  // max glow has nothing to show on paper: it goes off and waits for the ink to be put away
+  if (on && maxGlowToggle.getAttribute('aria-pressed') === 'true') maxGlowToggle.click();
+  maxGlowToggle.disabled = on;
+  setIdleStill('parchment', on);
 });
 
 /* ---------------- copy sigil as image ---------------- */
@@ -138,17 +168,13 @@ maxGlowToggle.addEventListener('click', () => {
   const on = maxGlowToggle.getAttribute('aria-pressed') !== 'true';
   maxGlowToggle.setAttribute('aria-pressed', on);
   setGlow(on ? GLOW_PEAK : GLOW_FLOOR);
-  if (glowTooSlow) setIdleStill(on);
+  if (glowTooSlow || !on) setIdleStill('max glow', on);
 });
 // shared by copy-to-clipboard and save-to-file — everything up to the serialized SVG string runs
 // synchronously (no `await` yet), so the current visual state is frozen before either path does any
 // async work
 function captureSigilSvg(){
   const svgEl = document.getElementById('sigil');
-  // draw-in/pop animations use fill:'forwards', which keeps every element visually at its finished state
-  // but never writes that back into the element's own style attribute — commitStyles() does, and without
-  // it a raw clone would serialize the pre-animation (undrawn) markup instead of what's on screen
-  svgEl.getAnimations({subtree:true}).forEach(a => { try { a.commitStyles(); } catch(e){} });
   // the live viewBox is a fixed 0 0 600 600, but ring medallions routinely straddle/exceed that box —
   // #sigil's own overflow:visible is what lets them spill out on screen. A standalone exported SVG has
   // no such CSS to inherit, so it clips to its viewBox by default; getBBox() finds the *actual* rendered
@@ -158,16 +184,28 @@ function captureSigilSvg(){
   const pad = 40;
   const vx = bbox.x - pad, vy = bbox.y - pad, vw = bbox.width + pad*2, vh = bbox.height + pad*2;
   const clone = svgEl.cloneNode(true);
+  // the draw-on animations hold each element at its finished state without writing it back, and inline
+  // they still say "undrawn": a raw clone would serialize the undrawn markup. Nor can commitStyles() be
+  // trusted to write it back, since the browser drops a finished draw-on animation once an idle pulse
+  // takes over the same element's opacity. So each element in the clone takes what's on screen: the
+  // computed values of the three properties the animations move
+  const liveEls = svgEl.querySelectorAll('*'), cloneEls = clone.querySelectorAll('*');
+  liveEls.forEach((e, i) => {
+    const cs = getComputedStyle(e), c = cloneEls[i].style;
+    c.opacity = cs.opacity; c.strokeDasharray = cs.strokeDasharray; c.strokeDashoffset = cs.strokeDashoffset;
+  });
   clone.setAttribute('xmlns', NS);
   clone.setAttribute('viewBox', `${vx.toFixed(1)} ${vy.toFixed(1)} ${vw.toFixed(1)} ${vh.toFixed(1)}`);
   const isParchment = document.querySelector('.stage').classList.contains('parchment');
-  // parchment gets an opaque backdrop baked in (the tool's own background is CSS on an ancestor the
-  // standalone clone doesn't have) and its recolor filter inlined for the same reason; void mode gets no
+  // parchment gets the paper baked in and the ink rules embedded, since the paper is CSS on the stage and
+  // the ink rules are a stylesheet, neither of which the standalone clone has; the dark mode gets no
   // backdrop at all, so the exported PNG keeps a transparent background instead of a solid black square
   if (isParchment){
-    const bg = el('rect', {x:vx, y:vy, width:vw, height:vh, fill:'#c2a877'});
-    clone.insertBefore(bg, clone.firstChild);
-    clone.setAttribute('style', 'filter:saturate(.6) brightness(.6) contrast(1.15) sepia(.15)');
+    const paper = el('radialGradient', {id:'paper', cx:'50%', cy:'50%', r:'70%'});
+    PARCHMENT.paper.forEach((c, i) => paper.appendChild(el('stop', {offset:[0, 0.7, 1][i], 'stop-color':c})));
+    clone.querySelector('defs').appendChild(paper);
+    clone.insertBefore(el('rect', {x:vx, y:vy, width:vw, height:vh, fill:'url(#paper)'}), clone.firstChild);
+    clone.insertBefore(Object.assign(document.createElementNS(NS, 'style'), {textContent: inkRules('')}), clone.firstChild);
     // an inked sigil doesn't glow; on screen the stylesheet takes off any glow filter the sigil carries
     clone.querySelector('#sigilRoot').removeAttribute('filter');
   } else {
