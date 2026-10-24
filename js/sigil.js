@@ -901,28 +901,36 @@ function buildSigil(spell){
   });
   if (instant) sigilRoot.animate([{opacity:0}, {opacity:1}], {duration:REDUCED_FADE, easing:'ease-out'});
 
-  idleTimer = sigilClock.later(()=>{
-    if (!instant) startGlow(glowGen, glowLayer);
-    // a subset of lines/gems get their own independent slow pulse, so the circle feels alive rather than static
-    pulseables.forEach(({el:pe, base})=>{
-      if (rng() > 0.32) return;
-      const low = base * (0.35 + rng()*0.25);
-      const pulse = pe.animate(
-        [{opacity:base},{opacity:low},{opacity:base}],
-        {duration: 1400 + rng()*2400, iterations:Infinity, easing:'ease-in-out', delay: rng()*1500}
-      );
-      if (idleStill) restPulse(pulse); // a sigil held still starts still (see setIdleStill)
-    });
-    // once the sigil is fully inscribed, a bead of light keeps circling its primary loops — the working stays "live"
-    energyLoop(outer, colorAt(0), 5200 + rng()*2200);
-    energyLoop(innerBorder, colorAt(1), 6600 + rng()*2400);
-    energyLoop(poly, colorAt(2), 4200 + rng()*1800);
-  }, drawnAt);
-  // the per-line halos take 900ms to light and 900ms to fade, which outlasts startGlow's 1600ms flash; the
-  // fade starts a moment after the light finishes, so 200ms more keeps an image from catching its tail.
-  // Without the flash, the sigil is ready once its fade is over, with a margin, as a timer can fire a
-  // frame before the fade's last
-  readyTimer = sigilClock.later(() => document.dispatchEvent(new Event('sigil-ready')), instant ? drawnAt + 100 : totalEnd + 2000);
+  // The animations above take their start time from the first frame drawn after this, which on a slow
+  // first load comes a second or more later, and in a background tab not until it's shown, so the
+  // flash and the ready signal count from that frame too. A stepped clock (js/export.js) starts them at
+  // once, as it sets every animation's time itself
+  const startTimers = () => {
+    idleTimer = sigilClock.later(()=>{
+      if (!instant) startGlow(glowGen, glowLayer);
+      // a subset of lines/gems get their own independent slow pulse, so the circle feels alive rather than static
+      pulseables.forEach(({el:pe, base})=>{
+        if (rng() > 0.32) return;
+        const low = base * (0.35 + rng()*0.25);
+        const pulse = pe.animate(
+          [{opacity:base},{opacity:low},{opacity:base}],
+          {duration: 1400 + rng()*2400, iterations:Infinity, easing:'ease-in-out', delay: rng()*1500}
+        );
+        if (idleStill) restPulse(pulse); // a sigil held still starts still (see setIdleStill)
+      });
+      // once the sigil is fully inscribed, a bead of light keeps circling its primary loops — the working stays "live"
+      energyLoop(outer, colorAt(0), 5200 + rng()*2200);
+      energyLoop(innerBorder, colorAt(1), 6600 + rng()*2400);
+      energyLoop(poly, colorAt(2), 4200 + rng()*1800);
+    }, drawnAt);
+    // the per-line halos take 900ms to light and 900ms to fade, which outlasts startGlow's 1600ms flash; the
+    // fade starts a moment after the light finishes, so 200ms more keeps an image from catching its tail.
+    // Without the flash, the sigil is ready once its fade is over, with a margin, as a timer can fire a
+    // frame before the fade's last
+    readyTimer = sigilClock.later(() => document.dispatchEvent(new Event('sigil-ready')), instant ? drawnAt + 100 : totalEnd + 2000);
+  };
+  if (sigilClock.stepped) startTimers();
+  else sigilClock.frame(() => { if (glowGen === blurGen) startTimers(); }); // unless a newer sigil came first
 
   // readout
   document.getElementById('roName').textContent = spell.name;

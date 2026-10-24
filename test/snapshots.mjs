@@ -161,8 +161,10 @@ try {
     failed = true;
   } else console.log(`Snapshot: all ${hashes.size} sigils match the baseline (version ${version}).`);
 
-  // ---- copies of sigils left to finish drawing by themselves
-  const results = await Promise.all(COPY_SPELLS.map(async slug => {
+  // ---- copies of sigils left to finish drawing by themselves, one page at a time: on Linux, headless
+  // Chrome draws no frames for a page that isn't in front, so its sigil would never draw
+  const results = [];
+  for (const slug of COPY_SPELLS){
     const p = await browser.newPage();
     watch(p);
     await p.setViewport({ width: 1440, height: 900 });
@@ -174,8 +176,8 @@ try {
     await p.click("#bgToggle");
     const parchment = await p.evaluate(() => window.__copyProblems());
     await p.close();
-    return [slug, dark, parchment];
-  }));
+    results.push([slug, dark, parchment]);
+  }
   const copyFailures = results.flatMap(([slug, dark, parchment]) =>
     [["dark", dark], ["parchment", parchment]].filter(([, p]) => p.length).map(([mode, p]) => `${slug} (${mode}): ${p.join("; ")}`));
   if (copyFailures.length){ console.log("Copy check failed:"); copyFailures.forEach(f => console.log("  " + f)); failed = true; }
