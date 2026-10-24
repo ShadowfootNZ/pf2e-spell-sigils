@@ -142,7 +142,7 @@ function clearSvgFilters(){
 function rideComet(pathEl, delayMs, color, getFrac, opts){
   opts = opts || {};
   const peak = opts.peak !== undefined ? opts.peak : 1;       // max opacity of the core/flare
-  const withParticles = opts.particles !== true;
+  const withParticles = opts.particles !== false; // a trail of sparkles unless asked for none
 
   const parent = pathEl.parentNode || pathEl.ownerSVGElement;
   let len = 0;
@@ -256,10 +256,11 @@ function glowDuplicate(sourceEl, delay, dur, color, widthMult, layer){
 }
 
 // forever: a faint comet that keeps circling a completed ring/polygon, like current in a closed loop.
-// deliberately subtler than the draw-in spark — this is background ambience, not something to track.
+// deliberately subtler than the draw-in spark — this is background ambience, not something to track —
+// though it leaves the same trail of sparkles.
 function energyLoop(pathEl, color, speed){
   if (!pathEl) return;
-  rideComet(pathEl, 0, color, elapsed => (elapsed % speed) / speed, {peak:0.4, coreR:1.5, flareR:2, particles:false, idle:true});
+  rideComet(pathEl, 0, color, elapsed => (elapsed % speed) / speed, {peak:0.4, coreR:1.5, flareR:2, idle:true});
 }
 
 // a ritual's caster stations ring sits outside the ring medallions, so a ritual is drawn at this scale
@@ -671,7 +672,7 @@ function buildSigil(spell){
     }
     holder.appendChild(inner);
     root.appendChild(holder);
-    const glyphEnd = push(holder, 320, 'pop', delay+150); // glyph pops in partway through the disc's own reveal
+    const glyphEnd = push(holder, 320, 'appear', delay+150); // glyph appears partway through the disc's own reveal
     return Math.max(discEnd, glyphEnd);
   }
 
@@ -821,14 +822,14 @@ function buildSigil(spell){
       if (!glowTooSlow) glowDuplicate(e, totalEnd, 900, darkenHsl(e.getAttribute('stroke'), 0.6), 2, glowLayer);
     } else if (kind === 'fade'){
       e.animate([{opacity:0},{opacity:1}], {duration:dur, delay, easing:'ease-out', fill:'forwards'});
-    } else if (kind === 'pop'){
+    } else if (kind === 'appear'){
+      // a medallion's glyph: a quick fade in place, at full opacity within the first 60ms or so. It was once
+      // meant to pop, growing from the medallion's centre, but that transform never parsed, and the fade
+      // alone was kept by choice (2026-10-24)
       e.animate(
-        [{opacity:0, transform:e.getAttribute('transform').replace('scale(','scale(0.001,'.replace(', ',',')) },
-         {opacity:1, offset:0.7},
-         {opacity:1}],
+        [{opacity:0}, {opacity:1, offset:0.7}, {opacity:1}],
         {duration:dur, delay, easing:'cubic-bezier(.2,1.4,.4,1)', fill:'forwards'}
       );
-      // simpler robust pop: fade + CSS transform scale via separate wrapper scale already set;
     }
   });
 

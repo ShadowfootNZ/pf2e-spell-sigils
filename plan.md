@@ -4,12 +4,6 @@ Open and proposed work as of 2026-10-24. Item numbers stay fixed, so "item N" in
 
 Remove completed items as the details will be in git history.
 
-## Bugs
-
-53. **`particles:false` turns particles on.** `rideComet` sets `withParticles = opts.particles !== true` (`js/sigil.js` line 122). `energyLoop` passes `{particles:false}` (line 243) and still spawns particles. If the settled loops are meant to be particle-free, change the test to `!== false`. This changes the ambient look of every settled sigil, so compare screenshots before and after.
-
-54. **The glyph "pop" is only a fade.** The `pop` keyframe (`js/sigil.js` line 811) turns the SVG `transform` attribute into a CSS transform such as `translate(300,300) scale(0.001,2)`. CSS requires units on `translate`, so Chrome rejects the keyframe (`CSS.supports` returns false) and only the opacity animates. Even if it parsed, it would squash horizontally only, and `'scale(0.001,'.replace(', ',',')` is a no-op. Either animate a wrapper `<g>` with a valid CSS transform and `transform-box: fill-box`, or remove the transform and treat it as a fade.
-
 ## Repository and CI
 
 58. **CI on pull requests:** `node --check` on the scripts and `npm test`, which already serves the folder, fails on any page error and compares every sigil with `test/sigils.snapshot`. Pushes to `main` deploy, so the deploy workflow could also run the tests first and stop on a failure.
