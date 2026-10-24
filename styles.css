@@ -88,7 +88,8 @@ body{
 
 /* keyboard focus: a ring on every control, shown only when focus came from the keyboard. List items sit in
    a scrolling box that would clip a ring outside them, so theirs is drawn inside */
-.chip:focus-visible, .rank-chip:focus-visible, .tool:focus-visible, .topbar-btn:focus-visible, .drawer-close:focus-visible{
+.chip:focus-visible, .rank-chip:focus-visible, .tool:focus-visible, .topbar-btn:focus-visible, .drawer-close:focus-visible,
+.export-panel button:focus-visible, .export-panel select:focus-visible, .export-panel input:focus-visible{
   outline:2px solid #9aa6ff; outline-offset:2px;
 }
 .list:focus-visible{outline:none;}
@@ -172,11 +173,44 @@ body{
 .tool{display:flex; align-items:center; justify-content:center; width:34px; height:34px; padding:0;}
 /* drawn in the trait glyphs' line style */
 .tool svg{width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round;}
-.tool[aria-pressed="true"]{background:#e8c878; color:#2a2410; border-color:#c9a24a; box-shadow:0 0 10px rgba(232,200,120,.6);}
-.tool[data-state="ok"]{color:#8fe0a8; border-color:#3a6b4a;}
-.tool[data-state="err"]{color:#e88a8a; border-color:#6b3a3a;}
-/* disabled: copy and save while a sigil draws, max glow while parchment is on */
+.tool[aria-pressed="true"], .tool[aria-expanded="true"]{background:#e8c878; color:#2a2410; border-color:#c9a24a; box-shadow:0 0 10px rgba(232,200,120,.6);}
+/* disabled: max glow while parchment is on */
 .tool:disabled{opacity:.35; pointer-events:none;}
+
+/* the Export panel, opening below the toolbar (js/export.js); dark in both modes, as a floating control */
+.export-panel{
+  position:absolute; top:calc(100% + 8px); left:0; z-index:20; width:250px; padding:12px 14px 10px;
+  border-radius:10px; border:1px solid var(--panel-border); background:#11131f; color:var(--ink);
+  box-shadow:0 8px 24px rgba(0,0,0,.5);
+}
+.export-panel[hidden]{display:none;}
+.export-what{display:grid; gap:7px; margin-bottom:12px; font-size:.95rem;}
+.export-what label{display:flex; align-items:center; gap:8px; cursor:pointer;}
+.export-what input{accent-color:#e8c878; margin:0;}
+.export-what .fmt{color:var(--ink-faint); font-size:.75rem; letter-spacing:.04em;}
+.export-what select{
+  margin-left:auto; font:inherit; font-size:.8rem; color:var(--ink); background:#0c0e17;
+  border:1px solid var(--panel-border); border-radius:5px; padding:2px 4px;
+}
+.export-actions, .export-progress{display:flex; gap:6px;}
+.export-progress{align-items:center; flex-wrap:wrap; margin-top:10px;}
+.export-progress[hidden]{display:none;}
+/* the animation's frames as they're made; the live sigil is hidden meanwhile */
+.export-progress canvas{width:100%; aspect-ratio:1; border-radius:6px; margin-bottom:2px;}
+.stage.exporting .circle-wrap{visibility:hidden;}
+.export-progress progress{flex:1; height:8px; accent-color:#e8c878;}
+.export-actions button, .export-progress button{
+  flex:1; padding:7px 6px; border-radius:6px; border:1px solid var(--panel-border); cursor:pointer;
+  font-family:'Cinzel',serif; font-size:.66rem; letter-spacing:.05em; text-transform:uppercase;
+  color:var(--ink-dim); background:#1b1e30; appearance:none; -webkit-appearance:none;
+}
+.export-progress button{flex:none;}
+.export-actions button[hidden]{display:none;}
+.export-actions button:hover:not(:disabled), .export-progress button:hover{background:#242840; color:var(--ink);}
+.export-actions button:disabled{opacity:.35; cursor:default;}
+/* an animation made for sharing, waiting for the second tap */
+.export-actions button.ready{color:#2a2410; background:#e8c878; border-color:#c9a24a;}
+.export-status{margin:8px 0 0; min-height:1.2em; font-size:.82rem; font-style:italic; color:var(--ink-dim);}
 /* font set directly, not inherited, so a native <button>'s own UI font can't win */
 .topbar-btn{padding:7px 10px; font-family:'Cinzel',serif; font-size:.68rem; letter-spacing:.05em; text-transform:uppercase;}
 
@@ -201,7 +235,7 @@ body{
 .stage.parchment .trait-tag.curated{color:var(--parchment-ink); border-color:#8f7b55; background:rgba(160,120,60,.12);}
 .stage.parchment .tool, .stage.parchment .topbar-btn{color:#5a4d40; background:#efe3c3; border-color:#b9a77f; box-shadow:none;}
 .stage.parchment .tool:hover, .stage.parchment .topbar-btn:hover{color:var(--parchment-ink); background:#e6d6ae;}
-.stage.parchment .tool[aria-pressed="true"]{color:#2a2410; background:#e8c878; border-color:#c9a24a;}
+.stage.parchment .tool[aria-pressed="true"], .stage.parchment .tool[aria-expanded="true"]{color:#2a2410; background:#e8c878; border-color:#c9a24a;}
 .stage.parchment .topbar{background:rgba(238,226,196,.92); border-color:#b9a77f;}
 .stage.parchment .topbar-title{color:var(--parchment-ink);}
 
@@ -229,7 +263,8 @@ body{
      on its side to fit under the top bar */
   .circle-wrap{width:min(100vw - 40px, 100vh - 80px); width:min(100vw - 40px, 100svh - 80px);}
   .readout{order:1; max-width:none; margin-top:8px;}
-  .toolbar{position:static; order:2; justify-content:center; margin-top:16px;}
+  .toolbar{position:relative; order:2; justify-content:center; margin-top:16px;}
+  .export-panel{left:50%; transform:translateX(-50%);}
   .legal{border-right:none;}
 
   .sidebar{

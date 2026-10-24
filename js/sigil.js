@@ -4,6 +4,53 @@
 // can be matched to the drawing rules that made it. test/snapshots.mjs checks it against the baseline
 const SIGIL_VERSION = 1;
 
+/* ---------------- the sigil's clock ---------------- */
+// Comets, the glow flash and the idle timers ask this clock for the time, for frames and for delays,
+// rather than asking the page, so that making an animation (js/export.js) can step it exactly a frame at
+// a time however slowly each frame renders. Normally it's the page's clock plus an offset, which lets
+// time carry on smoothly from wherever a stepped run left it. The Web Animations the sigil draws with run
+// on the page's timeline; js/export.js sets their times as it steps.
+const sigilClock = {
+  offset: 0,
+  stepped: null, // while stepping: {now, frames: [callbacks waiting for the next frame], timers: [...]}
+  now(){ return this.stepped ? this.stepped.now : performance.now() + this.offset; },
+  frame(cb){
+    if (this.stepped) this.stepped.frames.push(cb);
+    else requestAnimationFrame(t => cb(t + this.offset));
+  },
+  later(cb, ms){
+    if (!this.stepped) return setTimeout(cb, ms);
+    const timer = {due: this.stepped.now + ms, cb};
+    this.stepped.timers.push(timer);
+    return timer;
+  },
+  cancel(timer){
+    if (timer && typeof timer === 'object') timer.cancelled = true; else clearTimeout(timer);
+  },
+  // switches to stepping, from the current time
+  startStepping(){ this.stepped = {now: this.now(), frames: [], timers: []}; },
+  // moves on by ms: fires the timers that fall due, in order, then runs one round of frame callbacks
+  step(ms){
+    const s = this.stepped;
+    s.now += ms;
+    const due = s.timers.filter(t => !t.cancelled && t.due <= s.now).sort((a, b) => a.due - b.due);
+    due.forEach(t => { t.cancelled = true; t.cb(); });
+    s.timers = s.timers.filter(t => !t.cancelled);
+    const frames = s.frames;
+    s.frames = [];
+    frames.forEach(cb => cb(s.now));
+  },
+  // back to the page's clock, carrying on from the stepped time; waiting frames and timers are handed over,
+  // and a timer handed over can still be cancelled through the object `later` returned for it
+  stopStepping(){
+    const s = this.stepped;
+    this.stepped = null;
+    this.offset = s.now - performance.now();
+    s.frames.forEach(cb => this.frame(cb));
+    s.timers.filter(t => !t.cancelled).forEach(t => setTimeout(() => { if (!t.cancelled) t.cb(); }, Math.max(0, t.due - s.now)));
+  },
+};
+
 /* ---------------- sigil construction ---------------- */
 let idleTimer = null;
 // buildSigil fires 'sigil-drawing' on the document when it starts and 'sigil-ready' once the drawing and
@@ -53,7 +100,7 @@ function setIdleStill(reason, still){
   idleStill = stillReasons.size > 0;
   document.getElementById('sigil').classList.toggle('still', idleStill);
   document.getAnimations().forEach(a => { if (a.effect && a.effect.getTiming().iterations === Infinity) idleStill ? restPulse(a) : a.play(); });
-  if (!idleStill){ stillLoops.forEach(f => requestAnimationFrame(f)); stillLoops.clear(); }
+  if (!idleStill){ stillLoops.forEach(f => sigilClock.frame(f)); stillLoops.clear(); }
 }
 // a pulse's first keyframe is its resting opacity, at the end of its start delay
 function restPulse(a){ a.pause(); a.currentTime = a.effect.getTiming().delay; }
@@ -98,14 +145,14 @@ function startGlow(myGen, glowLayer){
       // the haze and the halos ride in on the exact same eased curve — no separate ramps to fall out of sync
       setGlow({farStd:lerp('farStd', eased), farAlpha:Math.min(1, lerp('farAlpha', eased)),
         haloA:lerp('haloA', eased), haloB:lerp('haloB', eased)});
-      requestAnimationFrame(frame);
+      sigilClock.frame(frame);
     } else {
       // settled: the glow goes out, and the blur drops back to its floor so it costs nothing while the
       // comets keep repainting the sigil
       setGlow({...GLOW_FLOOR, farAlpha:0});
     }
   }
-  requestAnimationFrame(frame);
+  sigilClock.frame(frame);
 }
 
 // Safari ignores CSS filter functions such as blur() and drop-shadow() on SVG elements, so the comets and
@@ -162,7 +209,7 @@ function rideComet(pathEl, delayMs, color, getFrac, opts){
   parent.appendChild(core);
 
   const particles = [];
-  const start = performance.now() + delayMs;
+  const start = sigilClock.now() + delayMs;
   let lastSpawn = 0;
 
   function decayParticles(){
@@ -186,7 +233,7 @@ function rideComet(pathEl, delayMs, color, getFrac, opts){
     }
     if (idleStill && opts.idle){ stillLoops.add(frame); return; } // carries on when the sigil is let go
     const elapsed = now - start;
-    if (elapsed < 0){ requestAnimationFrame(frame); return; }
+    if (elapsed < 0){ sigilClock.frame(frame); return; }
     const frac = getFrac(elapsed);
 
     if (frac === null){
@@ -194,7 +241,7 @@ function rideComet(pathEl, delayMs, color, getFrac, opts){
       // keep drifting and fading independently rather than being yanked out mid-flight
       flare.remove(); core.remove();
       decayParticles();
-      if (particles.length) requestAnimationFrame(frame);
+      if (particles.length) sigilClock.frame(frame);
       return;
     }
 
@@ -216,9 +263,9 @@ function rideComet(pathEl, delayMs, color, getFrac, opts){
       particles.push({el:pDot, vx:(Math.random()-0.5)*0.05, vy:(Math.random()-0.5)*0.05, life:1});
     }
     decayParticles();
-    requestAnimationFrame(frame);
+    sigilClock.frame(frame);
   }
-  requestAnimationFrame(frame);
+  sigilClock.frame(frame);
 }
 
 // one-shot: rides the tip of a path/circle/polygon while it draws itself in, then dissipates
@@ -274,8 +321,8 @@ function ritualTraditions(spell){
 }
 
 function buildSigil(spell){
-  clearTimeout(idleTimer);
-  clearTimeout(readyTimer);
+  sigilClock.cancel(idleTimer);
+  sigilClock.cancel(readyTimer);
   document.dispatchEvent(new Event('sigil-drawing'));
   // a new spell always starts its own settle-from-scratch sequence, regardless of whatever the max-glow
   // toggle was left at for the previous one
@@ -833,7 +880,7 @@ function buildSigil(spell){
     }
   });
 
-  idleTimer = setTimeout(()=>{
+  idleTimer = sigilClock.later(()=>{
     startGlow(glowGen, glowLayer);
     // a subset of lines/gems get their own independent slow pulse, so the circle feels alive rather than static
     pulseables.forEach(({el:pe, base})=>{
@@ -850,8 +897,9 @@ function buildSigil(spell){
     energyLoop(innerBorder, colorAt(1), 6600 + rng()*2400);
     energyLoop(poly, colorAt(2), 4200 + rng()*1800);
   }, totalEnd);
-  // the per-line halos take 900ms to light and 900ms to fade, which outlasts startGlow's 1600ms flash
-  readyTimer = setTimeout(() => document.dispatchEvent(new Event('sigil-ready')), totalEnd + 1800);
+  // the per-line halos take 900ms to light and 900ms to fade, which outlasts startGlow's 1600ms flash; the
+  // fade starts a moment after the light finishes, so 200ms more keeps an image from catching its tail
+  readyTimer = sigilClock.later(() => document.dispatchEvent(new Event('sigil-ready')), totalEnd + 2000);
 
   // readout
   document.getElementById('roName').textContent = spell.name;

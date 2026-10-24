@@ -1,4 +1,4 @@
-// Spell Sigils: the sidebar, readout and image export, plus loading the spell data and startup.
+// Spell Sigils: the sidebar, readout, toolbar toggles, loading the spell data and startup.
 
 function el2(tag, cls, text){ const e=document.createElement(tag); e.className=cls; e.textContent=text; return e; }
 // a filter chip: a toggle button, its state in aria-pressed, which the stylesheet also keys on
@@ -165,12 +165,12 @@ document.getElementById('bgToggle').addEventListener('click', function(){
   setIdleStill('parchment', on);
 });
 
-/* ---------------- copy sigil as image ---------------- */
-// "max glow" is a direct toggle on the live sigil rather than a copy-time-only state: click it to hold
+/* ---------------- max glow ---------------- */
+// "max glow" is a direct toggle on the live sigil rather than an export-time-only state: click it to hold
 // the glow at the peak of startGlow()'s flash, click again to drop back to the floor resetGlow() itself
-// uses. The glow is an SVG filter on the sigil itself, so copying snapshots whatever's currently on
-// screen — no forcing or restoring inside the copy path itself, so "which glow state did I get" is always
-// exactly whatever the toggle (and the page's own settle-after-draw sequence) left it at.
+// uses. The glow is an SVG filter on the sigil itself, so an exported image (js/export.js) snapshots
+// whatever's currently on screen — no forcing or restoring inside the export, so "which glow state did I
+// get" is always exactly whatever the toggle (and the page's own settle-after-draw sequence) left it at.
 const maxGlowToggle = document.getElementById('maxGlowToggle');
 maxGlowToggle.addEventListener('click', () => {
   const on = maxGlowToggle.getAttribute('aria-pressed') !== 'true';
@@ -178,130 +178,6 @@ maxGlowToggle.addEventListener('click', () => {
   setGlow(on ? GLOW_PEAK : GLOW_FLOOR);
   if (glowTooSlow || !on) setIdleStill('max glow', on);
 });
-// shared by copy-to-clipboard and save-to-file — everything up to the serialized SVG string runs
-// synchronously (no `await` yet), so the current visual state is frozen before either path does any
-// async work
-function captureSigilSvg(){
-  const svgEl = document.getElementById('sigil');
-  // the live viewBox is a fixed 0 0 600 600, but ring medallions routinely straddle/exceed that box —
-  // #sigil's own overflow:visible is what lets them spill out on screen. A standalone exported SVG has
-  // no such CSS to inherit, so it clips to its viewBox by default; getBBox() finds the *actual* rendered
-  // extent (geometry only, not filter/glow spread, hence the generous padding) and the export uses that
-  // instead of the nominal canvas size.
-  const bbox = document.getElementById('sigilRoot').getBBox();
-  const pad = 40;
-  const vx = bbox.x - pad, vy = bbox.y - pad, vw = bbox.width + pad*2, vh = bbox.height + pad*2;
-  const clone = svgEl.cloneNode(true);
-  // the draw-on animations hold each element at its finished state without writing it back, and inline
-  // they still say "undrawn": a raw clone would serialize the undrawn markup. Nor can commitStyles() be
-  // trusted to write it back, since the browser drops a finished draw-on animation once an idle pulse
-  // takes over the same element's opacity. So each element in the clone takes what's on screen: the
-  // computed values of the three properties the animations move
-  const liveEls = svgEl.querySelectorAll('*'), cloneEls = clone.querySelectorAll('*');
-  liveEls.forEach((e, i) => {
-    const cs = getComputedStyle(e), c = cloneEls[i].style;
-    c.opacity = cs.opacity; c.strokeDasharray = cs.strokeDasharray; c.strokeDashoffset = cs.strokeDashoffset;
-  });
-  // the comets are light passing over the drawing, not part of it
-  clone.querySelectorAll('.comet').forEach(c => c.remove());
-  clone.setAttribute('xmlns', NS);
-  clone.setAttribute('viewBox', `${vx.toFixed(1)} ${vy.toFixed(1)} ${vw.toFixed(1)} ${vh.toFixed(1)}`);
-  // the PNG's own size, at most EXPORT_MAX on its long side. The viewBox isn't guaranteed square (a
-  // satellite can stick out further on one side than another), so it keeps the viewBox's aspect ratio.
-  // The image is given this size, not left to its natural one: with only a viewBox, an SVG image comes
-  // out 150px tall, and Safari draws its filters at that size before scaling up, which left iPad copies
-  // soft, with blurred doubled lines
-  const scale = EXPORT_MAX / Math.max(vw, vh), width = Math.round(vw*scale), height = Math.round(vh*scale);
-  clone.setAttribute('width', width); clone.setAttribute('height', height);
-  const isParchment = document.querySelector('.stage').classList.contains('parchment');
-  // parchment gets the paper baked in and the ink rules embedded, since the paper is CSS on the stage and
-  // the ink rules are a stylesheet, neither of which the standalone clone has; the dark mode gets no
-  // backdrop at all, so the exported PNG keeps a transparent background instead of a solid black square
-  if (isParchment){
-    const paper = el('radialGradient', {id:'paper', cx:'50%', cy:'50%', r:'70%'});
-    PARCHMENT.paper.forEach((c, i) => paper.appendChild(el('stop', {offset:[0, 0.7, 1][i], 'stop-color':c})));
-    clone.querySelector('defs').appendChild(paper);
-    clone.insertBefore(el('rect', {x:vx, y:vy, width:vw, height:vh, fill:'url(#paper)'}), clone.firstChild);
-    clone.insertBefore(Object.assign(document.createElementNS(NS, 'style'), {textContent: inkRules('')}), clone.firstChild);
-    // an inked sigil doesn't glow; on screen the stylesheet takes off any glow filter the sigil carries
-    clone.querySelector('#sigilRoot').removeAttribute('filter');
-  } else {
-    // the glow filter, which on screen the sigil carries only while the glow shows: at rest its 0px halos
-    // lay the faint tint that the stylesheet's drop-shadows give the live sigil, and the clone has no
-    // stylesheet
-    clone.querySelector('#sigilRoot').setAttribute('filter', 'url(#sigilGlow)');
-  }
-  return { svgString: new XMLSerializer().serializeToString(clone), width, height };
-}
-// returns a promise for the rasterized PNG blob — kept as a *pending* promise (not awaited here) so
-// copySigilImage can hand it straight to ClipboardItem, which is what lets the eventual clipboard write
-// still count against the click's transient user activation despite the decode/encode work taking a beat
-const EXPORT_MAX = 1200;
-function renderSigilBlob(){
-  const { svgString, width, height } = captureSigilSvg();
-  return (async () => {
-    const img = new Image();
-    await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString); });
-    const canvas = document.createElement('canvas');
-    canvas.width = width; canvas.height = height;
-    canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-    return await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-  })();
-}
-async function copySigilImage(){
-  await navigator.clipboard.write([new ClipboardItem({'image/png': renderSigilBlob()})]);
-}
-async function saveSigilImage(){
-  const blob = await renderSigilBlob();
-  // reads straight off the readout rather than looking up `currentSlug` in SPELLS — guaranteed to match
-  // whatever's actually on screen regardless of how it got there, since buildSigil() itself is what sets
-  // this text, synchronously, every time it draws a spell
-  const shownName = document.getElementById('roName').textContent;
-  // strips characters invalid in a filename on Windows (\/:*?"<>|) — macOS/Linux only really care about
-  // /, but stripping the whole set keeps one filename safe everywhere rather than branching on OS
-  const name = (shownName || 'sigil').replace(/[\\/:*?"<>|]+/g, '').trim() || 'sigil';
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = name + '.png';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 4000);
-}
-// browsers offer the clipboard for images only to a secure page, one served over https or from
-// localhost; reached by a network address over plain http, as an iPad on the same network reaches a dev
-// server, the API isn't there at all
-const clipboardAvailable = window.isSecureContext && !!navigator.clipboard && typeof ClipboardItem === 'function';
-// the icon turns green or red for a moment, and its label and tooltip say what happened
-[['copyImage', copySigilImage, 'Copied', 'Copy failed'], ['saveImage', saveSigilImage, 'Saved', 'Save failed']].forEach(([id, action, okText, errText]) => {
-  const btn = document.getElementById(id);
-  const label = btn.getAttribute('aria-label');
-  const show = (state, text) => {
-    if (state) btn.dataset.state = state; else delete btn.dataset.state;
-    btn.setAttribute('aria-label', text);
-    btn.title = text;
-  };
-  btn.addEventListener('click', async ()=>{
-    try {
-      if (id === 'copyImage' && !clipboardAvailable){
-        // a tooltip never shows on a touch screen, so the reason goes in the readout
-        setNote('Copying an image needs the page on https. Save works anywhere.');
-        throw new Error('the clipboard API needs a secure context');
-      }
-      await action();
-      show('ok', okText);
-    } catch(err){
-      console.error(id + ' failed', err);
-      show('err', errText);
-    }
-    setTimeout(()=>show(null, label), 1400);
-  });
-});
-// copy and save wait for the drawing and its flash to finish, so an image is never taken mid-draw
-['sigil-drawing', 'sigil-ready'].forEach(type => document.addEventListener(type, () => {
-  ['copyImage', 'saveImage'].forEach(id => { document.getElementById(id).disabled = type === 'sigil-drawing'; });
-}));
-
 // the drawing rules' version, in the footer (see SIGIL_VERSION in js/sigil.js)
 document.getElementById('sigilVersion').textContent = `Sigils v${SIGIL_VERSION}.`;
 

@@ -8,13 +8,9 @@ Remove completed items as the details will be in git history.
 
 58. **CI on pull requests:** `node --check` on the scripts and `npm test`, which already serves the folder, fails on any page error and compares every sigil with `test/sigils.snapshot`. Pushes to `main` deploy, so the deploy workflow could also run the tests first and stop on a failure.
 
-59. **Scheduled data refresh.** Add a weekly GitHub Actions job that runs `refresh-data.mjs` and opens a pull request when `data/spells.json` changes, with the script's list of additions, removals and changes as the description.
-
 ## Polish
 
 60. **Self-host the fonts.** Cinzel and EB Garamond load from Google Fonts (`index.html` line 9), so every visitor makes a third-party request. Both fonts are under the SIL Open Font License, so subsetted WOFF2 files can be served from a `fonts/` folder with their licence texts.
-
-62. **Confirm copy image across browsers.** Copy works on the published https site in Safari, Chrome and Firefox on macOS, and in Safari on iPhone and iPad (confirmed 2026-10-24). An iPad failure seen earlier was the page being reached over plain http, where the clipboard API is missing. Still to confirm: Chrome and Firefox on Android. A missing API already says so in the readout and points to Save image; a write that the browser rejects still only turns the button red, and could say the same.
 
 64. **Share previews.** Add `og:` and Twitter meta tags with a representative sigil image so links unfurl in chat apps. Per-spell previews would need pre-rendered images for all 2018 spells, which a static host can serve but which adds roughly 2000 files to the repo.
 
@@ -26,15 +22,9 @@ Remove completed items as the details will be in git history.
 
 73. **Help page.** Explain how to read a sigil: what rank, traditions, traits, focus spells, rituals and mythic spells change in the drawing, with examples, and link the symbol atlas (`atlas.html`). It could be a separate `help.html` linked from the sidebar and the phone's top bar, or an overlay. Keep it in step with `design.md`'s Structure section, and carry the Paizo notice.
 
-74. **Copy the animation.** Offer the drawing animation as an animated GIF or a WebM video, whichever proves easier. WebM is probably easier: `MediaRecorder` can record a canvas stream in Chrome and Firefox, and Safari records MP4 instead, but each frame would have to be drawn onto the canvas from the SVG, as `captureSigilSvg` does for a still. A GIF needs an encoder library and is limited to 256 colours, which may band the glow. Browsers can't put a video or GIF on the clipboard, so this is likely a save rather than a copy.
-
 ## Sigil design
 
 Every idea below changes existing sigils, so they cost least before the page goes public. `npm test` names exactly which sigils each one moves.
-
-65. **Rank 10 breaks the rules.** Tradition spells are drawn with more precision than cantrips or focus spells, and rank 10 is the exception that breaks that rule. Two candidate treatments: a hand-drawn line quality, with a gentle radial wobble, strokes that overlap themselves where they close and runes on an uneven baseline; and offsetting the main geometry from the center so the sigil reads as slightly misaligned. Rank 10 once had a "reality-fracturing" crack effect, which was removed. The double-ruled polygon on mythic spells is a separate signal tied to the trait, not to rank. Draw any new randomness from a separate seeded stream so each sigil keeps its layout and only its line quality changes. One ring medallion anchors to a polygon vertex, so an offset has to carry through to that placement.
-
-66. **Word spacing in medallion rune bands.** The main bands group their rune marks into words of 2 to 5, but the miniature band around each ring medallion still spaces 5 to 16 marks evenly (`js/sigil.js` line 611). The loop could take the same treatment. At those counts a band holds only two to four words, so render candidates before committing. The word lengths draw from `rng()`, and every spell has at least one ring medallion, so this changes every sigil.
 
 68. **Review the linguistic and incorporeal glyphs.** `GLYPHS.linguistic` is a speech bubble with lines of text, a modern comic and chat convention that looks out of place among the other marks. `GLYPHS.incorporeal` is a domed ghost with two eyes and a zigzag hem, which reads as a Pac-Man ghost. Linguistic is on 33 spells, among them Command and Biting Words; incorporeal is on one, the Aspirational State ritual. Candidates for linguistic: a mouth or tongue with sound marks, a quill, or a line of script on a scroll. For incorporeal: a figure drawn only in a broken or dashed outline, or a trailing wisp with no face. Mock up candidates and compare them against neighbouring glyphs in `atlas.html` for line weight and level of detail. A glyph change alters only the sigils of spells with that trait.
 

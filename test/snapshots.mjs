@@ -3,7 +3,8 @@
 // refactor can silently redraw published images. This builds every spell's sigil in headless Chrome,
 // hashes its markup and animation timeline, and compares the hashes with the baseline in
 // test/sigils.snapshot. It also lets a few sigils finish drawing by themselves and checks their copied
-// images in both display modes, the path that once lost whole bands without any sigil changing.
+// images in both display modes, the path that once lost whole bands without any sigil changing, and
+// makes a short animation in each format and plays it back.
 //
 // Usage: npm test              compare with the baseline; exits 1 on any difference
 //        npm run test:update   rewrite the baseline to match, after an intended change
@@ -27,6 +28,8 @@ const RELOAD_EVERY = 250; // a fresh page now and then keeps memory flat across 
 // copy checks: a rank 10 spell with seven ring medallions, a mythic ritual with caster stations, and a
 // class focus spell with writing-only bands
 const COPY_SPELLS = ["cataclysm", "freedom", "lay-on-hands"];
+// animation check: a cantrip, the quickest to draw, in each format
+const ANIMATION_SPELL = "electric-arc";
 
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json",
   ".png": "image/png", ".ico": "image/x-icon", ".svg": "image/svg+xml" };
@@ -177,6 +180,27 @@ try {
     [["dark", dark], ["parchment", parchment]].filter(([, p]) => p.length).map(([mode, p]) => `${slug} (${mode}): ${p.join("; ")}`));
   if (copyFailures.length){ console.log("Copy check failed:"); copyFailures.forEach(f => console.log("  " + f)); failed = true; }
   else console.log(`Copy check: ${COPY_SPELLS.join(", ")}, dark and parchment, all complete.`);
+
+  // ---- animations: each format made, then played back to its full length and size
+  const p = await browser.newPage();
+  watch(p);
+  await p.goto(base + "#" + ANIMATION_SPELL, { waitUntil: "load" });
+  await p.waitForFunction(() => typeof SPELLS !== "undefined" && SPELLS.length > 0);
+  const clips = await p.evaluate(async () => {
+    const results = [];
+    for (const format of Object.keys(FORMATS)){
+      const blob = await makeAnimation(format);
+      const video = Object.assign(document.createElement("video"), { src: URL.createObjectURL(blob), muted: true });
+      const problem = await new Promise(resolve => { video.onloadedmetadata = () => resolve(null); video.onerror = () => resolve("doesn't play"); });
+      results.push({ format, mb: (blob.size / 1e6).toFixed(1), seconds: video.duration, width: video.videoWidth, height: video.videoHeight, problem,
+        settled: !sigilClock.stepped && !document.querySelector(".stage").classList.contains("exporting") });
+    }
+    return results;
+  });
+  await p.close();
+  const clipFailures = clips.filter(c => c.problem || !(c.seconds > 3) || c.width !== 720 || c.height !== 720 || !c.settled);
+  if (clipFailures.length){ console.log("Animation check failed:", JSON.stringify(clipFailures)); failed = true; }
+  else console.log(`Animation check: ${clips.map(c => `${c.format} ${c.seconds.toFixed(1)}s ${c.mb} MB`).join(", ")}, both played back.`);
 
   if (errors.length){ console.log("Page errors:"); [...new Set(errors)].forEach(e => console.log("  " + e)); failed = true; }
 } finally {

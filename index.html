@@ -62,7 +62,7 @@
         <g id="sigilRoot" class="glow"></g>
       </svg>
     </div>
-    <!-- the two display modes, lit while on, then the two one-off actions -->
+    <!-- the two display modes, lit while on, then Export -->
     <div class="toolbar" id="toolbar">
       <button class="tool" id="bgToggle" type="button" aria-pressed="false" aria-label="Parchment" title="Parchment">
         <!-- a hanging scroll: a roll at each end, the sheet between them, two lines of writing -->
@@ -73,14 +73,29 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12h2.5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></svg>
       </button>
       <span class="tool-gap"></span>
-      <button class="tool" id="copyImage" type="button" aria-label="Copy image" title="Copy image">
-        <!-- two overlapping sheets -->
-        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M15 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3"/></svg>
+      <button class="tool" id="exportOpen" type="button" aria-label="Export" title="Export" aria-haspopup="dialog" aria-expanded="false" aria-controls="exportPanel">
+        <!-- an arrow up out of an open box -->
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M7 11H5v9h14v-9h-2"/></svg>
       </button>
-      <button class="tool" id="saveImage" type="button" aria-label="Save image" title="Save image">
-        <!-- an arrow down onto a line -->
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14"/></svg>
-      </button>
+      <!-- what to export, then what to do with it (js/export.js) -->
+      <div class="export-panel" id="exportPanel" role="dialog" aria-label="Export" hidden>
+        <div class="export-what" role="radiogroup" aria-label="What to export">
+          <label><input type="radio" name="exportKind" value="image" checked> Image <span class="fmt">PNG</span></label>
+          <label><input type="radio" name="exportKind" value="animation"> Animation
+            <select id="exportFormat" aria-label="Animation format"><option value="mp4">MP4</option><option value="webm">WebM</option></select></label>
+        </div>
+        <div class="export-actions">
+          <button type="button" id="exportCopy">Copy</button>
+          <button type="button" id="exportSave">Save</button>
+          <button type="button" id="exportShare" hidden>Share</button>
+        </div>
+        <div class="export-progress" id="exportProgressRow" hidden>
+          <canvas id="exportPreview" aria-hidden="true"></canvas>
+          <progress id="exportProgress" max="1" value="0" aria-label="Animation progress"></progress>
+          <button type="button" id="exportCancel">Cancel</button>
+        </div>
+        <p class="export-status" id="exportStatus" aria-live="polite"></p>
+      </div>
     </div>
     <!-- under the circle in a portrait stage; split into the corners in a landscape one (see styles.css) -->
     <div class="readout">
@@ -105,5 +120,6 @@
 <script src="js/symbols.js"></script>
 <script src="js/sigil.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/export.js"></script>
 </body>
 </html>
