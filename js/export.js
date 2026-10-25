@@ -17,8 +17,8 @@ const FORMATS = {
 // captured synchronously so every computed value comes from one moment.
 function sigilSvgClone({keepComets = false, box = null, size = EXPORT_MAX, ground = false, tint = true, bake = false} = {}){
   const svgEl = document.getElementById('sigil');
-  // the live viewBox is a fixed 0 0 600 600, but ring medallions routinely straddle/exceed that box —
-  // #sigil's own overflow:visible is what lets them spill out on screen. A standalone exported SVG has
+  // the live viewBox widens past 0 0 600 600 only enough to keep ring medallions on screen (buildSigil),
+  // and #sigil's own overflow:visible lets the glow spill further. A standalone exported SVG has
   // no such CSS to inherit, so it clips to its viewBox by default; getBBox() finds the *actual* rendered
   // extent (geometry only, not filter/glow spread, hence the generous padding) and the export uses that
   // instead of the nominal canvas size.

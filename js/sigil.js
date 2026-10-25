@@ -813,6 +813,15 @@ function buildSigil(spell){
     if (inkOfHue.has(hue)) e.setAttribute('data-ink', inkOfHue.get(hue));
   });
 
+  // The page shows the 600 box, widened evenly about the centre when ring medallions reach past it, so
+  // none is cut off at the stage's edge or runs into the readout under a portrait stage. The bounding box
+  // is geometry only, so a 6-unit margin covers the strokes and some glow. Exports frame their own box.
+  // Widened in tenths of a unit, so a sigil that fits keeps exactly "0 0 600 600"
+  const bbox = sigilRoot.getBBox();
+  const reach = Math.max(-bbox.x, -bbox.y, bbox.x + bbox.width - 600, bbox.y + bbox.height - 600);
+  const fit = Math.max(0, Math.ceil((reach + 6) * 10));
+  document.getElementById('sigil').setAttribute('viewBox', `${-fit/10} ${-fit/10} ${(6000 + 2*fit)/10} ${(6000 + 2*fit)/10}`);
+
   const totalEnd = t + 700;
   // with reduced motion, every element's animation is finished as soon as it's made, so each sits as
   // its drawing leaves it, and the whole sigil fades in instead (see motionReduced)

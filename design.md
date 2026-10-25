@@ -118,7 +118,7 @@ Treat any of these as a visible change to existing sigils.
 
 ### Structure
 
-A sigil is drawn in a 600 by 600 viewBox centred on (300, 300) with an outer radius of about 258.
+A sigil is drawn in a 600 by 600 viewBox centred on (300, 300) with an outer radius of about 258. Ring medallions straddle the outer ring and can reach about 30 units past that box, so once the drawing is built `buildSigil` widens the page's viewBox evenly about the centre to the drawing's bounding box plus 6 units for strokes and glow. Most sigils keep the 600 box. One that reaches further is shown up to about 11% smaller, so no medallion is cut off at the stage's edge or runs into the readout under a portrait stage. Exports frame their own box.
 
 - **Rune bands.** A cantrip gets one plain circle, except a focus cantrip, which gets one band. Ranks 1 to 3 get one runic band, ranks 4 to 6 get two and ranks 7 to 10 get three, at 6/6, 4/6 and 2/6 of the outer radius. Each band is an outer and an inner circle 12 units apart with rune marks between them. The marks are grouped into "words" of 2 to 5 at a fixed letter pitch so the band reads as script.
 - **Central polygon.** It has `rank + 3` sides, nudged by up to one per spell and clamped to 3 to 12, at 5/6 of the outer radius. From rank 3, star chords join non-adjacent vertices when there are at least 5 sides. From rank 5, a counter-rotated second polygon sits at 3/6.
