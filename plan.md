@@ -6,7 +6,7 @@ Remove completed items as the details will be in git history.
 
 ## Repository and deployment
 
-78. **Catalogue entry.** `catalogue.json` lists nine images under `docs/`, which doesn't exist, and `origin` is still a TODO. `features` predates export: it says "Copy and save" and doesn't mention animations, sharing or the help page. The screenshots can be made with Puppeteer to match their alt texts; the origin text is the author's own. The README already says `docs/` holds the images.
+78. **Catalogue entry.** `origin` in `catalogue.json` is still a TODO, and needs the author's own words. `features` predates export: it says "Copy and save" and doesn't mention animations, sharing or the help page. The images in `docs/` were made on 2026-10-25; item 70 changes every sigil, so they'll need making again after it.
 
 79. **Video muxers.** The vendored mp4-muxer and webm-muxer are deprecated upstream in favour of Mediabunny. They only package video the page made, in stable formats, so they stay. Move to Mediabunny only if a browser change breaks them; it's a larger library built as ES modules, which the page's classic scripts would have to load differently.
 

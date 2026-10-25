@@ -95,12 +95,12 @@
       },
       {
         "path": "docs/spell-sigils-atlas.webp",
-        "alt": "The symbol atlas, with runes grouped by tradition, trait glyphs and skill sigils",
+        "alt": "The symbol atlas's trait glyphs, each labelled with the trait it stands for",
         "caption": "Every rune and glyph in the symbol atlas"
       },
       {
         "path": "docs/spell-sigils-desktop.webp",
-        "alt": "Spell Sigils on a desktop screen, with the filterable spell list beside the sigil",
+        "alt": "Spell Sigils on a desktop screen, with the spell list searched for fire beside the sigil of Fireball",
         "caption": "Search and filter every spell"
       }
     ]
