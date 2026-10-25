@@ -723,7 +723,7 @@ function buildSigil(spell){
     if (glyphKey){
       // GLYPHS are drawn in a 24x24 box, so recenter it on the holder's local origin
       inner = el('g',{transform:'translate(-12,-12)', stroke:iconColor, color:iconColor, 'stroke-width':(1.5/scale).toFixed(2), 'stroke-linecap':'round', 'stroke-linejoin':'round', fill:'none', 'data-part':'glyph'});
-      GLYPHS[glyphKey](inner);
+      GLYPHS[glyphKey].draw(inner);
     } else {
       // a glyph-less ring circle is a "runic" filler — its center mark should be a rune too, matching the
       // band around it, not an arbitrary generic shape unrelated to the rest of the tool's rune vocabulary.

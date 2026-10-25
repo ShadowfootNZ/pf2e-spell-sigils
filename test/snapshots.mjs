@@ -4,7 +4,8 @@
 // hashes its markup and animation timeline, and compares the hashes with the baseline in
 // test/sigils.snapshot. It also lets a few sigils finish drawing by themselves and checks their copied
 // images in both display modes, the path that once lost whole bands without any sigil changing, and
-// makes a short animation in each format the browser can handle and plays it back.
+// makes a short animation in each format the browser can handle and plays it back. Every symbol must
+// also carry a note for the atlas.
 //
 // Usage: npm test              compare with the baseline; exits 1 on any difference
 //        npm run test:update   rewrite the baseline to match, after an intended change
@@ -119,6 +120,13 @@ try {
   await open();
   const slugs = await page.evaluate(() => SPELLS.map(s => s.slug));
   const version = await page.evaluate(() => SIGIL_VERSION);
+  // ---- every symbol carries what the atlas says about it, and a drawing
+  const symbolProblems = await page.evaluate(() => [
+    ...Object.entries(GLYPHS).map(([k, s]) => [`glyph ${k}`, s]),
+    ...Object.entries(SKILL_SIGILS).map(([k, s]) => [`skill ${k}`, s]),
+    ...Object.entries(RUNES).flatMap(([t, list]) => list.map((s, i) => [`${t} rune #${i + 1}`, s])),
+  ].filter(([, s]) => typeof s.note !== "string" || !s.note.trim() || typeof s.draw !== "function").map(([name]) => name));
+  if (symbolProblems.length){ console.log("Symbols without a note or a drawing:", symbolProblems.join(", ")); failed = true; }
   const hashes = new Map();
   for (let i = 0; i < slugs.length; i++){
     if (i && i % RELOAD_EVERY === 0) await open();

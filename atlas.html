@@ -133,30 +133,7 @@ function card(svg, label, note, extra){
   return c;
 }
 
-// descriptions are the trailing comments in js/symbols.js, read from the file itself so the atlas never
-// keeps its own copy. A tradition whose comment count doesn't match its runes gets no descriptions
-// rather than misaligned ones.
-function readNotes(src){
-  const notes = {runes:{}, glyphs:{}, skills:{}};
-  const block = start => { const i = src.indexOf(start); return i < 0 ? '' : src.slice(i, src.indexOf('\n};', i)); };
-  let trad = null;
-  for (const line of block('const RUNES = {').split('\n')){
-    const t = line.match(/^\s{2}(arcane|divine|occult|primal): \[/);
-    if (t){ trad = t[1]; notes.runes[trad] = []; continue; }
-    const r = line.match(/^\s+g=>.*\/\/\s*(.+)$/);
-    if (r && trad) notes.runes[trad].push(r[1]);
-  }
-  for (const trad of Object.keys(notes.runes)) if (notes.runes[trad].length !== RUNES[trad].length) delete notes.runes[trad];
-  for (const [start, into] of [['const GLYPHS = {', notes.glyphs], ['const SKILL_SIGILS = {', notes.skills]]){
-    for (const line of block(start).split('\n')){
-      const m = line.match(/^\s+([a-z]+):\s*g=>.*?(?:\/\/\s*(.+))?$/); // a short key is written right against its g=>
-      if (m) into[m[1]] = m[2] || '';
-    }
-  }
-  return notes;
-}
-
-function render(notes){
+function render(){
   const runesEl = document.getElementById('runes');
   for (const trad of ALL_TRADITIONS){
     const color = accent(trad);
@@ -164,13 +141,13 @@ function render(notes){
     const head = document.createElement('div'); head.className = 'trad-head'; head.style.color = color;
     head.innerHTML = `${trad} <span class="trad-count">${RUNES[trad].length} runes</span>`;
     const grid = document.createElement('div'); grid.className = 'grid';
-    RUNES[trad].forEach((rune, i) => grid.appendChild(card(symbolSvg(rune, '-6 -6 12 12', color, 0.65), `#${i + 1}`, (notes.runes[trad] || [])[i])));
+    RUNES[trad].forEach((rune, i) => grid.appendChild(card(symbolSvg(rune.draw, '-6 -6 12 12', color, 0.65), `#${i + 1}`, rune.note)));
     block.appendChild(head); block.appendChild(grid); runesEl.appendChild(block);
   }
   document.getElementById('runesCount').textContent = `${RUNE_COUNT} runes`;
 
   const glyphsEl = document.getElementById('glyphs');
-  for (const key of Object.keys(GLYPHS).sort()) glyphsEl.appendChild(card(symbolSvg(GLYPHS[key], '0 0 24 24', NEUTRAL, 1.3), key, notes.glyphs[key]));
+  for (const key of Object.keys(GLYPHS).sort()) glyphsEl.appendChild(card(symbolSvg(GLYPHS[key].draw, '0 0 24 24', NEUTRAL, 1.3), key, GLYPHS[key].note));
   document.getElementById('glyphsCount').textContent = `${Object.keys(GLYPHS).length} traits`;
 
   const skillsEl = document.getElementById('skills');
@@ -180,12 +157,12 @@ function render(notes){
     stations.appendChild(stationSvg(draw, 'double', color)); stations.appendChild(stationSvg(draw, 'dotted', color));
     return card(draw ? symbolSvg(draw, '0 0 24 24', color, 1.3) : null, name, note, stations);
   };
-  for (const name of Object.keys(SKILL_SIGILS).sort()) skillsEl.appendChild(skillCard(name, SKILL_SIGILS[name], notes.skills[name]));
-  skillsEl.appendChild(skillCard('any', skillSigil('any'), 'a check that accepts any skill: an empty station'));
+  for (const name of Object.keys(SKILL_SIGILS).sort()) skillsEl.appendChild(skillCard(name, SKILL_SIGILS[name].draw, SKILL_SIGILS[name].note));
+  skillsEl.appendChild(skillCard('any', skillSigil('any'), 'A check that accepts any skill leaves its station empty'));
   document.getElementById('skillsCount').textContent = `${Object.keys(SKILL_SIGILS).length} skills`;
 }
 
-fetch('js/symbols.js').then(r => r.ok ? r.text() : '').catch(() => '').then(src => render(src ? readNotes(src) : {runes:{}, glyphs:{}, skills:{}}));
+render();
 </script>
 </body>
 </html>

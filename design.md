@@ -11,14 +11,14 @@ Spell Sigils draws an animated magic circle for each Pathfinder Second Edition s
 | `index.html` | Page markup. Loads the stylesheet and the four scripts. |
 | `styles.css` | All styling. |
 | `js/core.js` | Seeded random numbers, colors and SVG helpers. |
-| `js/symbols.js` | `GLYPHS`, `SKILL_SIGILS` and `RUNES`. |
+| `js/symbols.js` | `GLYPHS`, `SKILL_SIGILS` and `RUNES`, each entry a drawing and the note the atlas shows for it. |
 | `js/sigil.js` | `buildSigil`, the sigil's clock, glow and comets. |
 | `js/ui.js` | Filters, list, readout, the parchment and max glow toggles, loading the data and startup. |
 | `js/export.js` | The Export panel: the sigil as a PNG or as an MP4 or WebM animation, copied, saved or shared. |
 | `js/vendor/` | `mp4-muxer` 5.2.2 and `webm-muxer` 5.1.4 by Vanilagy, MIT, vendored unchanged with their licences. They pack encoded video into a file, and load only when an animation is made. Both are deprecated in favour of the much larger, MPL-licensed Mediabunny; the file formats they write don't change. |
 | `data/spells.json` | The spell data, one record per line, fetched at startup. |
 | `data/classes.json` | The hue for each class's focus spells, in the order classes were first seen. Fetched at startup; the refresh appends new classes. |
-| `atlas.html` | Symbol atlas: every rune, trait glyph and skill sigil drawn live from `js/symbols.js`, labelled with the comment beside each. |
+| `atlas.html` | Symbol atlas: every rune, trait glyph and skill sigil drawn live from `js/symbols.js`, labelled with each symbol's note. |
 | `help.html` | How to read a sigil and use the page, kept short so the rest is found by exploring, with example links that open the main page on a spell; then Paizo's notice and the credits. A static page with its own styles, like the atlas. |
 | `favicon*` | The site icon, a pair of footprints, as `favicon.ico` (16 and 32px) and PNGs at 16, 32, 192 and 512px. Both pages link the ICO, the 32 and the 192, which is also the iPhone home-screen icon; the 512 waits for a web app manifest. |
 | `refresh-data.mjs` | Updates the sparse clone of `foundryvtt/pf2e` in `.cache/pf2e-pack` and rebuilds `data/spells.json` from it. |
@@ -147,6 +147,7 @@ A sigil is drawn in a 600 by 600 viewBox centred on (300, 300) with an outer rad
 
 - `GLYPHS` has 57 entries mapping a trait to a drawing in a 24 by 24 box. A trait with an entry is "curated": it can take a medallion and is highlighted in the trait list. Class traits get no entry, because the class badge already names the class; `psychic` had one until 2026-10-22. 1463 of the 2018 spells have at least one curated trait.
 - `SKILL_SIGILS` has 20 sigils for ritual caster stations, in the same 24 by 24 box: the 16 skills, Lore, Perception and the Fortitude and Will saves. `skillSigil()` looks one up by the skill name the ritual data uses: every named Lore takes the Lore sigil, and `any` gets none, which leaves its station empty. Kept alphabetical, and only looked up by name.
+- Every entry in the three is `{note, draw}`. `draw(g)` draws the symbol into a `<g>`; `note` says what it depicts and, where that isn't obvious, why it stands for its trait or skill, written for the atlas's readers rather than for whoever edits the drawing. `npm test` fails on an entry without both.
 - `RUNES` groups 54 small marks by tradition, each in a box of roughly 8 units centred on the origin: 8 arcane, 8 divine, 29 occult and 9 primal. The occult set includes 26 marks simplified from Paizo's Cosmic Caravan art: 13 constellations, the Diaspora, the Sun and 11 planets. The divine runes are deliberately abstract so that none reads as a real-world religious symbol.
 - Each spell draws from its own rune vocabulary. A rank-scaled budget is split evenly across its traditions, so occult's larger pool doesn't dominate. Traditionless spells sample all four traditions at half the budget, with a floor of 2 shapes, or 4 for focus spells so their spaced writing doesn't reduce to a two-symbol pattern.
 
@@ -254,9 +255,9 @@ The original code is MIT-licensed. `LICENSE` keeps the standard MIT text so GitH
   - Delete scratch files afterwards.
 - **Plan numbering.** Remove an item from `plan.md` once it's done; the commit that completes it records what changed and how it was verified. Don't renumber on completion or reuse a removed item's number, since code comments cite item numbers. Renumber only for a deliberate reprioritization.
 - **Data comes from `refresh-data.mjs`.** A hand edit to `data/spells.json` is overwritten by the next refresh.
-- **Changes to sigil output are deliberate.** See the determinism section. Append a new rune to its tradition's list; never reorder or insert within one. Keep `GLYPHS` alphabetical. Leave `data/classes.json` to the refresh, which only appends.
+- **Changes to sigil output are deliberate.** See the determinism section. Append a new rune to its tradition's list; never reorder or insert within one. Give every new symbol a note. Keep `GLYPHS` alphabetical. Leave `data/classes.json` to the refresh, which only appends.
 
 ## Related resources
 
-- **Symbol atlas.** `atlas.html` draws every rune, trait glyph and skill sigil from `js/symbols.js` at a fixed scale, runes grouped by tradition in their colors, skill sigils also shown in solid and dotted station squares. Its labels are the trailing comments beside each symbol, read from the file itself, so keep those comments as plain descriptions. It replaced a private claude.ai artifact, the Sigil Symbol Atlas, which is no longer maintained.
+- **Symbol atlas.** `atlas.html` draws every rune, trait glyph and skill sigil from `js/symbols.js` at a fixed scale, runes grouped by tradition in their colors, skill sigils also shown in solid and dotted station squares. Each card shows the symbol's `note`. Until 2026-10-25 the notes were the trailing comments in `js/symbols.js`, which the atlas fetched and read with a regex; a key written without a space before `g=>` silently lost its note. It replaced a private claude.ai artifact, the Sigil Symbol Atlas, which is no longer maintained.
 - **Cosmic Caravan reference art.** One `.webp` per constellation and planet plus the full chart, used for tracing the occult runes. It was never committed.
