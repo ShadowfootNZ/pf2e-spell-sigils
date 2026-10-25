@@ -18,11 +18,12 @@ const FORMATS = {
 // A standalone copy of the sigil as it is on screen, as SVG markup, `size` pixels on its long side.
 // `box` fixes the area shown (an animation's frames all show the same square); without it the copy fits
 // the drawing. Comets are left out of an image, which shows the drawing, but kept in an animation's
-// frames. An animation's frames also get an opaque dark ground; an image in the dark mode keeps a
-// transparent one. `tint` lays the resting tint (see below), which an animation's frames leave out: drawn
-// on every frame, the glow filter made Safari take a quarter of a second per frame. Everything up to the
-// returned string runs synchronously, so the state on screen is taken at one moment
-function sigilSvgClone({keepComets = false, box = null, size = EXPORT_MAX, opaque = false, tint = true} = {}){
+// frames. `ground` lays the mode's background, the page's dark ground or the paper, under the drawing;
+// without it the background is transparent. An animation's frames always have one. `tint` lays the
+// resting tint (see below), which an animation's frames leave out: drawn on every frame, the glow filter
+// made Safari take a quarter of a second per frame. `bake` makes an SVG for other programs (see below).
+// Everything up to the returned string runs synchronously, so the state on screen is taken at one moment
+function sigilSvgClone({keepComets = false, box = null, size = EXPORT_MAX, ground = false, tint = true, bake = false} = {}){
   const svgEl = document.getElementById('sigil');
   // the live viewBox is a fixed 0 0 600 600, but ring medallions routinely straddle/exceed that box —
   // #sigil's own overflow:visible is what lets them spill out on screen. A standalone exported SVG has
@@ -40,10 +41,36 @@ function sigilSvgClone({keepComets = false, box = null, size = EXPORT_MAX, opaqu
   // takes over the same element's opacity. So each element in the clone takes what's on screen: the
   // computed values of the three properties the animations move
   const liveEls = svgEl.querySelectorAll('*'), cloneEls = clone.querySelectorAll('*');
-  liveEls.forEach((e, i) => {
-    const cs = getComputedStyle(e), c = cloneEls[i].style;
-    c.opacity = cs.opacity; c.strokeDasharray = cs.strokeDasharray; c.strokeDashoffset = cs.strokeDashoffset;
-  });
+  if (!bake){
+    liveEls.forEach((e, i) => {
+      const cs = getComputedStyle(e), c = cloneEls[i].style;
+      c.opacity = cs.opacity; c.strokeDasharray = cs.strokeDasharray; c.strokeDashoffset = cs.strokeDashoffset;
+    });
+  } else {
+    // Baked, every colour and opacity is an attribute, which any SVG reader understands, where Word and
+    // others ignore CSS: each element takes the colours the ink rules give it on screen, and the stylesheet
+    // isn't embedded. A finished draw-on stroke is solid, so its dash goes, leaving only a drawing's own
+    // dashes. What the ink rules hide goes, and so do the filters: ink doesn't glow. Nothing here touches an
+    // element's style property: Chrome then writes an empty style attribute even once it's removed
+    const SHAPES = new Set(['path', 'line', 'circle', 'ellipse', 'polygon', 'polyline', 'rect']);
+    const hidden = [];
+    liveEls.forEach((e, i) => {
+      const cs = getComputedStyle(e), c = cloneEls[i];
+      if (c.closest('defs')) return;
+      if (cs.display === 'none' || cs.opacity === '0'){ hidden.push(c); return; }
+      c.removeAttribute('style'); c.removeAttribute('filter');
+      if (cs.opacity !== '1') c.setAttribute('opacity', cs.opacity); else c.removeAttribute('opacity');
+      for (const prop of ['stroke', 'fill']){
+        if (!SHAPES.has(c.localName) && !c.hasAttribute(prop)) continue;
+        if (prop === 'fill' && c.localName === 'line'){ c.removeAttribute('fill'); continue; } // a line has no inside
+        c.setAttribute(prop, /^rgba\(.*,\s*0\)$/.test(cs[prop]) ? 'none' : cs[prop]); // a transparent fill is none
+      }
+    });
+    hidden.forEach(c => c.remove());
+    clone.querySelectorAll('filter').forEach(f => f.remove());
+    clone.querySelector('#sigilRoot').removeAttribute('filter');
+    clone.removeAttribute('style'); // the live sigil's glow colour, for the stylesheet
+  }
   // the comets are light passing over the drawing, not part of a still image of it
   if (!keepComets) clone.querySelectorAll('.comet').forEach(c => c.remove());
   clone.setAttribute('xmlns', NS);
@@ -53,30 +80,38 @@ function sigilSvgClone({keepComets = false, box = null, size = EXPORT_MAX, opaqu
   // that size before scaling up, which left iPad copies soft, with blurred doubled lines
   const scale = size / Math.max(box.w, box.h), width = Math.round(box.w*scale), height = Math.round(box.h*scale);
   clone.setAttribute('width', width); clone.setAttribute('height', height);
-  const ground = (id, stops, cy) => {
+  const layGround = (id, stops, cy) => {
     const g = el('radialGradient', {id, cx:'50%', cy, r:'70%'});
     stops.forEach(([offset, color]) => g.appendChild(el('stop', {offset, 'stop-color':color})));
     clone.querySelector('defs').appendChild(g);
     clone.insertBefore(el('rect', {x:box.x, y:box.y, width:box.w, height:box.h, fill:`url(#${id})`}), clone.firstChild);
   };
-  // parchment gets the paper baked in and the ink rules embedded, since the paper is CSS on the stage and
-  // the ink rules are a stylesheet, neither of which the standalone clone has
+  // parchment gets the paper laid in and the ink rules embedded, since the paper is CSS on the stage and
+  // the ink rules are a stylesheet, neither of which the standalone clone has; baked, the ink is already
+  // in the attributes
   if (document.querySelector('.stage').classList.contains('parchment')){
-    ground('paper', PARCHMENT.paper.map((c, i) => [[0, 0.7, 1][i], c]), '50%');
-    clone.insertBefore(Object.assign(document.createElementNS(NS, 'style'), {textContent: inkRules('')}), clone.firstChild);
+    if (ground) layGround('paper', PARCHMENT.paper.map((c, i) => [[0, 0.7, 1][i], c]), '50%');
+    if (!bake) clone.insertBefore(Object.assign(document.createElementNS(NS, 'style'), {textContent: inkRules('')}), clone.firstChild);
     // an inked sigil doesn't glow; on screen the stylesheet takes off any glow filter the sigil carries
     clone.querySelector('#sigilRoot').removeAttribute('filter');
   } else {
     // the page's own ground, as body's background in styles.css draws it
-    if (opaque) ground('ground', [[0, '#0b0d16'], [1, '#05060a']], '30%');
+    if (ground) layGround('ground', [[0, '#0b0d16'], [1, '#05060a']], '30%');
     // the glow filter, which on screen the sigil carries only while the glow shows: at rest its 0px halos
     // lay the faint tint that the stylesheet's drop-shadows give the live sigil, and the clone has no
     // stylesheet. Without the tint, the clone carries the filter just when the sigil does
-    if (tint) clone.querySelector('#sigilRoot').setAttribute('filter', 'url(#sigilGlow)');
+    if (tint && !bake) clone.querySelector('#sigilRoot').setAttribute('filter', 'url(#sigilGlow)');
   }
   return { svgString: new XMLSerializer().serializeToString(clone), width, height };
 }
-function captureSigilSvg(){ return sigilSvgClone(); }
+function captureSigilSvg({ground = false} = {}){ return sigilSvgClone({ground}); }
+// the inked sigil as an SVG file for documents and print: scales to any size, and needs nothing but
+// attributes to draw (see bake above). Only offered in parchment: the glowing sigil's look is its
+// filters, which programs other than browsers draw unreliably
+function sigilSvgFile({ground = false} = {}){
+  const { svgString } = sigilSvgClone({ground, bake:true});
+  return new Blob([svgString], {type:'image/svg+xml'});
+}
 
 // draws SVG markup onto a canvas context at width x height, replacing what was there only once the new
 // picture is decoded, so a canvas on show never flashes blank
@@ -93,8 +128,8 @@ async function rasterize(svgString, ctx, width, height){
 // returns a promise for the rasterized PNG blob — kept as a *pending* promise (not awaited here) so
 // copying can hand it straight to ClipboardItem, which is what lets the eventual clipboard write still
 // count against the click's transient user activation despite the decode/encode work taking a beat
-function renderSigilBlob(){
-  const { svgString, width, height } = captureSigilSvg();
+function renderSigilBlob({ground = false} = {}){
+  const { svgString, width, height } = captureSigilSvg({ground});
   return (async () => {
     const canvas = document.createElement('canvas');
     canvas.width = width; canvas.height = height;
@@ -181,7 +216,7 @@ async function makeAnimation(format, {onProgress = () => {}, signal = new AbortC
         if (!starts.has(a)) starts.set(a, now);
         if (a.playState !== 'paused') a.currentTime = now - starts.get(a); // a paused pulse rests where it is
       }
-      await rasterize(sigilSvgClone({keepComets:true, box, size, opaque:true, tint:false}).svgString, ctx, size, size);
+      await rasterize(sigilSvgClone({keepComets:true, box, size, ground:true, tint:false}).svgString, ctx, size, size);
       const frame = new VideoFrame(canvas, {timestamp: Math.round((now - t0) * 1000), duration: frameUs});
       encoder.encode(frame, {keyFrame: i % (fps*2) === 0});
       frame.close();
@@ -203,14 +238,17 @@ async function makeAnimation(format, {onProgress = () => {}, signal = new AbortC
 }
 
 /* ---------------- the Export panel ---------------- */
-// What to export, an image or an animation in either format, then what to do with it: copy (an image
-// only; no browser can put a video on the clipboard), save, or share through the system share sheet
-// where there is one. An image waits for the drawing and its flash to finish, so it's never taken
+// What to export, an image or an animation in either format, then what to do with it: copy (a PNG
+// only; no browser can put a video on the clipboard, and few take an SVG), save, or share through the
+// system share sheet where there is one. An image comes with or without the mode's background, and an
+// inked one can also be an SVG. An image waits for the drawing and its flash to finish, so it's never taken
 // mid-draw; an animation draws the spell afresh, so it can start any time. The share sheet has to open
 // from a tap, and an animation takes seconds to make, so sharing one asks for a second tap once it's ready.
 const exportOpen = document.getElementById('exportOpen');
 const exportPanel = document.getElementById('exportPanel');
 const exportFormat = document.getElementById('exportFormat');
+const imageFormat = document.getElementById('imageFormat'), imagePng = document.getElementById('imagePng');
+const exportGround = document.getElementById('exportGround'), exportGroundLabel = document.getElementById('exportGroundLabel');
 const exportCopy = document.getElementById('exportCopy'), exportSave = document.getElementById('exportSave'), exportShare = document.getElementById('exportShare');
 const exportProgress = document.getElementById('exportProgress'), exportProgressRow = document.getElementById('exportProgressRow');
 const exportStatus = document.getElementById('exportStatus');
@@ -230,8 +268,22 @@ let imageForShare = null;  // a PNG made ahead, so Share can open the sheet stra
 const exportKind = () => exportPanel.querySelector('input[name="exportKind"]:checked').value;
 const parchmentOn = () => document.querySelector('.stage').classList.contains('parchment');
 const glowOn = () => maxGlowToggle.getAttribute('aria-pressed') === 'true';
+// the image's format: an SVG only of an inked sigil, whose look needs no filters
+const imageType = () => parchmentOn() && imageFormat.value === 'svg' ? 'svg' : 'png';
 const animationKey = () => `${currentSlug}|${parchmentOn()}|${exportFormat.value}`;
-const imageKey = () => `${currentSlug}|${parchmentOn()}|${glowOn()}`;
+const imageKey = () => `${currentSlug}|${parchmentOn()}|${glowOn()}|${imageType()}|${exportGround.checked}`;
+const makeImage = () => imageType() === 'svg' ? Promise.resolve(sigilSvgFile({ground:exportGround.checked}))
+  : renderSigilBlob({ground:exportGround.checked});
+
+// whether an image has its background, chosen for each mode and remembered: by default a glowing sigil
+// comes on a transparent ground, to lay over something dark, and an inked one on its paper
+const groundChoice = {dark:false, parchment:true};
+try { Object.assign(groundChoice, JSON.parse(localStorage.getItem('sigils.exportGround')) || {}); } catch {}
+const modeName = () => parchmentOn() ? 'parchment' : 'dark';
+exportGround.addEventListener('change', () => {
+  groundChoice[modeName()] = exportGround.checked;
+  try { localStorage.setItem('sigils.exportGround', JSON.stringify(groundChoice)); } catch {}
+});
 const setStatus = text => { exportStatus.textContent = text; };
 // the shown spell's name, made safe as a file name everywhere: strips the characters Windows forbids
 function fileName(ext){
@@ -251,18 +303,23 @@ async function share(blob, ext){
 }
 
 function refreshExport(){
-  const animation = exportKind() === 'animation', busy = !!job;
+  const animation = exportKind() === 'animation', busy = !!job, parchment = parchmentOn();
   exportFormat.disabled = !animation || busy;
-  exportCopy.disabled = busy || animation || sigilDrawing;
+  imageFormat.hidden = !parchment; imagePng.hidden = parchment;
+  imageFormat.disabled = animation || busy;
+  exportGround.checked = groundChoice[modeName()];
+  exportGround.disabled = animation || busy;
+  exportGroundLabel.textContent = parchment ? 'Paper background' : 'Dark background';
+  exportCopy.disabled = busy || animation || sigilDrawing || imageType() === 'svg';
   exportSave.disabled = busy || (!animation && sigilDrawing);
-  exportShare.hidden = !canShareType(animation ? FORMATS[exportFormat.value].mime : 'image/png');
+  exportShare.hidden = !canShareType(animation ? FORMATS[exportFormat.value].mime : imageType() === 'svg' ? 'image/svg+xml' : 'image/png');
   exportShare.disabled = busy || (!animation && sigilDrawing);
   exportProgressRow.hidden = !busy;
   exportShare.classList.toggle('ready', animation && !busy && made && made.key === animationKey());
   if (!busy && !animation && sigilDrawing) setStatus('The image waits for the sigil to finish drawing.');
   // the PNG is made ahead whenever the panel is open on a finished sigil, so Share needs no wait
   if (!animation && !sigilDrawing && !exportPanel.hidden && !exportShare.hidden && (!imageForShare || imageForShare.key !== imageKey())){
-    const entry = {key:imageKey(), promise:renderSigilBlob(), blob:null};
+    const entry = {key:imageKey(), promise:makeImage(), blob:null};
     entry.promise.then(b => { entry.blob = b; }).catch(() => {});
     imageForShare = entry;
   }
@@ -297,11 +354,11 @@ async function exportAction(label, action){
 
 exportCopy.addEventListener('click', () => exportAction('Copy', async () => {
   if (!clipboardAvailable) return 'Copying an image needs the page on https. Save works anywhere.';
-  await navigator.clipboard.write([new ClipboardItem({'image/png': renderSigilBlob()})]);
+  await navigator.clipboard.write([new ClipboardItem({'image/png': renderSigilBlob({ground:exportGround.checked})})]);
   return 'Image copied.';
 }));
 exportSave.addEventListener('click', () => exportAction('Save', async () => {
-  if (exportKind() === 'image'){ download(await renderSigilBlob(), 'png'); return 'Image saved.'; }
+  if (exportKind() === 'image'){ download(await makeImage(), imageType()); return 'Image saved.'; }
   const format = FORMATS[exportFormat.value];
   const blob = await exportAnimation();
   download(blob, format.ext);
@@ -310,7 +367,7 @@ exportSave.addEventListener('click', () => exportAction('Save', async () => {
 exportShare.addEventListener('click', () => exportAction('Share', async () => {
   if (exportKind() === 'image'){
     const ready = imageForShare && imageForShare.key === imageKey() && imageForShare.blob;
-    await share(ready || await renderSigilBlob(), 'png');
+    await share(ready || await makeImage(), imageType());
     return '';
   }
   const format = FORMATS[exportFormat.value];
@@ -323,7 +380,11 @@ exportShare.addEventListener('click', () => exportAction('Share', async () => {
 }));
 document.getElementById('exportCancel').addEventListener('click', () => { if (job) job.controller.abort(); });
 
-exportPanel.addEventListener('change', () => { setStatus(exportKind() === 'animation' ? 'Browsers can\'t copy a video: save or share it.' : ''); refreshExport(); });
+exportPanel.addEventListener('change', () => {
+  setStatus(exportKind() === 'animation' ? 'Browsers can\'t copy a video: save or share it.'
+    : imageType() === 'svg' ? 'Copy takes a PNG: save or share the SVG.' : '');
+  refreshExport();
+});
 ['sigil-drawing', 'sigil-ready'].forEach(type => document.addEventListener(type, () => {
   sigilDrawing = type === 'sigil-drawing';
   if (!sigilDrawing && exportStatus.textContent.startsWith('The image waits')) setStatus('');

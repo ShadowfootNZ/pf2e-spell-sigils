@@ -80,10 +80,14 @@
       <!-- what to export, then what to do with it (js/export.js) -->
       <div class="export-panel" id="exportPanel" role="dialog" aria-label="Export" hidden>
         <div class="export-what" role="radiogroup" aria-label="What to export">
-          <label><input type="radio" name="exportKind" value="image" checked> Image <span class="fmt">PNG</span></label>
+          <!-- an inked sigil can also be an SVG, for documents and print -->
+          <label><input type="radio" name="exportKind" value="image" checked> Image <span class="fmt" id="imagePng">PNG</span>
+            <select id="imageFormat" aria-label="Image format" hidden><option value="png">PNG</option><option value="svg">SVG</option></select></label>
           <label><input type="radio" name="exportKind" value="animation"> Animation
             <select id="exportFormat" aria-label="Animation format"><option value="mp4">MP4</option><option value="webm">WebM</option></select></label>
         </div>
+        <!-- an image's background, the dark ground or the paper as the mode has it; a video always has one -->
+        <label class="export-ground"><input type="checkbox" id="exportGround"> <span id="exportGroundLabel">Dark background</span></label>
         <div class="export-actions">
           <button type="button" id="exportCopy">Copy</button>
           <button type="button" id="exportSave">Save</button>

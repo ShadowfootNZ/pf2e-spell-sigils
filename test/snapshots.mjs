@@ -4,8 +4,8 @@
 // hashes its markup and animation timeline, and compares the hashes with the baseline in
 // test/sigils.snapshot. It also lets a few sigils finish drawing by themselves and checks their copied
 // images in both display modes, the path that once lost whole bands without any sigil changing, and
-// makes a short animation in each format the browser can handle and plays it back. Every symbol must
-// also carry a note for the atlas.
+// makes a short animation in each format the browser can handle and plays it back. In parchment it
+// checks the SVG file too. Every symbol must also carry a note for the atlas.
 //
 // Usage: npm test              compare with the baseline; exits 1 on any difference
 //        npm run test:update   rewrite the baseline to match, after an intended change
@@ -94,6 +94,21 @@ async function copyProblems(){
   const blob = await renderSigilBlob();
   const bitmap = await createImageBitmap(blob);
   if (bitmap.width !== width || bitmap.height !== height) problems.push(`PNG ${bitmap.width}x${bitmap.height}`);
+  // an inked sigil's SVG file, for programs that ignore CSS: no stylesheet, no filters, every colour the
+  // ink or the red, and the paper only when asked for
+  if (document.querySelector(".stage").classList.contains("parchment")){
+    const ink = new Set(["none", "rgb(43, 37, 32)", "rgb(163, 48, 31)"]);
+    for (const ground of [false, true]){
+      const svg = new DOMParser().parseFromString(await sigilSvgFile({ ground }).text(), "image/svg+xml");
+      if (svg.querySelector("parsererror")) { problems.push("SVG doesn't parse"); continue; }
+      if (svg.querySelector("style, filter, [filter], [style]")) problems.push("SVG relies on CSS or filters");
+      const colours = new Set([...svg.querySelectorAll("#sigilRoot [stroke], #sigilRoot [fill]")].flatMap(e => [e.getAttribute("stroke"), e.getAttribute("fill")]).filter(Boolean));
+      const stray = [...colours].filter(c => !ink.has(c));
+      if (stray.length) problems.push(`SVG colours ${stray.join(", ")}`);
+      if (!svg.querySelector('[data-part="glyph"] [stroke="rgb(163, 48, 31)"], [data-part="skill"] [stroke="rgb(163, 48, 31)"]')) problems.push("SVG has no red sigils");
+      if (!!svg.querySelector("#paper") !== ground) problems.push(ground ? "SVG without its paper" : "SVG with paper unasked");
+    }
+  }
   return [...new Set(problems)];
 }
 
