@@ -215,8 +215,11 @@ function rideComet(pathEl, delayMs, color, getFrac, opts){
   const pointAt = own ? l => pathEl.getPointAtLength(l).matrixTransform(own.matrix) : l => pathEl.getPointAtLength(l);
 
   // tagged so the stylesheet can find them: an idle comet hides while the sigil is held still (see
-  // setIdleStill), and in parchment mode a spark keeps only its core, as an ink dot (see inkRules in js/ui.js)
-  const tags = part => Object.assign({class:'comet', 'data-part':part}, opts.idle ? {'data-idle':''} : {});
+  // setIdleStill), and in parchment mode a spark keeps only its core, as an ink dot in the ink of the line
+  // it rides (see inkRules in js/ui.js)
+  const inkOwner = pathEl.closest('[data-ink]');
+  const tags = part => Object.assign({class:'comet', 'data-part':part}, opts.idle ? {'data-idle':''} : {},
+    inkOwner ? {'data-ink':inkOwner.getAttribute('data-ink')} : {});
   const flare = el('circle', {r:opts.flareR||8, fill:color, opacity:0, filter:svgBlur(3.5, 100), ...tags('flare')});
   parent.appendChild(flare);
   const core = el('circle', {r:opts.coreR||2.6, fill:'#fff', opacity:0, filter:svgShadow(opts.coreR?1.5:3, color), ...tags('core')});
@@ -862,6 +865,27 @@ function buildSigil(spell){
     });
     t = sectionEnd;
   }
+
+  // Each coloured part is marked with the ink parchment writes it in (inkRules in js/ui.js): a
+  // tradition's colour with the tradition's name, any other colour slot (a class's focus spells,
+  // traditionless spells, rituals with no tradition) with its slot, whose ink, made from the slot's hue,
+  // goes in a <style> inside the sigil, which goes with the sigil and travels with a copied image. An
+  // inline style on #sigilRoot would outlive the spell: Chrome leaves an empty style attribute behind once
+  // one is removed. A colour is matched by its hue, which brightenHsl and darkenHsl keep exactly. A
+  // ritual's station for a magical skill takes that skill's tradition colour, so those count too
+  const hueOf = c => (/^hsl\(\s*([-\d.]+)/.exec(c || '') || [])[1];
+  const inkOfHue = new Map(ALL_TRADITIONS.map(trad => [hueOf(tradColorSolid(trad)), trad]));
+  const slotInks = [];
+  colorSlotTrads.forEach((trad, i) => {
+    if (TRAD_INK[trad]){ inkOfHue.set(hueOf(colorAt(i)), trad); return; }
+    inkOfHue.set(hueOf(colorAt(i)), `s${i}`);
+    slotInks.push(`--ink-s${i}:${inkForHue(tradJitters[i].baseHue)};`);
+  });
+  if (slotInks.length) sigilRoot.insertBefore(el('style', {}), sigilRoot.firstChild).textContent = `#sigilRoot{${slotInks.join('')}}`;
+  root.querySelectorAll('[stroke], [fill], [color]').forEach(e => {
+    const hue = ['stroke', 'fill', 'color'].map(prop => hueOf(e.getAttribute(prop))).find(h => h !== undefined);
+    if (inkOfHue.has(hue)) e.setAttribute('data-ink', inkOfHue.get(hue));
+  });
 
   const totalEnd = t + 700;
   // with reduced motion, every element's animation is finished as soon as it's made, so each sits as

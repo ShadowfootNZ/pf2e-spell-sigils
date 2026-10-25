@@ -67,7 +67,7 @@ function sigilSvgClone({keepComets = false, box = null, size = EXPORT_MAX, groun
       }
     });
     hidden.forEach(c => c.remove());
-    clone.querySelectorAll('filter').forEach(f => f.remove());
+    clone.querySelectorAll('filter, style').forEach(f => f.remove()); // the slot inks' <style> too, now in the attributes
     clone.querySelector('#sigilRoot').removeAttribute('filter');
     clone.removeAttribute('style'); // the live sigil's glow colour, for the stylesheet
   }

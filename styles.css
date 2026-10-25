@@ -219,14 +219,14 @@ body{
 
 /* ---------- parchment ----------
    the whole stage becomes paper: a faint tileable fractal-noise grain, tinted brown (feColorMatrix's alpha
-   row, the last '0.05', keeps it faint), two soft stains, and a cream ground darkening toward the edges.
-   The sigil's ink rules are in js/ui.js (inkRules), shared with copied images, which also sets the
-   colours used here as --parchment-ink and --paper-0 to 2 */
+   row, the last '0.05', keeps it faint), two soft stains, and a light ivory ground darkening a little
+   toward the edges. The sigil's ink rules are in js/ui.js (inkRules), shared with copied images, which
+   also sets the colours used here as --parchment-ink and --paper-0 to 2 */
 .stage.parchment{
   background:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.32  0 0 0 0 0.24  0 0 0 0 0.13  0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
-    radial-gradient(ellipse at 30% 25%, rgba(150,110,60,.10), transparent 55%),
-    radial-gradient(ellipse at 75% 80%, rgba(120,85,40,.12), transparent 60%),
+    radial-gradient(ellipse at 30% 25%, rgba(150,110,60,.05), transparent 55%),
+    radial-gradient(ellipse at 75% 80%, rgba(120,85,40,.06), transparent 60%),
     radial-gradient(ellipse at 50% 50%, var(--paper-0), var(--paper-1) 70%, var(--paper-2) 100%);
 }
 /* an inked sigil doesn't glow: no glow filter, and no resting tint */
@@ -234,12 +234,12 @@ body{
 /* the readout, toolbar and phone top bar in ink; the tradition badges keep their colours */
 .stage.parchment .readout .name{color:var(--parchment-ink); text-shadow:none;}
 .stage.parchment .readout .rank, .stage.parchment .readout .note{color:#6b5d4d;}
-.stage.parchment .trait-tag{color:#5a4d40; border-color:#b9a77f; background:rgba(255,255,255,.25);}
-.stage.parchment .trait-tag.curated{color:var(--parchment-ink); border-color:#8f7b55; background:rgba(160,120,60,.12);}
-.stage.parchment .tool, .stage.parchment .topbar-btn{color:#5a4d40; background:#efe3c3; border-color:#b9a77f; box-shadow:none;}
-.stage.parchment .tool:hover, .stage.parchment .topbar-btn:hover{color:var(--parchment-ink); background:#e6d6ae;}
+.stage.parchment .trait-tag{color:#5a4d40; border-color:#cbbfa3; background:rgba(255,255,255,.25);}
+.stage.parchment .trait-tag.curated{color:var(--parchment-ink); border-color:#a99777; background:rgba(150,120,70,.08);}
+.stage.parchment .tool, .stage.parchment .topbar-btn{color:#5a4d40; background:#f2ece0; border-color:#cbbfa3; box-shadow:none;}
+.stage.parchment .tool:hover, .stage.parchment .topbar-btn:hover{color:var(--parchment-ink); background:#e9e1cf;}
 .stage.parchment .tool[aria-pressed="true"], .stage.parchment .tool[aria-expanded="true"]{color:#2a2410; background:#e8c878; border-color:#c9a24a;}
-.stage.parchment .topbar{background:rgba(238,226,196,.92); border-color:#b9a77f;}
+.stage.parchment .topbar{background:rgba(244,239,227,.92); border-color:#cbbfa3;}
 .stage.parchment .topbar-title{color:var(--parchment-ink);}
 
 /* ---------- phones: the sidebar becomes a drawer ----------

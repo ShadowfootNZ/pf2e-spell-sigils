@@ -27,7 +27,7 @@
     },
     {
       "title": "Parchment mode",
-      "description": "Shows the sigil as ink on paper, with trait glyphs and skill sigils picked out in red as in a manuscript."
+      "description": "Shows the sigil in ink on paper, each tradition in its own ink, with trait glyphs and skill sigils picked out in red as in a manuscript."
     },
     {
       "title": "Max glow",
@@ -85,7 +85,7 @@
       },
       {
         "path": "docs/spell-sigils-parchment.webp",
-        "alt": "A sigil in dark ink on parchment, with its trait glyphs in red",
+        "alt": "A sigil on light parchment in blue, ochre and green inks, with its trait glyphs in red",
         "caption": "Parchment mode draws the sigil in ink"
       },
       {

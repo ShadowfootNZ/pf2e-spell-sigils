@@ -49,7 +49,8 @@ function serve(){
 }
 
 // runs in the page: builds one spell and returns a hash of the whole sigil, the <svg> and everything in
-// it, defs included, as tag names, sorted attributes and each element's animations
+// it, defs included, as tag names, sorted attributes and each element's animations; and how many of its
+// coloured parts have no parchment ink, which would leave them near-black on paper
 async function sigilHash(slug){
   glowTooSlow = false; // a slow machine must not change what gets built
   buildSigil(SPELLS.find(s => s.slug === slug));
@@ -72,9 +73,11 @@ async function sigilHash(slug){
     text += "\n";
   }
   document.getAnimations().forEach(a => a.cancel());
+  const inkless = [...svg.querySelectorAll("#sigilRoot [stroke], #sigilRoot [fill], #sigilRoot [color]")].filter(e =>
+    ["stroke", "fill", "color"].some(prop => /^hsl/.test(e.getAttribute(prop) || "")) && !e.closest('[data-ink], [data-part="halos"], .comet')).length;
   text = text.replace(/-?\d+\.\d+/g, n => (Math.round(+n * 100) / 100).toString());
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
-  return [...new Uint8Array(digest)].slice(0, 8).map(b => b.toString(16).padStart(2, "0")).join("");
+  return { hash: [...new Uint8Array(digest)].slice(0, 8).map(b => b.toString(16).padStart(2, "0")).join(""), inkless };
 }
 
 // runs in the page, once the sigil has finished drawing: checks the image copy and save would produce
@@ -94,16 +97,16 @@ async function copyProblems(){
   const blob = await renderSigilBlob();
   const bitmap = await createImageBitmap(blob);
   if (bitmap.width !== width || bitmap.height !== height) problems.push(`PNG ${bitmap.width}x${bitmap.height}`);
-  // an inked sigil's SVG file, for programs that ignore CSS: no stylesheet, no filters, every colour the
-  // ink or the red, and the paper only when asked for
+  // an inked sigil's SVG file, for programs that ignore CSS: no stylesheet, no filters, every colour a
+  // plain rgb() value, and the paper only when asked for
   if (document.querySelector(".stage").classList.contains("parchment")){
-    const ink = new Set(["none", "rgb(43, 37, 32)", "rgb(163, 48, 31)"]);
+    const plain = c => c === "none" || /^rgb\(\d+, \d+, \d+\)$/.test(c); // no hsl(), oklch() or var()
     for (const ground of [false, true]){
       const svg = new DOMParser().parseFromString(await sigilSvgFile({ ground }).text(), "image/svg+xml");
       if (svg.querySelector("parsererror")) { problems.push("SVG doesn't parse"); continue; }
       if (svg.querySelector("style, filter, [filter], [style]")) problems.push("SVG relies on CSS or filters");
       const colours = new Set([...svg.querySelectorAll("#sigilRoot [stroke], #sigilRoot [fill]")].flatMap(e => [e.getAttribute("stroke"), e.getAttribute("fill")]).filter(Boolean));
-      const stray = [...colours].filter(c => !ink.has(c));
+      const stray = [...colours].filter(c => !plain(c));
       if (stray.length) problems.push(`SVG colours ${stray.join(", ")}`);
       if (!svg.querySelector('[data-part="glyph"] [stroke="rgb(163, 48, 31)"], [data-part="skill"] [stroke="rgb(163, 48, 31)"]')) problems.push("SVG has no red sigils");
       if (!!svg.querySelector("#paper") !== ground) problems.push(ground ? "SVG without its paper" : "SVG with paper unasked");
@@ -142,13 +145,16 @@ try {
     ...Object.entries(RUNES).flatMap(([t, list]) => list.map((s, i) => [`${t} rune #${i + 1}`, s])),
   ].filter(([, s]) => typeof s.note !== "string" || !s.note.trim() || typeof s.draw !== "function").map(([name]) => name));
   if (symbolProblems.length){ console.log("Symbols without a note or a drawing:", symbolProblems.join(", ")); failed = true; }
-  const hashes = new Map();
+  const hashes = new Map(), inkless = [];
   for (let i = 0; i < slugs.length; i++){
     if (i && i % RELOAD_EVERY === 0) await open();
-    hashes.set(slugs[i], await page.evaluate(slug => window.__sigilHash(slug), slugs[i]));
+    const built = await page.evaluate(slug => window.__sigilHash(slug), slugs[i]);
+    hashes.set(slugs[i], built.hash);
+    if (built.inkless) inkless.push(`${slugs[i]} (${built.inkless})`);
   }
   await page.close();
   console.log(`Built ${hashes.size} sigils in ${Math.round((Date.now() - started)/1000)}s.`);
+  if (inkless.length){ console.log(`Parts with no parchment ink in ${inkless.length} sigils:`, inkless.slice(0, 20).join(", ")); failed = true; }
 
   const old = new Map();
   let oldVersion = null;

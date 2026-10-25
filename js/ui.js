@@ -129,21 +129,27 @@ document.getElementById('search').addEventListener('input', e=>{
 
 /* ---------------- parchment: ink on paper ---------------- */
 // Parchment mode turns the whole stage to paper and redraws the sigil in ink, by CSS alone: nothing about
-// colorAt()/TRAD_HSL or the spell changes, and nothing is redrawn. Everything is a warm near-black ink, with
-// the trait and skill sigils picked out in red, as rubrication in a manuscript. An inked sigil doesn't
+// colorAt()/TRAD_HSL or the spell changes, and nothing is redrawn. Each part is written in the ink
+// buildSigil marked it with (data-ink): its tradition's period ink, or an ink from its own hue (TRAD_INK
+// and inkForHue in js/core.js), with the trait and skill sigils picked out in red, as rubrication in a
+// manuscript. Anything unmarked is a warm near-black. An inked sigil doesn't
 // glow: the halos and the comets' light go, a draw-on spark keeps only its core, as an ink dot riding the
 // tip like a pen nib, and once drawn the sigil sits still (setIdleStill). These colours and the sigil's
 // rules are defined here, once, for the page and for copied images, whose standalone SVG has no stylesheet
-const PARCHMENT = {ink:'#2b2520', red:'#a3301f', paper:['#f5edd8', '#eee2c4', '#dfcda4']};
+const PARCHMENT = {ink:'#2b2520', red:'#a3301f', paper:['#faf7ef', '#f4efe3', '#e8dfcc']};
 // the sigil's ink rules, inside `scope` (the page's parchment stage, or nothing in a copied image). They
 // override the colours the sigil is drawn with as attributes, which any CSS rule outranks; the sigils'
 // rules come after the general ones, which they otherwise tie with
 function inkRules(scope){
   const r = `${scope}#sigilRoot`, sigils = ['glyph', 'skill'].map(p => `${r} [data-part="${p}"]`);
+  // each mark sets --ink, which a part's children inherit; a spell has at most four colour slots
+  const inks = [...Object.entries(TRAD_INK).map(([trad, ink]) => `${r} [data-ink="${trad}"]{--ink:${ink};}`),
+    ...[0, 1, 2, 3].map(i => `${r} [data-ink="s${i}"]{--ink:var(--ink-s${i});}`)];
   return `
-    ${r} [stroke]:not([stroke="none"]){stroke:${PARCHMENT.ink};}
-    ${r} [fill]:not([fill="none"]):not([fill="transparent"]){fill:${PARCHMENT.ink};}
-    ${r} [color]{color:${PARCHMENT.ink};}
+    ${inks.join('\n    ')}
+    ${r} [stroke]:not([stroke="none"]){stroke:var(--ink, ${PARCHMENT.ink});}
+    ${r} [fill]:not([fill="none"]):not([fill="transparent"]){fill:var(--ink, ${PARCHMENT.ink});}
+    ${r} [color]{color:var(--ink, ${PARCHMENT.ink});}
     ${sigils.map(g => `${g}[stroke], ${g} [stroke]:not([stroke="none"])`).join(', ')}{stroke:${PARCHMENT.red};}
     ${sigils.map(g => `${g} [fill]:not([fill="none"]):not([fill="transparent"])`).join(', ')}{fill:${PARCHMENT.red};}
     ${sigils.join(', ')}{color:${PARCHMENT.red};}
