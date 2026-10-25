@@ -149,7 +149,7 @@ function readNotes(src){
   for (const trad of Object.keys(notes.runes)) if (notes.runes[trad].length !== RUNES[trad].length) delete notes.runes[trad];
   for (const [start, into] of [['const GLYPHS = {', notes.glyphs], ['const SKILL_SIGILS = {', notes.skills]]){
     for (const line of block(start).split('\n')){
-      const m = line.match(/^\s+([a-z]+):\s+g=>.*?(?:\/\/\s*(.+))?$/);
+      const m = line.match(/^\s+([a-z]+):\s*g=>.*?(?:\/\/\s*(.+))?$/); // a short key is written right against its g=>
       if (m) into[m[1]] = m[2] || '';
     }
   }

@@ -151,13 +151,13 @@ try {
     await writeFile(BASELINE, lines.join("\n") + "\n");
     console.log(differs ? "Baseline updated." : "Baseline already matched; rewritten unchanged.");
     if (changed.length && oldVersion === version)
-      console.log(`  ${changed.length} existing sigils changed but SIGIL_VERSION is still ${version}. If a code change caused it, ` +
-        "bump SIGIL_VERSION in js/sigil.js and update again; a data refresh doesn't need a bump.");
+      console.log(`  ${changed.length} existing sigils changed but SIGIL_VERSION is still ${version}. If a code change caused it and the ` +
+        "page is public, bump SIGIL_VERSION in js/sigil.js and update again; a data refresh doesn't need a bump.");
   } else if (!existsSync(BASELINE)){
     console.log("No baseline yet: run `npm run test:update`."); failed = true;
   } else if (differs){
     console.log("Snapshot differs from the baseline. If the change is intended, run `npm run test:update` and commit the " +
-      "baseline with it; if code redrew existing sigils, bump SIGIL_VERSION in js/sigil.js first.");
+      "baseline with it; if code redrew existing sigils of the public page, bump SIGIL_VERSION in js/sigil.js first.");
     failed = true;
   } else console.log(`Snapshot: all ${hashes.size} sigils match the baseline (version ${version}).`);
 
