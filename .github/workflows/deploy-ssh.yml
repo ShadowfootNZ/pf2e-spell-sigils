@@ -57,7 +57,7 @@ jobs:
            index.html \
            atlas.html \
            help.html \
-           styles.css \
+           css/ \
            favicon.ico \
            favicon-16x16.png \
            favicon-32x32.png \
@@ -65,6 +65,7 @@ jobs:
            favicon-512x512.png \
            js/ \
            data/ \
+           fonts/ \
            | ssh -i ~/.ssh/deploy_key "$SSH_TARGET" "set -e
               rm -rf $live.new $live.old
               mkdir -p $live.new

@@ -76,7 +76,7 @@ const GLOW_FLOOR = {farStd:0.05, farAlpha:0.05, haloA:0, haloB:0};
 const GLOW_PEAK = {farStd:6.0, farAlpha:1, haloA:1.2, haloB:2.8};
 // sets every part of the glow at once. The halos are given as drop-shadow blur radii: a drop-shadow's
 // radius is twice the standard deviation of its Gaussian blur. At the floor the sigil drops the filter,
-// and the outer <svg>'s two 0px CSS drop-shadows lay the same faint resting tint instead (styles.css)
+// and the outer <svg>'s two 0px CSS drop-shadows lay the same faint resting tint instead (css/app.css)
 function setGlow({farStd, farAlpha, haloA, haloB}){
   document.getElementById('sigilBlurFar').setAttribute('stdDeviation', farStd.toFixed(2));
   document.getElementById('sigilBlurFarColor').setAttribute('values', `0.55 0 0 0 0  0 0.55 0 0 0  0 0 0.55 0 0  0 0 0 ${farAlpha.toFixed(2)} 0`);
@@ -394,7 +394,7 @@ function buildSigil(spell){
   const colorAt = i => tradColor(colorSlotTrads[i % colorSlotTrads.length], tradJitters[i % colorSlotTrads.length]);
 
   ['sigilHaloA', 'sigilHaloB'].forEach(id => document.getElementById(id).setAttribute('flood-color', colorAt(0)));
-  document.getElementById('sigil').style.setProperty('--glowcolor', colorAt(0)); // the resting tint (styles.css)
+  document.getElementById('sigil').style.setProperty('--glowcolor', colorAt(0)); // the resting tint (css/app.css)
   const glowGen = resetGlow(); // glow stays pinned at floor until the sigil finishes drawing (see totalEnd below)
 
   // focus spells are personal magic rather than drilled tradition magic, so they're drawn less formally:
@@ -959,7 +959,7 @@ function buildSigil(spell){
   // readout
   document.getElementById('roName').textContent = spell.name;
   document.getElementById('roName').style.setProperty('--nameglow', colorAt(0));
-  // a long name is set smaller when the readout sits in the stage's corners (see styles.css)
+  // a long name is set smaller when the readout sits in the stage's corners (see css/app.css)
   document.getElementById('roName').classList.toggle('long', spell.name.length > 24);
   document.getElementById('roRank').textContent =
     (rank===0?'Cantrip':ORDINAL[Math.min(rank,10)]+'-rank');

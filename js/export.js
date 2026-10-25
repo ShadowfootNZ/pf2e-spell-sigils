@@ -95,7 +95,7 @@ function sigilSvgClone({keepComets = false, box = null, size = EXPORT_MAX, groun
     // an inked sigil doesn't glow; on screen the stylesheet takes off any glow filter the sigil carries
     clone.querySelector('#sigilRoot').removeAttribute('filter');
   } else {
-    // the page's own ground, as body's background in styles.css draws it
+    // the page's own ground, as body's background in css/app.css draws it
     if (ground) layGround('ground', [[0, '#0b0d16'], [1, '#05060a']], '30%');
     // the glow filter, which on screen the sigil carries only while the glow shows: at rest its 0px halos
     // lay the faint tint that the stylesheet's drop-shadows give the live sigil, and the clone has no

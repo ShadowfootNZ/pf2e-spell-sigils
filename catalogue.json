@@ -1,9 +1,9 @@
 {
   "slug": "pf2e-spell-sigils",
   "title": "Spell Sigils",
-  "summary": "Animated magic circles for Pathfinder Second Edition spells, each derived from the spell's rank, traditions, traits and category.",
+  "summary": "Animated magic circles for Pathfinder 2e spells, each derived from the spell's rank, traditions, traits and category.",
   "tagline": "An animated magic circle for every Pathfinder spell.",
-  "description": "Pick any of more than 2,000 Pathfinder Second Edition spells, focus spells and rituals and watch its magic circle draw itself. Rank, traditions, traits and category decide the sigil's bands, geometry, colours and glyphs, and a random stream seeded on the spell's identity fills in the rest, so a spell always produces the same sigil.",
+  "description": "Pick any of more than 2,000 Pathfinder Second Edition spells, focus spells and rituals and watch its magic circle draw itself. Rank, traditions, traits and category decide the sigil's bands, geometry, colours and glyphs, and a random stream seeded on the spell's identity fills in the rest, so a spell always produces the same sigil, and each spell is different.",
   "features": [
     {
       "title": "Drawn from the rules",
@@ -19,7 +19,7 @@
     },
     {
       "title": "Focus spells",
-      "description": "Focus spells take their class's colour and are written as spaced script with no ruled lines, as personal magic rather than drilled tradition magic."
+      "description": "Focus spells take their class's colour and are written as spaced script with no ruled lines, as personal magic rather than tradition magic."
     },
     {
       "title": "Search and filter",
@@ -51,8 +51,8 @@
     }
   ],
   "origin": {
-    "title": "TODO: the problem or question that prompted Spell Sigils.",
-    "body": "TODO: a short first-person account of why you built it."
+    "title": "From props to code",
+    "body": "I used to make scrolls as props for my players, and I wanted them to have a distinct visual element so that a scroll wasn't simply a page of words. Finding or making the images wasn't easy. Years later, after our move to digital, I still liked the art of casters surrounded by magic as they cast. I decided to see if I could create a magic circle in code, with enough parameters to vary it but rules to follow, so that every sigil shared common elements. Traits and traditions were the answer to that. The result is Spell Sigils. At first it was only the glowing version on screen, but given where the idea started, I wanted a way for people to make their own scroll art, and to share it."
   },
   "repoUrl": "https://github.com/ShadowfootNZ/pf2e-spell-sigils",
   "appUrl": "https://apps.shadowfoot.com/pf2e-sigils/",

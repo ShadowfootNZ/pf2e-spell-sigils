@@ -157,7 +157,7 @@ function inkRules(scope){
     ${r} [data-part="core"]{filter:none;}`;
 }
 document.head.appendChild(Object.assign(document.createElement('style'), {textContent: inkRules('.stage.parchment ')}));
-// the paper and the ink for the rest of the stage's parchment styling (styles.css)
+// the paper and the ink for the rest of the stage's parchment styling (css/app.css)
 [['--parchment-ink', PARCHMENT.ink], ...PARCHMENT.paper.map((c, i) => [`--paper-${i}`, c])]
   .forEach(([name, value]) => document.documentElement.style.setProperty(name, value));
 
@@ -188,7 +188,7 @@ maxGlowToggle.addEventListener('click', () => {
 document.getElementById('sigilVersion').textContent = `Sigils v${SIGIL_VERSION}`;
 
 /* ---------------- phone drawer ---------------- */
-// on a phone the sidebar is a drawer over the page (see styles.css): body.drawer-open slides it in and
+// on a phone the sidebar is a drawer over the page (see css/app.css): body.drawer-open slides it in and
 // stops the page behind it scrolling. On wider screens the class has no effect, so nothing here needs to
 // know which layout is showing.
 const drawerOpenBtn = document.getElementById('drawerOpen');

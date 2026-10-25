@@ -5,7 +5,8 @@
 // test/sigils.snapshot. It also lets a few sigils finish drawing by themselves and checks their copied
 // images in both display modes, the path that once lost whole bands without any sigil changing, and
 // makes a short animation in each format the browser can handle and plays it back. In parchment it
-// checks the SVG file too. Every symbol must also carry a note for the atlas.
+// checks the SVG file too. Every symbol must also carry a note for the atlas, and the atlas and help pages
+// must load without errors.
 //
 // Usage: npm test              compare with the baseline; exits 1 on any difference
 //        npm run test:update   rewrite the baseline to match, after an intended change
@@ -33,7 +34,7 @@ const COPY_SPELLS = ["cataclysm", "freedom", "lay-on-hands"];
 const ANIMATION_SPELL = "electric-arc";
 
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json",
-  ".png": "image/png", ".ico": "image/x-icon", ".svg": "image/svg+xml" };
+  ".png": "image/png", ".ico": "image/x-icon", ".svg": "image/svg+xml", ".woff2": "font/woff2", ".txt": "text/plain; charset=utf-8" };
 
 // the page is always served over HTTP, never opened from disk, so serve the repository the same way
 function serve(){
@@ -211,6 +212,25 @@ try {
     [["dark", dark], ["parchment", parchment]].filter(([, p]) => p.length).map(([mode, p]) => `${slug} (${mode}): ${p.join("; ")}`));
   if (copyFailures.length){ console.log("Copy check failed:"); copyFailures.forEach(f => console.log("  " + f)); failed = true; }
   else console.log(`Copy check: ${COPY_SPELLS.join(", ")}, dark and parchment, all complete.`);
+
+  // ---- the atlas and help pages: they load their own stylesheets and scripts and the fonts, and the
+  // atlas draws a card for every symbol and the empty station
+  const pageProblems = [];
+  for (const file of ["atlas.html", "help.html"]){
+    const p = await browser.newPage();
+    watch(p);
+    await p.goto(base + file, { waitUntil: "networkidle0" });
+    const { cards, fonts } = await p.evaluate(async () => { await document.fonts.ready;
+      return { cards: document.querySelectorAll(".card").length, fonts: [...document.fonts].filter(f => f.status === "loaded").length }; });
+    if (file === "atlas.html"){
+      const expected = await p.evaluate(() => Object.keys(GLYPHS).length + Object.keys(SKILL_SIGILS).length + RUNE_COUNT + 1);
+      if (cards !== expected) pageProblems.push(`atlas has ${cards} cards, not ${expected}`);
+    }
+    if (!fonts) pageProblems.push(`${file} loaded no fonts`);
+    await p.close();
+  }
+  if (pageProblems.length){ console.log("Pages check failed:", pageProblems.join("; ")); failed = true; }
+  else console.log("Pages check: the atlas and help load, with their fonts.");
 
   // ---- animations: each format made, then played back to its full length and size
   const p = await browser.newPage();

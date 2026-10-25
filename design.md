@@ -8,8 +8,10 @@ Spell Sigils draws an animated magic circle for each Pathfinder Second Edition s
 
 | File | Role |
 | --- | --- |
-| `index.html` | Page markup. Loads the stylesheet and the four scripts. |
-| `styles.css` | All styling. |
+| `index.html` | Page markup. Loads `css/base.css`, `css/app.css` and the five scripts. |
+| `css/base.css` | What every page shares: the self-hosted fonts' `@font-face` rules, the colour variables, the base type and links, and the layout the atlas and help pages share as documents, which they take by `class="doc"` on `<html>`. Loaded first. |
+| `css/app.css` | The app's own layout and styling. Called `styles.css` until 2026-10-26. |
+| `fonts/` | Cinzel, EB Garamond (upright and italic) and JetBrains Mono as WOFF2: the latin subsets of Google Fonts' variable files, about 150 KB together, with each family's SIL Open Font License. The latin subset covers every character in the pages and the spell data. Served from the site since 2026-10-26, so no page makes a third-party request. Cinzel is declared from weight 500, so text asking for 400 gets 500 as it did before. |
 | `js/core.js` | Seeded random numbers, colors and SVG helpers. |
 | `js/symbols.js` | `GLYPHS`, `SKILL_SIGILS` and `RUNES`, each entry a drawing and the note the atlas shows for it. |
 | `js/sigil.js` | `buildSigil`, the sigil's clock, glow and comets. |
@@ -18,8 +20,8 @@ Spell Sigils draws an animated magic circle for each Pathfinder Second Edition s
 | `js/vendor/` | `mp4-muxer` 5.2.2 and `webm-muxer` 5.1.4 by Vanilagy, MIT, vendored unchanged with their licences. They pack encoded video into a file, and load only when an animation is made. Both are deprecated in favour of the much larger, MPL-licensed Mediabunny; the file formats they write don't change. |
 | `data/spells.json` | The spell data, one record per line, fetched at startup. |
 | `data/classes.json` | The hue for each class's focus spells, in the order classes were first seen. Fetched at startup; the refresh appends new classes. |
-| `atlas.html` | Symbol atlas: every rune, trait glyph and skill sigil drawn live from `js/symbols.js`, labelled with each symbol's note. |
-| `help.html` | How to read a sigil and use the page, kept short so the rest is found by exploring, with example links that open the main page on a spell; then Paizo's notice and the credits. A static page with its own styles, like the atlas. |
+| `atlas.html`, `css/atlas.css`, `js/atlas.js` | Symbol atlas: every rune, trait glyph and skill sigil drawn live from `js/symbols.js`, labelled with each symbol's note. No page has inline styles or scripts. |
+| `help.html`, `css/help.css` | How to read a sigil and use the page, kept short so the rest is found by exploring, with example links that open the main page on a spell; then Paizo's notice and the credits. A static page, styled by `css/base.css` and `css/help.css`. |
 | `favicon*` | The site icon, a pair of footprints, as `favicon.ico` (16 and 32px) and PNGs at 16, 32, 192 and 512px. Both pages link the ICO, the 32 and the 192, which is also the iPhone home-screen icon; the 512 waits for a web app manifest. |
 | `refresh-data.mjs` | Updates the sparse clone of `foundryvtt/pf2e` in `.cache/pf2e-pack` and rebuilds `data/spells.json` from it. |
 | `test/snapshots.mjs` | Render regression check, run with `npm test`; see Snapshots below. |
@@ -30,7 +32,7 @@ Spell Sigils draws an animated magic circle for each Pathfinder Second Edition s
 | `LICENSE` | MIT License for the original code. |
 | `catalogue.json` | The app's entry in the apps catalogue at apps.shadowfoot.com, read by the apps-site repository. Not deployed. |
 | `docs/` | Catalogue images named in `catalogue.json`. Not deployed. |
-| `.github/workflows/deploy-ssh.yml` | On every push to `main`, runs `npm test` and, if it passes, deploys the pages, stylesheet, scripts, data, icons and `.htaccess` over SSH. Each deploy is unpacked into a fresh folder beside the live one, which then takes its place, so the server holds exactly the listed files and no visitor gets half of one deploy. |
+| `.github/workflows/deploy-ssh.yml` | On every push to `main`, runs `npm test` and, if it passes, deploys the pages, stylesheets, scripts, data, fonts, icons and `.htaccess` over SSH. Each deploy is unpacked into a fresh folder beside the live one, which then takes its place, so the server holds exactly the listed files and no visitor gets half of one deploy. |
 | `.htaccess` | Sends `Cache-Control: no-cache`, so browsers check every file for a newer copy before using a cached one, and a new page is never paired with old scripts. Apache sent no caching header before, which let browsers reuse files for hours after a deploy. |
 | `.cache/` | Gitignored, disposable sparse clone of `packs/pf2e/spells` and `packs/pf2e/classes`. |
 

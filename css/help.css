@@ -1,0 +1,14 @@
+/* Spell Sigils: the help page (help.html), after base.css. A short read: lists of what to look for, then
+   the notices */
+:root{--measure:680px;}
+body{font-size:1.08rem; line-height:1.55;}
+header{margin-bottom:44px;}
+h2{font-family:'Cinzel', serif; font-weight:700; letter-spacing:.06em; text-transform:uppercase; font-size:1rem; margin:40px 0 14px; padding-bottom:10px; border-bottom:1px solid var(--line);}
+ul{list-style:none; margin:0; padding:0;}
+li{margin:0 0 12px;}
+li b{font-family:'Cinzel', serif; font-weight:700; font-size:.92rem; letter-spacing:.03em;}
+.eg{color:var(--ink-dim); font-style:italic; white-space:nowrap;}
+.trad{font-weight:700; font-style:normal;}
+.trad.arcane{color:hsl(var(--arcane));} .trad.divine{color:hsl(var(--divine));} .trad.occult{color:hsl(var(--occult));} .trad.primal{color:hsl(var(--primal));}
+.notices p{color:var(--ink-dim); font-size:.95rem; margin:0 0 12px;}
+.back{text-align:center; margin-top:44px;}

@@ -9,17 +9,15 @@
 <link rel="icon" href="favicon-32x32.png" type="image/png" sizes="32x32">
 <link rel="icon" href="favicon-192x192.png" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="favicon-192x192.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=EB+Garamond:ital@0;1&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/app.css">
 <!-- start fetching the spell data with the page instead of after the scripts run; js/ui.js picks it up -->
 <link rel="preload" href="data/spells.json" as="fetch" crossorigin>
 <link rel="preload" href="data/classes.json" as="fetch" crossorigin>
 </head>
 <body>
 <div class="app">
-  <!-- on a phone the sidebar becomes a drawer that slides over the page (see styles.css) -->
+  <!-- on a phone the sidebar becomes a drawer that slides over the page (see css/app.css) -->
   <aside class="sidebar" id="sidebar">
     <h1>Spell Sigils<span>drawn from the four currents</span></h1>
     <button class="drawer-close" id="drawerClose" type="button" aria-label="Close the spell list">×</button>
@@ -101,7 +99,7 @@
         <p class="export-status" id="exportStatus" aria-live="polite"></p>
       </div>
     </div>
-    <!-- under the circle in a portrait stage; split into the corners in a landscape one (see styles.css) -->
+    <!-- under the circle in a portrait stage; split into the corners in a landscape one (see css/app.css) -->
     <div class="readout">
       <div class="title">
         <div class="note" id="roNote" hidden></div>

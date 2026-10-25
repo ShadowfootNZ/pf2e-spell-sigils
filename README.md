@@ -45,7 +45,7 @@ Spell Sigils uses trademarks and/or copyrights owned by Paizo Inc., used under P
 
 - **Code.** The original code in this repository is released under the MIT License; see [LICENSE](LICENSE). The licence does not cover material owned by Paizo Inc.: spell names, traits and other game terms, Golarion names, and the runes based on Paizo's Cosmic Caravan artwork. That material is used here under the Community Use Policy, and anyone reusing it must follow that policy themselves.
 - **Spell data.** Extracted from the [Pathfinder Second Edition system for Foundry VTT](https://github.com/foundryvtt/pf2e), created and maintained by the PF2E for Foundry VTT volunteer development team.
-- **Fonts.** Cinzel and EB Garamond, plus JetBrains Mono in the atlas, loaded from Google Fonts under the SIL Open Font License.
+- **Fonts.** Cinzel and EB Garamond, plus JetBrains Mono in the atlas, under the SIL Open Font License, served from `fonts/` with their licences.
 - **Video.** [mp4-muxer](https://github.com/Vanilagy/mp4-muxer) and [webm-muxer](https://github.com/Vanilagy/webm-muxer) by Vanilagy, under the MIT License, in `js/vendor/`.
 
 Questions and problems: [open an issue](https://github.com/ShadowfootNZ/pf2e-spell-sigils/issues).
