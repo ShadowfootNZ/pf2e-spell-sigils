@@ -26,7 +26,7 @@ import puppeteer from "puppeteer";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const BASELINE = path.join(ROOT, "test", "sigils.snapshot");
 const UPDATE = process.argv.includes("--update");
-const RELOAD_EVERY = 250; // a fresh page now and then keeps memory flat across 2000 builds
+const RELOAD_EVERY = 250; // periodic reloads keep browser memory flat
 // copy checks: a rank 10 spell with seven ring medallions, a mythic ritual with caster stations, and a
 // class focus spell with writing-only bands
 const COPY_SPELLS = ["cataclysm", "freedom", "lay-on-hands"];

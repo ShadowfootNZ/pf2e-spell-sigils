@@ -1,9 +1,5 @@
-/* Spell Sigils: what every page shares, loaded before the page's own stylesheet. The fonts, the colours
-   and the base type, then the layout of the atlas and help pages, which read as documents rather than as
-   the app and mark themselves with class="doc" on <html>. The fonts are served from fonts/ at the top of the site: the latin
-   subsets of Google Fonts' variable files, which hold every character the pages and the spell data use,
-   under the SIL Open Font License (fonts/OFL-*.txt). Cinzel's file runs from weight 400, but it's
-   declared from 500, so text that asks for 400 gets 500, as it did when only 500 and 700 were loaded */
+/* Shared fonts, colours, base type and document-page layout. The self-hosted fonts are licensed under
+   the SIL Open Font License in fonts/OFL-*.txt. Cinzel is deliberately exposed from weight 500. */
 @font-face{font-family:'Cinzel'; font-style:normal; font-weight:500 700; font-display:swap; src:url(../fonts/cinzel.woff2) format('woff2');}
 @font-face{font-family:'EB Garamond'; font-style:normal; font-weight:400 700; font-display:swap; src:url(../fonts/eb-garamond.woff2) format('woff2');}
 @font-face{font-family:'EB Garamond'; font-style:italic; font-weight:400 700; font-display:swap; src:url(../fonts/eb-garamond-italic.woff2) format('woff2');}

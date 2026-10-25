@@ -2,6 +2,8 @@
 
 Spell Sigils draws an animated magic circle for each Pathfinder Second Edition spell. Every sigil is derived from the spell's rank, traditions, traits and category, using a random stream seeded on the spell's identity, so a spell always produces the same sigil.
 
+[Use Spell Sigils](https://apps.shadowfoot.com/pf2e-sigils/).
+
 This is unofficial fan content. See [Licence and credits](#licence-and-credits).
 
 ## Using it
@@ -12,7 +14,7 @@ Serve this folder from any static web server and open it in a browser. The page 
 python3 -m http.server   # then open http://localhost:8000
 ```
 
-Search or filter the spell list and pick a spell. Export copies, saves or shares the sigil as a PNG image, or as an MP4 or WebM animation of it being drawn.
+Search or filter the spell list and pick a spell. Export can copy, save or share a PNG with or without its background, save or share an SVG in parchment mode, or make an MP4 or WebM animation of the sigil being drawn.
 
 ## Updating the spell data
 
@@ -31,13 +33,7 @@ npm install
 npm test
 ```
 
-`help.html` is the page's own short guide to reading a sigil. `design.md` explains how the tool works, `plan.md` lists open work, and `atlas.html` shows every rune, trait glyph and skill sigil the sigils are drawn from.
-
-## Deployment
-
-Pushes to `main` run `npm test` on GitHub Actions and, if it passes, deploy the static app over SSH using `.github/workflows/deploy-ssh.yml`. Each deploy replaces the live folder whole, so anything in it that the workflow doesn't list is removed. The workflow expects `SSH_PRIVATE_KEY`, `SSH_USER`, `SSH_HOST` and `REMOTE_PATH` as GitHub Actions secrets. The app is served under `/pf2e-sigils/`, so paths in the pages must stay relative.
-
-`catalogue.json` describes the app for the [apps catalogue](https://apps.shadowfoot.com/), and `docs/` holds its catalogue images. Neither is deployed with the app.
+[design.md](design.md) explains how the tool works, [plan.md](plan.md) lists open work, and [atlas.html](atlas.html) shows every rune, trait glyph and skill sigil used in the drawings.
 
 ## Licence and credits
 

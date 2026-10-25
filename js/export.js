@@ -1,10 +1,7 @@
-// Spell Sigils: exporting the sigil from the toolbar's Export panel, as a PNG image or an MP4 or WebM
-// animation, by copying, saving or the system share sheet.
+// Spell Sigils: still-image and video export.
 
 /* ---------------- the sigil as a standalone SVG ---------------- */
 const EXPORT_MAX = 1200; // a PNG's long side, in pixels
-// the animation: a square video, drawn from blank through the drawing and its flash, then held for a
-// moment on the finished sigil with its comets circling
 const ANIMATION = {size:720, fps:30, hold:2000, bitrate:3e6};
 const FORMATS = {
   mp4:  {label:'MP4', mime:'video/mp4', ext:'mp4', codec:'avc1.42001f', script:'js/vendor/mp4-muxer.js',
@@ -15,14 +12,9 @@ const FORMATS = {
            firstTimestampBehavior:'offset'}), target: () => new WebMMuxer.ArrayBufferTarget()},
 };
 
-// A standalone copy of the sigil as it is on screen, as SVG markup, `size` pixels on its long side.
-// `box` fixes the area shown (an animation's frames all show the same square); without it the copy fits
-// the drawing. Comets are left out of an image, which shows the drawing, but kept in an animation's
-// frames. `ground` lays the mode's background, the page's dark ground or the paper, under the drawing;
-// without it the background is transparent. An animation's frames always have one. `tint` lays the
-// resting tint (see below), which an animation's frames leave out: drawn on every frame, the glow filter
-// made Safari take a quarter of a second per frame. `bake` makes an SVG for other programs (see below).
-// Everything up to the returned string runs synchronously, so the state on screen is taken at one moment
+// Clone the current sigil as standalone SVG. `box` fixes the frame; `ground` adds the mode's background;
+// `tint` adds the resting glow; `bake` replaces CSS with attributes for other SVG readers. The clone is
+// captured synchronously so every computed value comes from one moment.
 function sigilSvgClone({keepComets = false, box = null, size = EXPORT_MAX, ground = false, tint = true, bake = false} = {}){
   const svgEl = document.getElementById('sigil');
   // the live viewBox is a fixed 0 0 600 600, but ring medallions routinely straddle/exceed that box —
@@ -238,12 +230,8 @@ async function makeAnimation(format, {onProgress = () => {}, signal = new AbortC
 }
 
 /* ---------------- the Export panel ---------------- */
-// What to export, an image or an animation in either format, then what to do with it: copy (a PNG
-// only; no browser can put a video on the clipboard, and few take an SVG), save, or share through the
-// system share sheet where there is one. An image comes with or without the mode's background, and an
-// inked one can also be an SVG. An image waits for the drawing and its flash to finish, so it's never taken
-// mid-draw; an animation draws the spell afresh, so it can start any time. The share sheet has to open
-// from a tap, and an animation takes seconds to make, so sharing one asks for a second tap once it's ready.
+// Still images wait for the live drawing to finish. Animations draw afresh. Sharing an animation takes two
+// taps because the system sheet must open directly from user activation after the file has been prepared.
 const exportOpen = document.getElementById('exportOpen');
 const exportPanel = document.getElementById('exportPanel');
 const exportFormat = document.getElementById('exportFormat');
@@ -268,7 +256,6 @@ let imageForShare = null;  // a PNG made ahead, so Share can open the sheet stra
 const exportKind = () => exportPanel.querySelector('input[name="exportKind"]:checked').value;
 const parchmentOn = () => document.querySelector('.stage').classList.contains('parchment');
 const glowOn = () => maxGlowToggle.getAttribute('aria-pressed') === 'true';
-// the image's format: an SVG only of an inked sigil, whose look needs no filters
 const imageType = () => parchmentOn() && imageFormat.value === 'svg' ? 'svg' : 'png';
 const animationKey = () => `${currentSlug}|${parchmentOn()}|${exportFormat.value}`;
 const imageKey = () => `${currentSlug}|${parchmentOn()}|${glowOn()}|${imageType()}|${exportGround.checked}`;

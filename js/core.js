@@ -55,19 +55,8 @@ function pickNoneHue(rng){
 function pickRitualHue(rng){
   return rng()*360;
 }
-// class focus spells get a color tied to their class rather than a per-spell random roll, so every
-// spell from the same class reads as the same color family — still not deconflicted against
-// tradition/ritual hues (that overlap is fine, per explicit instruction), but classes *are* deconflicted
-// from each other: a plain hash of each name landed necromancer and sorcerer on the exact same hue by
-// coincidence, which reads as a real bug (two different classes looking identical) rather than an
-// accepted overlap. Golden-angle spacing (137.50776...°, the angle that keeps rotational increments
-// maximally spread no matter how many steps you take) gives every class its own hue.
-//
-// The hues live in data/classes.json, one entry per class in the order classes were first seen, and
-// init() in js/ui.js loads them into this table. refresh-data.mjs appends any new class from the
-// compendium with the next golden-angle hue (index × 137.50776°, mod 360), so an existing class's color
-// never changes. A class missing from the file still gets a stable hue from the plain hash below, just
-// not a deconflicted one.
+// Class focus spells share their class hue. refresh-data.mjs appends golden-angle hues to
+// data/classes.json so existing classes never move; the name hash is a stable fallback.
 const FOCUS_CLASS_HUE = {};
 function hueForClass(name){
   return FOCUS_CLASS_HUE[name] != null ? FOCUS_CLASS_HUE[name] : hashString(name) % 360;

@@ -80,8 +80,7 @@ const GLYPHS = {
   wood:      {note:"A tree, trunk and canopy", draw:g=>{gline(g,12,21,12,14); gpath(g,'M12,15 C7,15 6,11 8,8 C6,7 7,4 10,4 C10,2.5 14,2.5 14,4 C17,4 18,7 16,8 C18,11 17,15 12,15 Z');}},
 };
 
-// sigils for the skills a ritual's casters use, drawn in their caster stations (plan item 42). Same 24x24
-// box and helpers as GLYPHS, kept alphabetical, and only ever looked up by skill name through skillSigil().
+// Ritual caster-station sigils, using the same 24x24 box and helpers as GLYPHS. Kept alphabetical.
 const SKILL_SIGILS = {
   acrobatics:   {note:"A tumbler's leap: an arc over the ground with the figure at its peak", draw:g=>{gline(g,3,20,21,20); gpath(g,'M5,18 C5,7 19,7 19,16'); gline(g,19,16,16.6,13.8); gline(g,19,16,21.3,13.6); gcircle(g,12,4.8,1.5,'currentColor');}},
   arcana:       {note:"A wand tipped with a four-pointed spark", draw:g=>{gline(g,4.5,19.5,13.5,10.5); gline(g,6,21,3,18); gpath(g,'M17,3 L18,6 L21,7 L18,8 L17,11 L16,8 L13,7 L16,6 Z');}},

@@ -1,23 +1,7 @@
 #!/usr/bin/env node
-// Rebuilds data/spells.json from the real foundryvtt/pf2e compendium (packs/pf2e/spells +
-// packs/pf2e/classes), read from a disposable sparse clone in .cache/pf2e-pack.
-//
-// Every record is rebuilt from its spell file: name, rank, traditions, traits and rarity, the
-// folder-derived category, plus casters for rituals and focusClass for focus spells. Spells gone upstream
-// are dropped, new ones are added, and every addition, removal and field change is printed.
-//
-// It also keeps data/classes.json, the hue for each class's focus spells: a class seen for the first
-// time is appended with the next golden-angle hue, so no existing class's color ever changes.
-//
-// Records are matched to the existing file by *name*, and the slug is carried over rather than rederived:
-// it identifies the spell in URLs and seeds the render, and 125 existing slugs keep punctuation that the
-// compendium's file names drop (achaekek's-clutch vs achaekeks-clutch, hop,-skip,-jump vs
-// hop-skip-jump). A new spell takes its file name as its slug. Any other upstream change is free to
-// change a sigil.
-//
-// Traits and traditions are stored in alphabetical order. Glyph placement shuffles the curated traits in
-// stored order and colors cycle through traditions in stored order, so a fixed order means upstream
-// reordering a list never redraws a sigil on its own.
+// Rebuilds data/spells.json and data/classes.json from a disposable sparse clone of foundryvtt/pf2e.
+// Existing slugs are preserved because they identify URLs and seed the render; traits and traditions are
+// sorted so upstream reordering cannot redraw a sigil on its own. Every data change is printed.
 //
 // Usage: node refresh-data.mjs
 
@@ -47,11 +31,7 @@ async function refreshCache() {
   await mkdir(path.dirname(CACHE_DIR), { recursive: true });
   if (existsSync(path.join(CACHE_DIR, ".git"))) {
     console.log(`Updating existing cache at ${CACHE_DIR} ...`);
-    // fetch + hard reset, not `git pull`: this cache is
-    // disposable and read-only, and `pull` fails outright once upstream force-pushes its branch (seen
-    // 2026-09-10 when foundryvtt/pf2e force-updated v14-dev: "refusing to merge unrelated histories",
-    // since the shallow local history no longer shares an ancestor with the new tip). Resetting to
-    // FETCH_HEAD mirrors whatever the remote tip is now, and `clean -xdf` drops files a rewrite removed.
+    // The cache is disposable; reset instead of pulling because upstream may rewrite its branch history.
     await run("git", ["fetch", "--depth", "1", "origin"], CACHE_DIR);
     await run("git", ["reset", "--hard", "FETCH_HEAD"], CACHE_DIR);
     await run("git", ["clean", "-xdf"], CACHE_DIR);

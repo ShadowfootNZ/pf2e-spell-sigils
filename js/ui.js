@@ -1,7 +1,6 @@
 // Spell Sigils: the sidebar, readout, toolbar toggles, loading the spell data and startup.
 
 function el2(tag, cls, text){ const e=document.createElement(tag); e.className=cls; e.textContent=text; return e; }
-// a filter chip: a toggle button, its state in aria-pressed, which the stylesheet also keys on
 function chipButton(cls, text){
   const b = el2('button', cls, text);
   b.type = 'button';
@@ -10,24 +9,14 @@ function chipButton(cls, text){
 }
 function press(el, on){ el.setAttribute('aria-pressed', on ? 'true' : 'false'); }
 
-// every spell record, fetched from data/spells.json by init() at the bottom of this file
 let SPELLS = [];
 
 /* ---------------- sidebar / filters ---------------- */
-// empty trads/ranks sets mean "no filter applied" (show all) — see renderList — rather than
-// "match nothing," so chips start unselected and picking one narrows down from everything.
-// category ('none'/'ritual'/'focus', or null) is a separate axis from trads, and the two are mutually
-// exclusive rather than combined: picking one of Other/Ritual/Focus is "the only thing I'm interested
-// in" (clears any tradition selection), and picking a tradition backs back out of category mode. Both
-// stay visible at all times — neither hides the other, they just can't both be active together.
-// focusClass is a single nullable value, not a Set — picking one class deselects any other, the same
-// radio-button behavior Ritual/Focus/tradition already have relative to each other
+// Empty sets mean no filter. Category and tradition filters are mutually exclusive; focusClass is a
+// single selection within the Focus category.
 const state = { search:'', trads:new Set(), ranks:new Set(), category:null, focusClass:null };
 
 const classFilterEl = document.getElementById('classFilters');
-// leaves the class subselector row hidden and its own selection cleared — shared by every path that
-// backs out of (or switches away from) Focus specifically: a tradition chip, Ritual, or Focus itself
-// toggling off
 function resetClassFilter(){
   state.focusClass = null;
   classFilterEl.hidden = true;
@@ -42,8 +31,6 @@ const categoryChipEls = [];
   c.addEventListener('click', ()=>{
     if (state.trads.has(tr)) state.trads.delete(tr); else state.trads.add(tr);
     press(c, state.trads.has(tr));
-    // stepping into tradition-space backs out of category mode, even on a deselecting click —
-    // the two axes don't combine
     if (state.category !== null){
       state.category = null;
       categoryChipEls.forEach(el => press(el, false));
@@ -54,13 +41,7 @@ const categoryChipEls = [];
   tradFilterEl.appendChild(c);
 });
 
-// Ritual/Focus: a spell can only ever be in exactly one of these (or neither), so they act as one
-// mutually-exclusive group between themselves, and as a group they're mutually exclusive with the
-// tradition chips above too — activating one clears any active tradition selection. There's no third
-// "other" chip here — checked directly, every traditionless spell in the whole dataset is either a
-// ritual or a focus spell, so a generic catch-all for "traditionless and neither" would always be
-// empty. If that ever stops being true, a spell like that is still reachable by name via search with
-// nothing else selected.
+// Every traditionless spell is a ritual or focus spell, so there is no third category chip.
 ['ritual','focus'].forEach(cat=>{
   const c = chipButton('chip', cat);
   c.dataset.trad = cat;
@@ -73,8 +54,6 @@ const categoryChipEls = [];
         if (!categoryChipEls.includes(el)) press(el, false);
       });
     }
-    // the class subselector only makes sense while Focus is the active category — show it fresh on
-    // entry, and clear/hide it on every other transition (leaving Focus, or switching to Ritual)
     if (state.category === 'focus') classFilterEl.hidden = false;
     else resetClassFilter();
     renderList();
@@ -83,11 +62,7 @@ const categoryChipEls = [];
   categoryChipEls.push(c);
 });
 
-// class subselector — only appears while Focus is active (see above). Built from whichever classes
-// actually appear on a focus spell in the data (checked: 15 of the 29 real PF2E classes have at least
-// one), rather than the full canonical list, so there's never a chip that can only ever show zero
-// spells. 'other' covers the archetype-granted focus spells with no single owning class. Called by
-// init() once the data has loaded.
+// Build only classes present in focus-spell data; "other" covers spells without one owning class.
 function buildClassFilters(){
   const classCounts = {};
   SPELLS.forEach(s => { if (s.category === 'focus') classCounts[s.focusClass || 'other'] = (classCounts[s.focusClass || 'other']||0)+1; });
@@ -99,8 +74,6 @@ function buildClassFilters(){
     c.dataset.class = cls;
     if (cls !== 'other') c.style.setProperty('--class-hue', hueForClass(cls).toFixed(1));
     c.addEventListener('click', ()=>{
-      // single-select: picking a class deselects any other, same as Ritual/Focus/tradition are already
-      // mutually exclusive with each other one level up
       state.focusClass = state.focusClass === cls ? null : cls;
       classChipEls.forEach(el => press(el, state.focusClass === el.dataset.class));
       renderList();
@@ -128,14 +101,7 @@ document.getElementById('search').addEventListener('input', e=>{
 });
 
 /* ---------------- parchment: ink on paper ---------------- */
-// Parchment mode turns the whole stage to paper and redraws the sigil in ink, by CSS alone: nothing about
-// colorAt()/TRAD_HSL or the spell changes, and nothing is redrawn. Each part is written in the ink
-// buildSigil marked it with (data-ink): its tradition's period ink, or an ink from its own hue (TRAD_INK
-// and inkForHue in js/core.js), with the trait and skill sigils picked out in red, as rubrication in a
-// manuscript. Anything unmarked is a warm near-black. An inked sigil doesn't
-// glow: the halos and the comets' light go, a draw-on spark keeps only its core, as an ink dot riding the
-// tip like a pen nib, and once drawn the sigil sits still (setIdleStill). These colours and the sigil's
-// rules are defined here, once, for the page and for copied images, whose standalone SVG has no stylesheet
+// Shared parchment palette and rules for the page and standalone exported SVGs.
 const PARCHMENT = {ink:'#2b2520', red:'#a3301f', paper:['#faf7ef', '#f4efe3', '#e8dfcc']};
 // the sigil's ink rules, inside `scope` (the page's parchment stage, or nothing in a copied image). They
 // override the colours the sigil is drawn with as attributes, which any CSS rule outranks; the sigils'
@@ -172,11 +138,7 @@ document.getElementById('bgToggle').addEventListener('click', function(){
 });
 
 /* ---------------- max glow ---------------- */
-// "max glow" is a direct toggle on the live sigil rather than an export-time-only state: click it to hold
-// the glow at the peak of startGlow()'s flash, click again to drop back to the floor resetGlow() itself
-// uses. The glow is an SVG filter on the sigil itself, so an exported image (js/export.js) snapshots
-// whatever's currently on screen — no forcing or restoring inside the export, so "which glow state did I
-// get" is always exactly whatever the toggle (and the page's own settle-after-draw sequence) left it at.
+// Export snapshots the live max-glow state without changing it.
 const maxGlowToggle = document.getElementById('maxGlowToggle');
 maxGlowToggle.addEventListener('click', () => {
   const on = maxGlowToggle.getAttribute('aria-pressed') !== 'true';
@@ -184,13 +146,10 @@ maxGlowToggle.addEventListener('click', () => {
   setGlow(on ? GLOW_PEAK : GLOW_FLOOR);
   if (glowTooSlow || !on) setIdleStill('max glow', on);
 });
-// the drawing rules' version, in the footer (see SIGIL_VERSION in js/sigil.js)
 document.getElementById('sigilVersion').textContent = `Sigils v${SIGIL_VERSION}`;
 
 /* ---------------- phone drawer ---------------- */
-// on a phone the sidebar is a drawer over the page (see css/app.css): body.drawer-open slides it in and
-// stops the page behind it scrolling. On wider screens the class has no effect, so nothing here needs to
-// know which layout is showing.
+// body.drawer-open controls the phone drawer; wider layouts ignore it.
 const drawerOpenBtn = document.getElementById('drawerOpen');
 // focusInside: move keyboard focus into the drawer as it opens. Only for a keyboard press: focus inside
 // would otherwise show a ring after a tap. On closing, focus that was inside goes back to the Spells button

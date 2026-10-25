@@ -17,7 +17,6 @@
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="The sigil of Compel True Name beside the words Spell Sigils">
 <meta name="twitter:card" content="summary_large_image">
-<!-- the 512px icon is for a web app manifest, should the site get one -->
 <link rel="icon" href="favicon.ico" sizes="16x16 32x32">
 <link rel="icon" href="favicon-32x32.png" type="image/png" sizes="32x32">
 <link rel="icon" href="favicon-192x192.png" type="image/png" sizes="192x192">
@@ -30,7 +29,6 @@
 </head>
 <body>
 <div class="app">
-  <!-- on a phone the sidebar becomes a drawer that slides over the page (see css/app.css) -->
   <aside class="sidebar" id="sidebar">
     <h1>Spell Sigils<span>drawn from the four currents</span></h1>
     <button class="drawer-close" id="drawerClose" type="button" aria-label="Close the spell list">×</button>
@@ -53,7 +51,7 @@
         <defs>
           <!-- every part of the glow lives in this one filter, driven by setGlow (js/sigil.js): Safari
                ignores CSS drop-shadow() on SVG elements, and drops the whole filter list with it.
-               Copied images always use it (captureSigilSvg in js/ui.js) -->
+               Copied images always use it (captureSigilSvg in js/export.js) -->
           <filter id="sigilGlow" x="-60%" y="-60%" width="220%" height="220%">
             <!-- a wide, dim haze in a darkened version of each line's own color, behind the crisp lines -->
             <feGaussianBlur id="sigilBlurFar" in="SourceGraphic" stdDeviation="0" result="blurFar"/>
@@ -73,31 +71,24 @@
         <g id="sigilRoot" class="glow"></g>
       </svg>
     </div>
-    <!-- the two display modes, lit while on, then Export -->
     <div class="toolbar" id="toolbar">
       <button class="tool" id="bgToggle" type="button" aria-pressed="false" aria-label="Parchment" title="Parchment">
-        <!-- a hanging scroll: a roll at each end, the sheet between them, two lines of writing -->
         <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="4" rx="2"/><rect x="4" y="17" width="16" height="4" rx="2"/><path d="M6 7v10M18 7v10M9 10.5h6M9 13.5h4"/></svg>
       </button>
       <button class="tool" id="maxGlowToggle" type="button" aria-pressed="false" aria-label="Max glow" title="Max glow">
-        <!-- a sun -->
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12h2.5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></svg>
       </button>
       <span class="tool-gap"></span>
       <button class="tool" id="exportOpen" type="button" aria-label="Export" title="Export" aria-haspopup="dialog" aria-expanded="false" aria-controls="exportPanel">
-        <!-- an arrow up out of an open box -->
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M7 11H5v9h14v-9h-2"/></svg>
       </button>
-      <!-- what to export, then what to do with it (js/export.js) -->
       <div class="export-panel" id="exportPanel" role="dialog" aria-label="Export" hidden>
         <div class="export-what" role="radiogroup" aria-label="What to export">
-          <!-- an inked sigil can also be an SVG, for documents and print -->
           <label><input type="radio" name="exportKind" value="image" checked> Image <span class="fmt" id="imagePng">PNG</span>
             <select id="imageFormat" aria-label="Image format" hidden><option value="png">PNG</option><option value="svg">SVG</option></select></label>
           <label><input type="radio" name="exportKind" value="animation"> Animation
             <select id="exportFormat" aria-label="Animation format"><option value="mp4">MP4</option><option value="webm">WebM</option></select></label>
         </div>
-        <!-- an image's background, the dark ground or the paper as the mode has it; a video always has one -->
         <label class="export-ground"><input type="checkbox" id="exportGround"> <span id="exportGroundLabel">Dark background</span></label>
         <div class="export-actions">
           <button type="button" id="exportCopy">Copy</button>
@@ -112,7 +103,6 @@
         <p class="export-status" id="exportStatus" aria-live="polite"></p>
       </div>
     </div>
-    <!-- under the circle in a portrait stage; split into the corners in a landscape one (see css/app.css) -->
     <div class="readout">
       <div class="title">
         <div class="note" id="roNote" hidden></div>
