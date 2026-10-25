@@ -34,8 +34,8 @@
       "description": "Holds the sigil at the peak of the glow it flashes once when it finishes drawing."
     },
     {
-      "title": "Copy and save",
-      "description": "Copy the sigil to the clipboard or save it as a PNG, in either look."
+      "title": "Export",
+      "description": "Copy, save or share the sigil as a PNG, with or without its background, or as an animation of it being drawn, in MP4 or WebM. In parchment mode it can also be saved as an SVG, which stays sharp at any size in a document or in print."
     },
     {
       "title": "A link for every spell",
@@ -44,6 +44,18 @@
     {
       "title": "Symbol atlas",
       "description": "A separate page shows every rune, trait glyph and skill sigil the sigils are drawn from."
+    },
+    {
+      "title": "Help",
+      "description": "A short guide to reading a sigil, with example spells to open."
+    },
+    {
+      "title": "Reduced motion",
+      "description": "With the system set to reduce motion, each sigil fades in whole, without the drawing, the flash or the circling sparks."
+    },
+    {
+      "title": "Light and dark",
+      "description": "The spell list follows the system's light or dark setting, while the sigil keeps its dark stage unless parchment is chosen."
     },
     {
       "title": "Phones and tablets",

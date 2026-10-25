@@ -8,10 +8,12 @@ body{background:radial-gradient(ellipse at 50% 30%, var(--bg-1), var(--bg-0) 70%
    the fallback for browsers without svh */
 .app{display:grid; grid-template-columns:320px 1fr; grid-template-rows:minmax(0,1fr) auto; height:100vh; height:100svh;}
 
-/* ---------- sidebar ---------- */
+/* ---------- sidebar ----------
+   follows the system's light or dark setting through the colour variables (css/base.css), as the footer
+   does; the stage doesn't */
 .sidebar{
   grid-column:1; grid-row:1;
-  background:linear-gradient(180deg, rgba(18,20,31,.9), rgba(10,11,18,.94));
+  background:var(--panel); color:var(--ink);
   border-right:1px solid var(--line);
   display:flex; flex-direction:column; min-height:0;
 }
@@ -23,10 +25,10 @@ body{background:radial-gradient(ellipse at 50% 30%, var(--bg-1), var(--bg-0) 70%
   font-size:.72rem; letter-spacing:.03em; color:var(--ink-dim); text-transform:none; margin-top:2px;}
 .search{padding:0 14px 10px;}
 .search input{
-  width:100%; background:#0c0e17; border:1px solid var(--line); border-radius:6px;
+  width:100%; background:var(--field); border:1px solid var(--line); border-radius:6px;
   color:var(--ink); padding:8px 10px; font-family:inherit; font-size:.95rem;
 }
-.search input:focus{outline:none; border-color:#4a4f78;}
+.search input:focus{outline:none; border-color:var(--field-focus);}
 .filters{padding:0 14px 10px; display:flex; flex-wrap:wrap; gap:6px;}
 .filters[hidden]{display:none;} /* .filters' own display:flex is equal-specificity to the UA [hidden] rule and would otherwise win */
 /* the chips are buttons: their own font, line height and margin are reset so they look as plain boxes did */
@@ -34,7 +36,7 @@ body{background:radial-gradient(ellipse at 50% 30%, var(--bg-1), var(--bg-0) 70%
 .chip{
   font-family:'Cinzel',serif; font-size:.62rem; letter-spacing:.05em; text-transform:uppercase;
   padding:5px 9px; border-radius:20px; border:1px solid var(--line); cursor:pointer;
-  color:var(--ink-dim); background:#0c0e17; user-select:none; transition:.15s;
+  color:var(--ink-dim); background:var(--field); user-select:none; transition:.15s;
 }
 .chip[aria-pressed="true"]{color:#0a0b10; font-weight:700;}
 .chip[data-trad="arcane"][aria-pressed="true"]{background:hsl(var(--arcane)); box-shadow:0 0 10px hsla(var(--arcane)/.6);}
@@ -52,38 +54,38 @@ body{background:radial-gradient(ellipse at 50% 30%, var(--bg-1), var(--bg-0) 70%
 .rank-row{padding:0 14px 12px; display:flex; flex-wrap:wrap; gap:4px;}
 .rank-chip{
   width:24px; height:24px; display:flex; align-items:center; justify-content:center; padding:0;
-  border-radius:50%; border:1px solid var(--line); background:#0c0e17;
+  border-radius:50%; border:1px solid var(--line); background:var(--field);
   font-family:inherit; font-size:.68rem; color:var(--ink-dim); cursor:pointer;
 }
-.rank-chip[aria-pressed="true"]{background:#3a3f66; color:#fff; border-color:#5b6198;}
+.rank-chip[aria-pressed="true"]{background:var(--pressed); color:var(--pressed-ink); border-color:var(--pressed-line);}
 .count{padding:0 16px 8px; font-size:.7rem; color:var(--ink-faint); letter-spacing:.03em;}
 .list{list-style:none; margin:0; padding:0 0 16px; overflow-y:auto; flex:1; border-top:1px solid var(--line);}
 .list li{
   padding:8px 16px; font-size:.88rem; cursor:pointer; color:var(--ink-dim);
   border-left:3px solid transparent; display:flex; justify-content:space-between; gap:8px;
 }
-.list li:hover{background:rgba(255,255,255,.03); color:var(--ink);}
+.list li:hover{background:var(--hover); color:var(--ink);}
 /* the footer's links to help (with the Paizo notice and credits) and the atlas */
 .legal{
   grid-column:1; grid-row:2; padding:10px 16px 14px; font-size:.62rem; line-height:1.4; color:var(--ink-faint);
-  border-top:1px solid var(--line); border-right:1px solid var(--line); background:rgba(10,11,18,.94);
+  border-top:1px solid var(--line); border-right:1px solid var(--line); background:var(--footer);
 }
 .legal p{margin:0 0 6px;}
 .legal p:last-child{margin-bottom:0;}
 .legal a{color:var(--ink-dim);}
-.list li.active{background:rgba(255,255,255,.06); color:#fff; border-left-color:var(--dot,#888);}
+.list li.active{background:var(--selected); color:var(--ink-strong); border-left-color:var(--dot,#888);}
 .list li .r{font-size:.7rem; color:var(--ink-faint); font-variant:small-caps;}
 .list::-webkit-scrollbar{width:8px;}
-.list::-webkit-scrollbar-thumb{background:#242739; border-radius:4px;}
+.list::-webkit-scrollbar-thumb{background:var(--scroll); border-radius:4px;}
 
 /* keyboard focus: a ring on every control, shown only when focus came from the keyboard. List items sit in
    a scrolling box that would clip a ring outside them, so theirs is drawn inside */
 .chip:focus-visible, .rank-chip:focus-visible, .tool:focus-visible, .topbar-btn:focus-visible, .drawer-close:focus-visible,
 .export-panel button:focus-visible, .export-panel select:focus-visible, .export-panel input:focus-visible{
-  outline:2px solid #9aa6ff; outline-offset:2px;
+  outline:2px solid var(--focus-ring); outline-offset:2px;
 }
 .list:focus-visible{outline:none;}
-.list li:focus-visible{outline:2px solid #9aa6ff; outline-offset:-2px;}
+.list li:focus-visible{outline:2px solid var(--focus-ring); outline-offset:-2px;}
 
 /* ---------- stage ---------- */
 /* a size container, so the readout's placement can follow the stage's own shape (see below) */
@@ -269,7 +271,7 @@ body{background:radial-gradient(ellipse at 50% 30%, var(--bg-1), var(--bg-0) 70%
   body.drawer-open .sidebar{transform:none; visibility:visible; transition:transform .2s ease;}
   .drawer-close{
     display:block; position:absolute; top:12px; right:10px; width:36px; height:36px; padding:0;
-    border:1px solid var(--line); border-radius:6px; background:#1b1e30; color:var(--ink-dim);
+    border:1px solid var(--line); border-radius:6px; background:var(--raised); color:var(--ink-dim);
     font-size:1.3rem; line-height:1; cursor:pointer;
   }
   body.drawer-open .drawer-backdrop{display:block; position:fixed; inset:0; z-index:25; background:rgba(0,0,0,.55);}

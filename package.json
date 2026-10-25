@@ -7,7 +7,8 @@
   },
   "scripts": {
     "test": "node test/snapshots.mjs",
-    "test:update": "node test/snapshots.mjs --update"
+    "test:update": "node test/snapshots.mjs --update",
+    "share-card": "node share-card.mjs"
   },
   "devDependencies": {
     "puppeteer": "^25.16.0"

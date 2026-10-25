@@ -63,6 +63,7 @@ jobs:
            favicon-32x32.png \
            favicon-192x192.png \
            favicon-512x512.png \
+           share-card.jpg \
            js/ \
            data/ \
            fonts/ \

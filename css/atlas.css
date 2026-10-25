@@ -23,9 +23,15 @@ section{margin-bottom:64px;}
 .note{font-size:.82rem; color:var(--ink-dim); text-align:center; line-height:1.25;}
 
 .trad-block{margin-bottom:30px;}
-.trad-head{font-family:'Cinzel', serif; font-weight:700; letter-spacing:.08em; text-transform:uppercase; font-size:.82rem; margin:0 0 12px; display:flex; align-items:baseline; gap:10px;}
+.trad-head{font-family:'Cinzel', serif; font-weight:700; letter-spacing:.08em; text-transform:uppercase; font-size:.82rem; margin:0 0 12px; display:flex; align-items:baseline; gap:10px; color:var(--trad);}
 .trad-count{font-family:'JetBrains Mono', ui-monospace, monospace; font-weight:400; letter-spacing:0; text-transform:none; font-size:.72rem; color:var(--ink-faint);}
 
 footer{text-align:center; color:var(--ink-faint); font-style:italic; font-size:.85rem; margin-top:40px;}
 footer code{font-family:'JetBrains Mono', ui-monospace, monospace; font-style:normal; color:var(--ink-dim);}
 @media (max-width:640px){ .grid{grid-template-columns:repeat(auto-fill, minmax(108px, 1fr));} }
+/* on paper the page turns light but the cards stay dark, so each symbol shows as it does in a glowing
+   sigil; a tradition's heading takes its parchment ink, which js/atlas.js sets beside its bright colour */
+@media (prefers-color-scheme:light){
+  .card{color-scheme:dark; --ink:#d8dae8; --ink-dim:#8388a8;}
+  .trad-head{color:var(--trad-ink);}
+}

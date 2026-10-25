@@ -42,7 +42,8 @@ function render(){
   for (const trad of ALL_TRADITIONS){
     const color = accent(trad);
     const block = document.createElement('div'); block.className = 'trad-block';
-    const head = document.createElement('div'); head.className = 'trad-head'; head.style.color = color;
+    const head = document.createElement('div'); head.className = 'trad-head';
+    head.style.setProperty('--trad', color); head.style.setProperty('--trad-ink', TRAD_INK[trad]); // the ink on a light page (css/atlas.css)
     head.innerHTML = `${trad} <span class="trad-count">${RUNES[trad].length} runes</span>`;
     const grid = document.createElement('div'); grid.className = 'grid';
     RUNES[trad].forEach((rune, i) => grid.appendChild(card(symbolSvg(rune.draw, '-6 -6 12 12', color, 0.65), `#${i + 1}`, rune.note)));

@@ -10,5 +10,10 @@ li b{font-family:'Cinzel', serif; font-weight:700; font-size:.92rem; letter-spac
 .eg{color:var(--ink-dim); font-style:italic; white-space:nowrap;}
 .trad{font-weight:700; font-style:normal;}
 .trad.arcane{color:hsl(var(--arcane));} .trad.divine{color:hsl(var(--divine));} .trad.occult{color:hsl(var(--occult));} .trad.primal{color:hsl(var(--primal));}
+/* on paper the traditions are named in their parchment inks (TRAD_INK in js/core.js), as the bright
+   colours are hard to read there */
+@media (prefers-color-scheme:light){
+  .trad.arcane{color:rgb(39, 59, 104);} .trad.divine{color:rgb(124, 80, 29);} .trad.occult{color:rgb(87, 51, 113);} .trad.primal{color:rgb(32, 91, 76);}
+}
 .notices p{color:var(--ink-dim); font-size:.95rem; margin:0 0 12px;}
 .back{text-align:center; margin-top:44px;}

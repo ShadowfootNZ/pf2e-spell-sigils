@@ -10,12 +10,31 @@
 @font-face{font-family:'JetBrains Mono'; font-style:normal; font-weight:400 500; font-display:swap; src:url(../fonts/jetbrains-mono.woff2) format('woff2');}
 
 /* the tradition, ritual and focus colours are hue, saturation and lightness, for hsl(); the tradition
-   ones match TRAD_HSL in js/core.js, which colours the sigils themselves */
+   ones match TRAD_HSL in js/core.js, which colours the sigils themselves. The rest are dark here and
+   light below */
 :root{
+  color-scheme:dark;
   --bg-0:#05060a; --bg-1:#0b0d16; --line:#2a2d42;
-  --ink:#d8dae8; --ink-dim:#8388a8; --ink-faint:#565b7e; --accent:#8fd0ff;
+  --ink:#d8dae8; --ink-dim:#8388a8; --ink-faint:#565b7e; --ink-strong:#fff; --accent:#8fd0ff;
+  --panel:linear-gradient(180deg, rgba(18,20,31,.9), rgba(10,11,18,.94)); --footer:rgba(10,11,18,.94);
+  --field:#0c0e17; --field-focus:#4a4f78; --raised:#1b1e30; --hover:rgba(255,255,255,.03); --selected:rgba(255,255,255,.06);
+  --pressed:#3a3f66; --pressed-ink:#fff; --pressed-line:#5b6198; --focus-ring:#9aa6ff; --scroll:#242739;
   --arcane:210 70% 60%; --divine:42 75% 58%; --occult:272 62% 63%; --primal:140 50% 50%;
   --ritual:355 60% 48%; --focus:190 55% 50%;
+}
+/* With the system set to light, the app's sidebar and footer, where a spell is chosen, and the whole of
+   the atlas and help pages turn to paper and ink, in the parchment mode's colours. The stage, where the
+   sigil is drawn, never follows the system: it keeps the dark values, or its own paper in parchment mode */
+@media (prefers-color-scheme:light){
+  html.doc, .sidebar, .legal{
+    color-scheme:light;
+    --bg-0:#f2ecdf; --bg-1:#faf7ef; --line:#d9cdb3;
+    --ink:#2b2520; --ink-dim:#5f5244; --ink-faint:#8c7f6a; --ink-strong:#1d1915; --accent:#2c5f93;
+    --panel:linear-gradient(180deg, #faf7ef, #f2ecdf); --footer:#f2ecdf;
+    --field:#fffdf8; --field-focus:#a8977a; --raised:#efe8d8; --hover:rgba(60,40,10,.05); --selected:rgba(60,40,10,.08);
+    --pressed:#5a4d40; --pressed-ink:#faf7ef; --pressed-line:#3f352b; --focus-ring:#3d55c4; --scroll:#d6cab0;
+  }
+  .doc h1{text-shadow:none;}
 }
 *{box-sizing:border-box;}
 body{margin:0; color:var(--ink); font-family:'EB Garamond', Georgia, serif;}
