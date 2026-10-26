@@ -35,6 +35,10 @@ npm test
 
 [design.md](design.md) explains how the tool works, [plan.md](plan.md) lists open work, and [atlas.html](atlas.html) shows every rune, trait glyph and skill sigil used in the drawings.
 
+## Privacy
+
+Every sigil is drawn in the browser. Analytics record page views, and a short fixed list of features used, each at most once per device per day: arriving by a link to a spell, picking a spell from the list, search, each kind of filter, parchment, max glow, opening Export, and each copy, save or share, by its file format. They never record which spell is shown or exported, what was searched for or which filter was chosen. Nothing is sent at all where the browser asks not to be tracked, by Global Privacy Control or Do Not Track. [design.md](design.md#analytics) lists every event.
+
 ## Licence and credits
 
 Spell Sigils uses trademarks and/or copyrights owned by Paizo Inc., used under Paizo's Community Use Policy ([paizo.com/licenses/communityuse](https://paizo.com/licenses/communityuse)). We are expressly prohibited from charging you to use or access this content. Spell Sigils is not published, endorsed, or specifically approved by Paizo. For more information about Paizo Inc. and Paizo products, visit [paizo.com](https://paizo.com).

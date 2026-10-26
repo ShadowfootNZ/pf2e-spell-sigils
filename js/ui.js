@@ -11,6 +11,31 @@ function press(el, on){ el.setAttribute('aria-pressed', on ? 'true' : 'false'); 
 
 let SPELLS = [];
 
+/* ---------------- usage analytics ---------------- */
+// Fixed feature names, each reported at most once per device per local day, so the numbers count devices
+// rather than clicks. Nothing about what's drawn is sent: no spell, search text or filter value.
+// js/analytics.js sends them, and sends nothing from a local address or where the browser asks not to be
+// tracked. It's a module, so it runs after these scripts, and an event that falls due before it has run
+// waits for DOMContentLoaded, which follows every module script
+const ANALYTICS_DAYS_KEY = 'sigils.analyticsDays';
+const reportedThisLoad = new Set();
+function sendEvent(event){
+  if (globalThis.trackAppFeature) globalThis.trackAppFeature(event);
+  else document.addEventListener('DOMContentLoaded', () => globalThis.trackAppFeature?.(event), {once:true});
+}
+function trackDaily(event){
+  if (reportedThisLoad.has(event)) return;
+  reportedThisLoad.add(event);
+  const d = new Date(), today = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+  try {
+    const days = JSON.parse(localStorage.getItem(ANALYTICS_DAYS_KEY) || '{}');
+    if (days[event] === today) return;
+    days[event] = today;
+    localStorage.setItem(ANALYTICS_DAYS_KEY, JSON.stringify(days));
+  } catch {} // without storage, once per page load instead
+  sendEvent(event);
+}
+
 /* ---------------- sidebar / filters ---------------- */
 // Empty sets mean no filter. Category and tradition filters are mutually exclusive; focusClass is a
 // single selection within the Focus category.
@@ -31,6 +56,7 @@ const categoryChipEls = [];
   c.addEventListener('click', ()=>{
     if (state.trads.has(tr)) state.trads.delete(tr); else state.trads.add(tr);
     press(c, state.trads.has(tr));
+    if (state.trads.has(tr)) trackDaily('filter-tradition');
     if (state.category !== null){
       state.category = null;
       categoryChipEls.forEach(el => press(el, false));
@@ -48,6 +74,7 @@ const categoryChipEls = [];
   c.addEventListener('click', ()=>{
     state.category = state.category === cat ? null : cat;
     categoryChipEls.forEach(el => press(el, state.category === el.dataset.trad));
+    if (state.category) trackDaily(`filter-${cat}`);
     if (state.trads.size){
       state.trads.clear();
       [...tradFilterEl.querySelectorAll('.chip')].forEach(el=>{
@@ -76,6 +103,7 @@ function buildClassFilters(){
     c.addEventListener('click', ()=>{
       state.focusClass = state.focusClass === cls ? null : cls;
       classChipEls.forEach(el => press(el, state.focusClass === el.dataset.class));
+      if (state.focusClass) trackDaily('filter-class');
       renderList();
     });
     classChipEls.push(c);
@@ -90,6 +118,7 @@ for(let r=0;r<=10;r++){
   c.addEventListener('click', ()=>{
     if (state.ranks.has(r)) state.ranks.delete(r); else state.ranks.add(r);
     press(c, state.ranks.has(r));
+    if (state.ranks.has(r)) trackDaily('filter-rank');
     renderList();
   });
   rankFilterEl.appendChild(c);
@@ -97,6 +126,7 @@ for(let r=0;r<=10;r++){
 
 document.getElementById('search').addEventListener('input', e=>{
   state.search = e.target.value.trim().toLowerCase();
+  if (state.search) trackDaily('search');
   renderList();
 });
 
@@ -130,6 +160,7 @@ document.head.appendChild(Object.assign(document.createElement('style'), {textCo
 document.getElementById('bgToggle').addEventListener('click', function(){
   const on = this.getAttribute('aria-pressed') !== 'true';
   this.setAttribute('aria-pressed', on);
+  if (on) trackDaily('parchment');
   document.querySelector('.stage').classList.toggle('parchment', on);
   // max glow has nothing to show on paper: it goes off and waits for the ink to be put away
   if (on && maxGlowToggle.getAttribute('aria-pressed') === 'true') maxGlowToggle.click();
@@ -143,6 +174,7 @@ const maxGlowToggle = document.getElementById('maxGlowToggle');
 maxGlowToggle.addEventListener('click', () => {
   const on = maxGlowToggle.getAttribute('aria-pressed') !== 'true';
   maxGlowToggle.setAttribute('aria-pressed', on);
+  if (on) trackDaily('max-glow'); // parchment's own click only ever turns it off
   setGlow(on ? GLOW_PEAK : GLOW_FLOOR);
   if (glowTooSlow || !on) setIdleStill('max glow', on);
 });
@@ -283,6 +315,7 @@ function renderList(){
     li.appendChild(nm); li.appendChild(rk);
     li.addEventListener('click', ()=>{
       showSpell(s);
+      trackDaily('browse');
       // on a phone, picking a spell closes the drawer and brings the sigil back into view
       setDrawer(false);
       window.scrollTo(0, 0);
@@ -306,10 +339,15 @@ async function init(){
   SPELLS = spells;
   buildClassFilters();
   renderList();
+  // a spell named in the hash on arrival came by a link. The hash always names the spell on show, so a
+  // reload or a return with Back carries one too, and those don't count
+  const nav = performance.getEntriesByType('navigation')[0];
+  if (SPELLS.some(s => s.slug === slugFromHash()) && (!nav || nav.type === 'navigate')) trackDaily('linked-spell');
   showFromHash();
   window.addEventListener('hashchange', showFromHash);
 }
 init().catch(err => {
   console.error(err);
+  trackDaily('load-failed');
   document.getElementById('count').textContent = 'Could not load the spell data. Serve this folder over HTTP.';
 });

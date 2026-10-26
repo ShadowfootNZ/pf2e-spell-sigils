@@ -342,19 +342,29 @@ async function exportAction(label, action){
 exportCopy.addEventListener('click', () => exportAction('Copy', async () => {
   if (!clipboardAvailable) return 'Copying an image needs the page on https. Save works anywhere.';
   await navigator.clipboard.write([new ClipboardItem({'image/png': renderSigilBlob({ground:exportGround.checked})})]);
+  trackDaily('copy-png');
   return 'Image copied.';
 }));
+// each finished save or share is counted by its format (trackDaily in js/ui.js); a cancelled one isn't
 exportSave.addEventListener('click', () => exportAction('Save', async () => {
-  if (exportKind() === 'image'){ download(await makeImage(), imageType()); return 'Image saved.'; }
+  if (exportKind() === 'image'){
+    const type = imageType();
+    download(await makeImage(), type);
+    trackDaily(`save-${type}`);
+    return 'Image saved.';
+  }
   const format = FORMATS[exportFormat.value];
   const blob = await exportAnimation();
   download(blob, format.ext);
+  trackDaily(`save-${format.ext}`);
   return `Animation saved, ${(blob.size / 1e6).toFixed(1)} MB.`;
 }));
 exportShare.addEventListener('click', () => exportAction('Share', async () => {
   if (exportKind() === 'image'){
+    const type = imageType();
     const ready = imageForShare && imageForShare.key === imageKey() && imageForShare.blob;
-    await share(ready || await makeImage(), imageType());
+    await share(ready || await makeImage(), type);
+    trackDaily(`share-${type}`);
     return '';
   }
   const format = FORMATS[exportFormat.value];
@@ -363,6 +373,7 @@ exportShare.addEventListener('click', () => exportAction('Share', async () => {
     return 'The animation is ready. Tap Share again to send it.';
   }
   await share(made.blob, format.ext);
+  trackDaily(`share-${format.ext}`);
   return '';
 }));
 document.getElementById('exportCancel').addEventListener('click', () => { if (job) job.controller.abort(); });
@@ -387,7 +398,10 @@ function setExportPanel(open, focusInside){
   else if (exportPanel.contains(document.activeElement)) exportOpen.focus();
 }
 // a click from Enter or Space has no pointer position, and reports detail 0
-exportOpen.addEventListener('click', e => setExportPanel(exportPanel.hidden, e.detail === 0));
+exportOpen.addEventListener('click', e => {
+  if (exportPanel.hidden) trackDaily('export');
+  setExportPanel(exportPanel.hidden, e.detail === 0);
+});
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !exportPanel.hidden) setExportPanel(false); });
 document.addEventListener('pointerdown', e => {
   if (!exportPanel.hidden && !exportPanel.contains(e.target) && !exportOpen.contains(e.target)) setExportPanel(false);

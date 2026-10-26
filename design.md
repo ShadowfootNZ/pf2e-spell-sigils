@@ -1,6 +1,6 @@
 # Spell Sigils design
 
-Spell Sigils draws an animated magic circle for each Pathfinder Second Edition spell. It is a static web app, always served over HTTP: HTML pages, stylesheets, five plain scripts and JSON data files. Every visual choice is derived from the spell's rank, traditions, traits and category, using a random stream seeded on the spell's identity, so a given spell always produces the same sigil.
+Spell Sigils draws an animated magic circle for each Pathfinder Second Edition spell. It is a static web app, always served over HTTP: HTML pages, stylesheets, five plain scripts, an analytics module and JSON data files. Every visual choice is derived from the spell's rank, traditions, traits and category, using a random stream seeded on the spell's identity, so a given spell always produces the same sigil.
 
 `plan.md` tracks open and proposed work.
 
@@ -8,7 +8,7 @@ Spell Sigils draws an animated magic circle for each Pathfinder Second Edition s
 
 | File | Role |
 | --- | --- |
-| `index.html` | Page markup. Loads `css/base.css`, `css/app.css` and the five scripts. |
+| `index.html` | Page markup. Loads `css/base.css`, `css/app.css` and the five scripts, then `js/analytics.js`. |
 | `css/base.css` | What every page shares: the self-hosted fonts' `@font-face` rules, the colour variables with their light values for the system's light setting, the base type and links, and the layout the atlas and help pages share as documents, which they take by `class="doc"` on `<html>`. Loaded first. |
 | `css/app.css` | The app's own layout and styling. |
 | `fonts/` | Cinzel, EB Garamond (upright and italic) and JetBrains Mono as self-hosted WOFF2 files, with each family's SIL Open Font License. Cinzel is declared from weight 500, so text asking for 400 gets 500. |
@@ -17,11 +17,12 @@ Spell Sigils draws an animated magic circle for each Pathfinder Second Edition s
 | `js/sigil.js` | `buildSigil`, the sigil's clock, glow and comets. |
 | `js/ui.js` | Filters, list, readout, the parchment and max glow toggles, loading the data and startup. |
 | `js/export.js` | The Export panel: the sigil as a PNG or as an MP4 or WebM animation, copied, saved or shared. |
+| `js/analytics.js` | Usage analytics, the same script as the author's other apps: a page view on load, and `trackAppFeature` for the named events in Analytics below. Loaded as a module by every page. |
 | `js/vendor/` | `mp4-muxer` 5.2.2 and `webm-muxer` 5.1.4 by Vanilagy, MIT, vendored unchanged with their licences. They pack encoded video into a file, and load only when an animation is made. Both are deprecated in favour of the much larger, MPL-licensed Mediabunny; the file formats they write don't change. |
 | `data/spells.json` | The spell data, one record per line, fetched at startup. |
 | `data/classes.json` | The hue for each class's focus spells, in the order classes were first seen. Fetched at startup; the refresh appends new classes. |
 | `atlas.html`, `css/atlas.css`, `js/atlas.js` | Symbol atlas: every rune, trait glyph and skill sigil drawn live from `js/symbols.js`, labelled with each symbol's note. No page has inline styles or scripts. |
-| `help.html`, `css/help.css` | How to read a sigil and use the page, kept short so the rest is found by exploring, with example links that open the main page on a spell; then Paizo's notice and the credits. A static page, styled by `css/base.css` and `css/help.css`. |
+| `help.html`, `css/help.css` | How to read a sigil and use the page, kept short so the rest is found by exploring, with example links that open the main page on a spell; then Paizo's notice and the credits. A static page, styled by `css/base.css` and `css/help.css`, whose only script is `js/analytics.js`. |
 | `share-card.jpg`, `share-card.mjs` | The 1200 by 630 card a link to the site shows in chat apps and social sites: Compel True Name's sigil at rest beside the site's name and tagline. Every spell link shows the same card because its slug follows the `#`, which is never sent to the server. The tags use the deployed image's full address, so they must change if the site moves. `npm run share-card` remakes it after a change that redraws Compel True Name. |
 | `refresh-data.mjs` | Updates the sparse clone of `foundryvtt/pf2e` in `.cache/pf2e-pack` and rebuilds `data/spells.json` from it. |
 | `test/snapshots.mjs` | Render regression check, run with `npm test`; see Snapshots below. |
@@ -228,6 +229,27 @@ A sigil is drawn in a 600 by 600 viewBox centred on (300, 300) with an outer rad
   - Safari leaves each encoded chunk's duration empty, which `mp4-muxer` refuses, so MP4 chunks go in with their data and the frame's duration given outright; an error inside the encoder's output callback is kept and rethrown, or it would vanish.
   - A new spell drawn meanwhile, or Cancel, stops it. Every change it makes to the page is inside one `try`, so a failure at any point, even while creating the muxer or the encoder, leaves the page as it was. Afterwards the clock goes back to the page's own, offset so that time carries on from the stepped time, and the waiting frames and timers are handed over, so the sigil is left settled and live.
 - **Footer.** Links to the help page, which carries Paizo's notice, the credits and the contact link, and to the symbol atlas, then the sigil version, at the foot of the sidebar column or under the sigil on a phone. The atlas links to the help page for the notice too.
+
+## Analytics
+
+Analytics show which features are used, never what anyone draws. No spell name, search text, filter value or export setting is ever sent. `js/analytics.js` is the same script as the author's other apps, Fletch among them, and every page loads it as a module.
+
+- **Page views:** one on every load of the main page, the atlas and the help page, each with an app id from its path, the referrer and the viewport width; the endpoint records the device from the request. The spell on show is in the hash, which isn't part of the path, so a page view never names it.
+- **Events, at most once per device per local day** (`trackDaily` in `js/ui.js`, with the days kept in `sigils.analyticsDays` in local storage, or once per page load if storage is unavailable), so the numbers count devices, not how often they do something. Each is sent only for something the person did, and only once it has happened:
+  - `linked-spell`: the page opened on a spell named in its hash. A reload or a return with Back sends nothing, since the hash always names the spell on show.
+  - `browse`: a spell was picked from the list, by click or keyboard.
+  - `search`: something was typed in the search box.
+  - `filter-tradition`, `filter-rank`, `filter-ritual`, `filter-focus`, `filter-class`: a filter was turned on. Turning one off sends nothing.
+  - `parchment`, `max-glow`: the mode was turned on. Turning parchment on also turns max glow off, which sends nothing.
+  - `export`: the Export panel was opened.
+  - `copy-png`: an image was copied.
+  - `save-png`, `save-svg`, `save-mp4`, `save-webm`: a file was saved, named by its format.
+  - `share-png`, `share-svg`, `share-mp4`, `share-webm`: the share sheet completed. Closing it without sharing, or the first Share tap that only makes an animation, sends nothing.
+  - `load-failed`: the spell data didn't load, which on the deployed site means a broken deploy.
+- **Privacy signals:** where the browser sends Global Privacy Control or Do Not Track, nothing is sent at all, not even the page view.
+- **Nothing local:** analytics never send from `localhost`, `127.0.0.1` or private network addresses, so `npm test` and the dev server don't count.
+
+`js/analytics.js` runs after the page's other scripts, so an event that falls due before it has run waits for `DOMContentLoaded`, which follows every module script. The privacy summary is in `README.md` and on the help page; a new event belongs in all three places.
 
 ## Licensing
 
